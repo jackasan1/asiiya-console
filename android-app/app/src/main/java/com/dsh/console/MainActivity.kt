@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +22,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityMainBinding
     private var seq = 100
+    private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
+    private val REQ_RUN = 1
 
     private val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
@@ -69,6 +72,11 @@ class MainActivity : AppCompatActivity() {
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
 
+        // Termux 把 RUN_COMMAND 声明为 dangerous 权限，必须运行时申请
+        if (checkSelfPermission(RUN_PERM) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(RUN_PERM), REQ_RUN)
+        }
+
         val filter = IntentFilter(TermuxRunner.ACTION_RESULT)
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
@@ -86,6 +94,16 @@ class MainActivity : AppCompatActivity() {
 
         log("DSH 控制台就绪")
         refreshStatus()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_RUN) {
+            val ok = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            log(if (ok) "RUN_COMMAND 权限已授予" else "RUN_COMMAND 权限被拒绝，按钮无法工作")
+        }
     }
 
     override fun onDestroy() {
