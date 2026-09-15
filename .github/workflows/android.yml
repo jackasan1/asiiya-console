@@ -28,6 +28,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Cache debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: dsh-console-debug-keystore-v1
+
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
