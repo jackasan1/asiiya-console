@@ -14,7 +14,8 @@ object TermuxRunner {
     const val PKG = "com.termux"
     const val ACTION_RUN = "$PKG.RUN_COMMAND"
     const val ACTION_RESULT = "com.dsh.console.RUN_RESULT"
-    const val EXTRA_RESULT_BUNDLE = "$PKG.RUN_COMMAND_RESULT_BUNDLE"
+    // TermuxConstants.TERMUX_SERVICE.EXTRA_PLUGIN_RESULT_BUNDLE == "result"
+    const val EXTRA_RESULT_BUNDLE = "result"
 
     // Termux 的固定路径
     private const val HOME = "/data/data/com.termux/files/home"

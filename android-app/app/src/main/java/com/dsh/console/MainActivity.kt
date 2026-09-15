@@ -31,11 +31,16 @@ class MainActivity : AppCompatActivity() {
     private val resultReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
             val bundle = intent?.getBundleExtra(TermuxRunner.EXTRA_RESULT_BUNDLE)
+                ?: intent?.getBundleExtra("com.termux.RUN_COMMAND_RESULT_BUNDLE")
             val stdout = bundle?.getString("stdout")?.trim().orEmpty()
             val stderr = bundle?.getString("stderr")?.trim().orEmpty()
             val exit = bundle?.getInt("exitCode", -1) ?: -1
             val errmsg = bundle?.getString("errmsg")?.trim().orEmpty()
 
+            if (bundle == null) {
+                log("未收到结果 bundle（键名不匹配？）")
+                log("intent extras: " + (intent?.extras?.keySet()?.joinToString() ?: "无"))
+            }
             if (stdout.isNotEmpty()) log(stdout)
             if (stderr.isNotEmpty()) log("[stderr] $stderr")
             if (errmsg.isNotEmpty()) log("[termux] $errmsg")
