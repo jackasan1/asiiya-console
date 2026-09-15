@@ -6,7 +6,7 @@ URLFILE="$BASE/dsh-web-url.txt"
 WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
 PORT=3080
-CTL_VER=4
+CTL_VER=5
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 port_code() { local c; c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null)"; printf '%s' "${c:-000}"; }
@@ -93,6 +93,42 @@ install)
   echo $! > "$BASE/install.pid"
   echo "安装已在后台启动（PID $(cat "$BASE/install.pid")）"
   echo "日志: $INSTLOG"
+  ;;
+
+repair)
+  if [ ! -s "$BASE/dsh-oneclick.sh" ]; then echo "✗ 未找到 dsh-oneclick.sh，请先用「安装」"; exit 1; fi
+  echo "==> 快速修复：跳过 npm 安装，重打 Android 兼容补丁"
+  [ -f "$INSTLOG" ] && mv -f "$INSTLOG" "$INSTLOG.old" 2>/dev/null
+  : > "$INSTLOG"
+  setsid bash "$BASE/dsh-oneclick.sh" --skip-npm >> "$INSTLOG" 2>&1 < /dev/null &
+  echo $! > "$BASE/install.pid"
+  echo "修复已在后台启动（PID $(cat "$BASE/install.pid")）"
+  echo "日志: $INSTLOG"
+  ;;
+
+uninstall)
+  echo "==> 停止服务"
+  wd_up && kill "$(cat "$WDPID")" 2>/dev/null && echo "  看门狗已停"
+  pkill -f "expose-internal[s]" 2>/dev/null && echo "  dsh web 已停" || echo "  dsh web 未运行"
+  rm -f "$URLFILE" "$WDPID"
+  echo "==> 移除部署脚本"
+  rm -f "$BASE/dsh-oneclick.sh" && echo "  ~/dsh/dsh-oneclick.sh 已删除"
+  echo "  已保留：dsh-ctl.sh / dsh-watchdog.sh / 配置 / 日志"
+  echo "✅ 卸载完成（dsh 本体仍在，如需彻底移除请选「连 npm 包一起卸载」）"
+  ;;
+
+uninstall-npm)
+  echo "==> 停止服务"
+  wd_up && kill "$(cat "$WDPID")" 2>/dev/null
+  pkill -f "expose-internal[s]" 2>/dev/null
+  rm -f "$URLFILE" "$WDPID"
+  echo "==> 移除部署脚本"
+  rm -f "$BASE/dsh-oneclick.sh"
+  echo "==> 卸载 npm 全局包"
+  if command -v npm >/dev/null 2>&1; then
+    npm uninstall -g @deepseek-ai/dsh 2>&1 | tail -5 | sed 's/^/  /'
+  fi
+  echo "✅ 已彻底卸载 @deepseek-ai/dsh"
   ;;
 
 log)

@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.view.ViewAnimationUtils
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.app.AppCompatDelegate
 import kotlin.math.hypot
 import kotlin.math.max
@@ -86,19 +87,34 @@ class MainActivity : AppCompatActivity() {
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
         b.ring.setOnClickListener { openConsole() }
         b.centerPanel.setOnClickListener { openConsole() }
-        b.actStart.setOnClickListener { ctl(getString(R.string.act_start), "start") }
+        b.actStart.setOnClickListener { ringBusy(); action(getString(R.string.act_start), "start") }
         b.actStop.setOnClickListener {
-            confirm(getString(R.string.confirm_stop)) { ctl(getString(R.string.act_stop), "stop") }
+            confirm(getString(R.string.confirm_stop)) {
+                ringBusy(); action(getString(R.string.act_stop), "stop")
+            }
         }
         b.actLog.setOnClickListener { toggleLog() }
-        b.actSettings.setOnClickListener { showSettings() }
+        b.actSettings.setOnClickListener { showSheet() }
+
+        // 设置弹出卡片
+        b.sheetBg.setOnClickListener { hideSheet() }
+        b.btnSetClose.setOnClickListener { hideSheet() }
+        b.btnSetCopy.setOnClickListener { copyUrl() }
+        b.btnSetConsole.setOnClickListener { hideSheet(); openConsole() }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
         b.btnConsole.setOnClickListener { openConsole() }
 
         // 左侧抽屉
         b.tvDrawerVer.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
         b.drawerPreflight.setOnClickListener { closeDrawer(); ctl(getString(R.string.act_preflight), "preflight") }
-        b.drawerInstall.setOnClickListener { closeDrawer(); installDialog() }
+        b.drawerInstall.setOnClickListener { showInstallPage(true) }
+        b.drawerBack.setOnClickListener { showInstallPage(false) }
+        b.navInstall.setOnClickListener { showInstallPage(false); closeDrawer(); installDialog() }
+        b.navRepair.setOnClickListener {
+            showInstallPage(false); closeDrawer()
+            ringBusy(); action(getString(R.string.act_repair), "repair")
+        }
+        b.navUninstall.setOnClickListener { showInstallPage(false); closeDrawer(); uninstallDialog() }
         b.drawerConsole.setOnClickListener { closeDrawer(); openConsole() }
         b.drawerCopy.setOnClickListener { closeDrawer(); copyUrl() }
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
@@ -194,9 +210,12 @@ class MainActivity : AppCompatActivity() {
     // ---------------- 状态渲染 ----------------
 
     private fun applyStatus(s: Status) {
+        val prev = lastStatus
         lastStatus = s
 
-        b.ring.sweep = if (s.service) 300f else 110f
+        if (prev == null || prev.service != s.service) pulse()
+        b.ring.spin(false)
+        b.ring.animateTo(if (s.service) 300f else 110f, 850)
         b.tvState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)
         b.tvState.setTextColor(ContextCompat.getColor(this, if (s.service) R.color.fg else R.color.dim))
 
@@ -280,22 +299,86 @@ class MainActivity : AppCompatActivity() {
 
     private fun closeDrawer() { b.drawer.closeDrawers() }
 
-    private fun showSettings() {
-        val s = lastStatus
-        val msg = buildString {
-            append(getString(R.string.settings_app)).append(": ").append(BuildConfig.VERSION_NAME).append('\n')
-            append(getString(R.string.settings_ctl)).append(": ").append(s?.ctlVersion ?: DshApi.CTL_VERSION).append('\n')
-            append(getString(R.string.settings_dsh)).append(": ")
-            append(s?.dshVersion?.ifEmpty { "-" } ?: "-").append('\n')
-            append(getString(R.string.settings_url)).append(":\n")
-            append(lastUrl.ifEmpty { "-" })
+    // ---------------- 设置弹出卡片 ----------------
+
+    private fun showSheet() {
+        val st = lastStatus
+        b.tvSetApp.text = BuildConfig.VERSION_NAME
+        b.tvSetCtl.text = st?.ctlVersion ?: DshApi.CTL_VERSION
+        b.tvSetDsh.text = st?.dshVersion?.ifEmpty { "-" } ?: "-"
+        b.tvSetUrl.text = lastUrl.ifEmpty { "-" }
+        b.sheetScrim.visibility = View.VISIBLE
+        b.sheetCard.post {
+            val h = b.sheetCard.height.toFloat().let { if (it > 0) it else 420f }
+            b.sheetCard.translationY = h
+            b.sheetCard.animate().translationY(0f).setDuration(280)
+                .setInterpolator(DecelerateInterpolator()).start()
+            b.sheetBg.animate().alpha(0.45f).setDuration(220).start()
         }
+    }
+
+    private fun hideSheet() {
+        val h = b.sheetCard.height.toFloat().let { if (it > 0) it else 420f }
+        b.sheetCard.animate().translationY(h).setDuration(200)
+            .setInterpolator(DecelerateInterpolator()).start()
+        b.sheetBg.animate().alpha(0f).setDuration(180).withEndAction {
+            b.sheetScrim.visibility = View.GONE
+            b.sheetCard.translationY = 0f
+        }.start()
+    }
+
+    // ---------------- 抽屉二级页 ----------------
+
+    private fun showInstallPage(show: Boolean) {
+        val from = if (show) b.drawerRoot else b.drawerInstallPage
+        val to = if (show) b.drawerInstallPage else b.drawerRoot
+        var w = b.drawerRoot.width.toFloat()
+        if (w <= 0) w = 720f
+        from.animate().translationX(-w).alpha(0f).setDuration(190).withEndAction {
+            from.visibility = View.GONE
+            from.translationX = 0f
+            from.alpha = 1f
+        }.start()
+        to.visibility = View.VISIBLE
+        to.translationX = if (show) w else -w
+        to.alpha = 0f
+        to.animate().translationX(0f).alpha(1f).setDuration(220)
+            .setInterpolator(DecelerateInterpolator()).start()
+    }
+
+    // ---------------- 仪表盘动画 ----------------
+
+    /** 启动/停止中：弧变短并绕圈转 + 中心圆盘脉冲 */
+    private fun ringBusy() {
+        b.ring.spin(true)
+        b.ring.animateTo(90f, 260)
+        pulse()
+    }
+
+    private fun pulse() {
+        b.centerPanel.animate().scaleX(1.07f).scaleY(1.07f).setDuration(140)
+            .withEndAction {
+                b.centerPanel.animate().scaleX(1f).scaleY(1f).setDuration(220).start()
+            }.start()
+    }
+
+    /** 统一的动作入口：自动展开日志卡，让输出可见 */
+    private fun action(label: String, vararg args: String) {
+        if (b.logCard.visibility != View.VISIBLE) b.logCard.visibility = View.VISIBLE
+        ctl(label, *args)
+    }
+
+    private fun uninstallDialog() {
         AlertDialog.Builder(this)
-            .setTitle(R.string.settings_title)
-            .setMessage(msg)
-            .setPositiveButton(R.string.settings_copy) { _, _ -> copyUrl() }
-            .setNeutralButton(R.string.menu_console) { _, _ -> openConsole() }
-            .setNegativeButton(R.string.settings_close, null)
+            .setTitle(R.string.uninstall_title)
+            .setMessage(R.string.uninstall_msg)
+            .setPositiveButton(R.string.uninstall_all) { _, _ ->
+                action(getString(R.string.act_uninstall), "uninstall-npm")
+            }
+            .setNeutralButton(R.string.uninstall_scripts) { _, _ ->
+                action(getString(R.string.act_uninstall), "uninstall")
+            }
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -326,8 +409,10 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(R.string.ok) { _, _ ->
                 val key = et.text.toString().trim()
                 b.tvInstall.text = ""
+                b.logCard.visibility = View.VISIBLE
                 b.installCard.visibility = View.VISIBLE
                 installPolling = true
+                ringBusy()
                 askNotificationPermission()
                 InstallService.start(this, key)
                 log(getString(R.string.act_install) + " → 后台执行中，通知栏可见进度")

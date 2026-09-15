@@ -75,4 +75,14 @@
     <string name="theme_toggle">Toggle theme</string>
     <string name="theme_dark">Dark theme</string>
     <string name="theme_light">Light theme</string>
+    <string name="nav_install">Install / Repair / Uninstall</string>
+    <string name="act_install_only">Install dsh</string>
+    <string name="act_repair">Repair dsh (fast, skip npm)</string>
+    <string name="act_uninstall">Uninstall dsh</string>
+    <string name="drawer_back">← Back</string>
+    <string name="uninstall_title">Uninstall dsh</string>
+    <string name="uninstall_msg">Stops the service and removes deploy scripts. Also remove the npm package?</string>
+    <string name="uninstall_scripts">Scripts only</string>
+    <string name="uninstall_all">Remove npm package too</string>
+    <string name="settings_hint">Tap the URL to copy</string>
 </resources>

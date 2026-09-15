@@ -1,6 +1,7 @@
 package com.dsh.console
 
 import android.content.Context
+import android.animation.ValueAnimator
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
@@ -10,6 +11,8 @@ import android.graphics.Shader
 import android.graphics.SweepGradient
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import kotlin.math.cos
 import kotlin.math.min
@@ -25,6 +28,45 @@ class RingView @JvmOverloads constructor(
 
     var sweep = 300f
         set(v) { field = v.coerceIn(0f, 360f); invalidate() }
+
+    private var rotation = 0f
+    private var sweepAnim: ValueAnimator? = null
+    private var spinAnim: ValueAnimator? = null
+
+    /** 平滑地把弧长过渡到目标值（用于 启动/停止 状态切换） */
+    fun animateTo(target: Float, duration: Long = 700) {
+        sweepAnim?.cancel()
+        sweepAnim = ValueAnimator.ofFloat(sweep, target.coerceIn(0f, 360f)).apply {
+            this.duration = duration
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { sweep = it.animatedValue as Float }
+            start()
+        }
+    }
+
+    /** 不确定态：弧绕圈转（启动/停止等待中） */
+    fun spin(on: Boolean) {
+        if (on) {
+            if (spinAnim == null) {
+                spinAnim = ValueAnimator.ofFloat(0f, 360f).apply {
+                    duration = 1500
+                    repeatCount = ValueAnimator.INFINITE
+                    interpolator = LinearInterpolator()
+                    addUpdateListener { rotation = it.animatedValue as Float; invalidate() }
+                    start()
+                }
+            }
+        } else {
+            spinAnim?.cancel(); spinAnim = null; rotation = 0f; invalidate()
+        }
+    }
+
+    val isSpinning: Boolean get() = spinAnim != null
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        sweepAnim?.cancel(); spinAnim?.cancel()
+    }
 
     private val density = resources.displayMetrics.density
     private var strokeW = 14f * density
@@ -74,7 +116,7 @@ class RingView @JvmOverloads constructor(
             val m = Matrix().apply { setRotate(-90f, cx, cy) }
             g.setLocalMatrix(m)
             ring.shader = g
-            canvas.drawArc(rect, -90f, sweep, false, ring)
+            canvas.drawArc(rect, -90f + rotation, sweep, false, ring)
         }
 
         // 刻度：绕环一周的短刻线（压在半透明层上）

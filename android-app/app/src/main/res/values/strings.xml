@@ -75,4 +75,14 @@
     <string name="theme_toggle">切换主题</string>
     <string name="theme_dark">已切到深色</string>
     <string name="theme_light">已切到浅色</string>
+    <string name="nav_install">安装 / 修复 / 卸载</string>
+    <string name="act_install_only">安装 dsh</string>
+    <string name="act_repair">修复 dsh（快速，跳过 npm）</string>
+    <string name="act_uninstall">卸载 dsh</string>
+    <string name="drawer_back">← 返回</string>
+    <string name="uninstall_title">卸载 dsh</string>
+    <string name="uninstall_msg">将停止服务并移除部署脚本。是否连 npm 全局包一起卸载？</string>
+    <string name="uninstall_scripts">仅移除脚本</string>
+    <string name="uninstall_all">连 npm 包一起卸载</string>
+    <string name="settings_hint">点地址可复制</string>
 </resources>
