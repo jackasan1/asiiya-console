@@ -8,6 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Typeface
+import android.text.SpannableString
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
+import android.view.MotionEvent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -68,6 +75,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         b.btnMenu.setOnClickListener { b.drawer.openDrawer(GravityCompat.START) }
+        listOf(b.circleStart, b.circleStop, b.circleLog, b.circleSettings,
+               b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
         b.btnTopRight.setOnClickListener { showSettings() }
         b.ring.setOnClickListener { openConsole() }
         b.centerPanel.setOnClickListener { openConsole() }
@@ -114,7 +123,7 @@ class MainActivity : AppCompatActivity() {
     private fun ctl(label: String, vararg args: String, silent: Boolean = false, stdin: String? = null) {
         if (busy > 0 && !silent) { toast(getString(R.string.msg_busy, busy)); return }
         busy++
-        if (!silent && label.isNotEmpty()) log("▶ " + label)
+        if (!silent && label.isNotEmpty()) log("▶ " + label, K.CMD)
 
         try {
             startService(
@@ -151,7 +160,7 @@ class MainActivity : AppCompatActivity() {
 
         if (installPolling) {
             b.installCard.visibility = View.VISIBLE
-            b.tvInstall.text = out
+            out.lines().filter { it.isNotBlank() }.forEach { log(it, kindOf(it)) }
             return
         }
 
@@ -163,7 +172,7 @@ class MainActivity : AppCompatActivity() {
             lastUrl = urlLine.removePrefix("URL=").trim()
             if (lastUrl.isNotEmpty()) hostLabel()
         }
-        if (rest.isNotEmpty()) log(rest)
+        rest.lines().filter { it.isNotBlank() }.forEach { log(it, kindOf(it)) }
         if (urlLine != null && pendingOpen && lastUrl.isNotEmpty()) {
             pendingOpen = false
             launchConsole(lastUrl)
@@ -313,10 +322,90 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun log(msg: String) {
+    // ---------------- 彩色 + 打字机日志 ----------------
+
+    enum class K { CMD, OK, WARN, ERR, DATA, DIM }
+
+    private val logBuf = SpannableStringBuilder()
+    private val q = ArrayDeque<CharSequence>()
+    private var typing = false
+
+    private fun colorOf(k: K): Int = when (k) {
+        K.CMD -> R.color.accent
+        K.OK -> R.color.ok
+        K.WARN -> R.color.warn
+        K.ERR -> R.color.bad
+        K.DATA -> R.color.accent2
+        K.DIM -> R.color.dim
+    }
+
+    private fun makeLine(msg: String, k: K): CharSequence {
+        val sb = SpannableStringBuilder()
+        val ts = SpannableString("[" + fmt.format(Date()) + "] ")
+        ts.setSpan(
+            ForegroundColorSpan(ContextCompat.getColor(this, R.color.log_ts)),
+            0, ts.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        sb.append(ts)
+        val body = SpannableString(msg + "\n")
+        body.setSpan(
+            ForegroundColorSpan(ContextCompat.getColor(this, colorOf(k))),
+            0, body.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        if (k == K.CMD || k == K.ERR) {
+            body.setSpan(StyleSpan(Typeface.BOLD), 0, body.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        sb.append(body)
+        return sb
+    }
+
+    /** 入队后由 pump 逐行吐出，形成打字机效果 */
+    private fun log(msg: String, k: K = K.DIM) {
+        val line = makeLine(msg, k)
         runOnUiThread {
-            b.tvLog.append("[${fmt.format(Date())}] $msg\n")
+            q.addLast(line)
+            if (!typing) { typing = true; ui.post(pump) }
+        }
+    }
+
+    private val pump = object : Runnable {
+        override fun run() {
+            val next = q.removeFirstOrNull()
+            if (next == null) { typing = false; return }
+            logBuf.append(next)
+            if (logBuf.length > 80000) {
+                val cut = logBuf.indexOf("\n", 40000)
+                if (cut > 0) logBuf.delete(0, cut + 1)
+            }
+            b.tvLog.text = logBuf
             b.svLog.post { b.svLog.fullScroll(View.FOCUS_DOWN) }
+            ui.postDelayed(this, if (q.size > 20) 6L else 40L)
+        }
+    }
+
+    /** 按内容猜颜色 */
+    private fun kindOf(l: String): K = when {
+        l.startsWith("SERVICE=UP") || l.startsWith("WATCHDOG=UP") || l.startsWith("PORT=UP") -> K.OK
+        l.contains("=DOWN") -> K.ERR
+        l.startsWith("URL=") -> K.DATA
+        l.startsWith("{") || l.startsWith("  \"") -> K.DATA
+        l.contains("✗") || l.contains("失败") || l.contains("超时") || l.contains("未取到") || l.contains("[stderr]") -> K.ERR
+        l.contains("已就绪") || l.contains("就绪") || l.contains("完成") || l.contains("已拉起") -> K.OK
+        l.contains("⚠") || l.contains("未设置") || l.contains("需要修复") -> K.WARN
+        l.contains(": OK") -> K.OK
+        l.contains(": 缺失") || l.contains("未安装") -> K.WARN
+        else -> K.DIM
+    }
+
+    private fun pressable(v: View) {
+        v.setOnTouchListener { view, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN ->
+                    view.animate().scaleX(0.90f).scaleY(0.90f).setDuration(90).start()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(150).start()
+            }
+            false
         }
     }
 

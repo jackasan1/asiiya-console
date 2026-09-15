@@ -293,21 +293,24 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_horizontal"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
 
                 <FrameLayout
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="@drawable/bg_circle"
-                    android:elevation="2dp">
+                    android:id="@+id/circleStart"
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:background="@drawable/bg_circle_blue"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_start"
                         android:src="@drawable/ic_home"
-                        android:tint="@color/accent" />
+                        android:tint="@color/blue" />
                 </FrameLayout>
 
                 <TextView
@@ -319,7 +322,7 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <LinearLayout
+<LinearLayout
                 android:id="@+id/actStop"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -327,21 +330,24 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_horizontal"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
 
                 <FrameLayout
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="@drawable/bg_circle"
-                    android:elevation="2dp">
+                    android:id="@+id/circleStop"
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:background="@drawable/bg_circle_red"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_stop"
                         android:src="@drawable/ic_stop"
-                        android:tint="@color/dim" />
+                        android:tint="@color/red" />
                 </FrameLayout>
 
                 <TextView
@@ -353,7 +359,7 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <LinearLayout
+<LinearLayout
                 android:id="@+id/actLog"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -361,21 +367,24 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_horizontal"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
 
                 <FrameLayout
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="@drawable/bg_circle"
-                    android:elevation="2dp">
+                    android:id="@+id/circleLog"
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:background="@drawable/bg_circle_amber"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_log"
                         android:src="@drawable/ic_log"
-                        android:tint="@color/dim" />
+                        android:tint="@color/amber" />
                 </FrameLayout>
 
                 <TextView
@@ -387,7 +396,7 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <LinearLayout
+<LinearLayout
                 android:id="@+id/actSettings"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -395,21 +404,24 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_horizontal"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
 
                 <FrameLayout
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="@drawable/bg_circle"
-                    android:elevation="2dp">
+                    android:id="@+id/circleSettings"
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:background="@drawable/bg_circle_gray"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_settings"
                         android:src="@drawable/ic_settings"
-                        android:tint="@color/dim" />
+                        android:tint="@color/gray" />
                 </FrameLayout>
 
                 <TextView
@@ -420,6 +432,7 @@
                     android:textColor="@color/fg"
                     android:textSize="12sp" />
             </LinearLayout>
+
         </LinearLayout>
 
         <!-- ============ 日志卡（默认隐藏）============ -->

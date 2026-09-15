@@ -14,4 +14,10 @@
     <color name="ring_tick">#33FFFFFF</color>
     <color name="chip">#FFF6F8FC</color>
     <color name="card">#FFFFFFFF</color>
+    <color name="warn">#FFE8912A</color>
+    <color name="log_ts">#FFA0A6AF</color>
+    <color name="tint_blue">#1A2F6BFF</color>
+    <color name="tint_red">#1AFF6B6B</color>
+    <color name="tint_amber">#1AE8912A</color>
+    <color name="tint_gray">#14000000</color>
 </resources>
