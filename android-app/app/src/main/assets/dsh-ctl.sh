@@ -9,7 +9,7 @@ PORT=3080
 CTL_VER=4
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-port_code() { curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null || echo 000; }
+port_code() { local c; c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null)"; printf '%s' "${c:-000}"; }
 svc_up() { pgrep -f "expose-internals" >/dev/null 2>&1; }
 wd_up()  { [ -f "$WDPID" ] && kill -0 "$(cat "$WDPID" 2>/dev/null)" 2>/dev/null; }
 cur_url(){ sed -n 's/^dsh web: //p' "$URLFILE" 2>/dev/null | head -1; }
@@ -27,11 +27,14 @@ status)
   V=""; command -v dsh >/dev/null 2>&1 && V="$(dsh --version 2>/dev/null | head -1)"
   I=IDLE; [ -f "$BASE/install.pid" ] && kill -0 "$(cat "$BASE/install.pid" 2>/dev/null)" 2>/dev/null && I=RUNNING
   PID="$(pgrep -f "expose-internals" 2>/dev/null | head -1)"
-  NP="$(pgrep -fc "expose-internals" 2>/dev/null || echo 0)"
+  NP="$(pgrep -fc "expose-internals" 2>/dev/null)"; [ -n "$NP" ] || NP=0
   RT=""
   if [ -n "$PID" ]; then
     ES="$(ps -o etimes= -p "$PID" 2>/dev/null | tr -d ' ')"
-    case "$ES" in ''|*[!0-9]*) RT="";; *) RT="$(printf '%02d:%02d:%02d' $((ES/3600)) $((ES%3600/60)) $((ES%60)));; esac
+    if [ -n "$ES" ] && [ "$ES" -eq "$ES" ] 2>/dev/null; then
+      H=$((ES / 3600)); M=$((ES % 3600 / 60)); S2=$((ES % 60))
+      RT="$(printf '%02d:%02d:%02d' "$H" "$M" "$S2")"
+    fi
   fi
   MD=MISSING
   if [ -s "$HOME/.dsh/.credentials.yaml" ] && grep -q "DEEPSEEK_API_KEY" "$HOME/.dsh/.credentials.yaml" 2>/dev/null; then MD=OK; fi
