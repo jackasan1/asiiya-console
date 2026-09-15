@@ -127,7 +127,18 @@ class MainActivity : AppCompatActivity() {
         if pgrep -f "expose-internal[s]" >/dev/null 2>&1; then echo SERVICE=UP; else echo SERVICE=DOWN; fi
         if [ -f ~/dsh/dsh-watchdog.pid ] && kill -0 "$(cat ~/dsh/dsh-watchdog.pid)" 2>/dev/null; then echo WATCHDOG=UP; else echo WATCHDOG=DOWN; fi
         if command -v dsh >/dev/null 2>&1; then echo "dsh: $(dsh --version 2>/dev/null | head -1)"; else echo "dsh: 未安装"; fi
+        curl -s -o /dev/null -w 'PORT=%{http_code}\n' --max-time 2 http://127.0.0.1:3080/
         sed -n 's/^dsh web: //p' ~/dsh/dsh-web-url.txt 2>/dev/null | head -1
+    """.trimIndent()
+
+    private val openCmd = """
+        setsid bash ~/dsh/dsh-watchdog.sh >/dev/null 2>&1 < /dev/null &
+        for i in $(seq 1 30); do
+          curl -s -o /dev/null --max-time 2 http://127.0.0.1:3080/ && break
+          sleep 2
+        done
+        curl -s -o /dev/null -w 'PORT=%{http_code}\n' --max-time 3 http://127.0.0.1:3080/
+        sed -n 's/^dsh web: //p' ~/dsh/dsh-web-url.txt | head -1
     """.trimIndent()
 
     private val preflightCmd = """
@@ -180,7 +191,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun openWeb() {
         pendingOpen = true
-        run(statusCmd, "取地址并打开")
+        run(openCmd, "确保就绪并打开")
     }
 
     // ---------------- 日志 ----------------
