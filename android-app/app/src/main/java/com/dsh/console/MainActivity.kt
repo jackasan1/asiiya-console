@@ -109,7 +109,7 @@ class MainActivity : AppCompatActivity() {
 
     private val preflightCmd = """
         echo "--- 环境体检 ---"
-        echo "HOME=$HOME"
+        echo "HOME=$(printenv HOME)"
         command -v bash >/dev/null && echo "bash: OK" || echo "bash: 缺失"
         command -v node >/dev/null && echo "node: $(node -v)" || echo "node: 缺失"
         command -v dsh  >/dev/null && echo "dsh: $(dsh --version 2>/dev/null|head -1)" || echo "dsh: 未安装"
