@@ -14,6 +14,14 @@ svc_up() { pgrep -f "expose-internals" >/dev/null 2>&1; }
 wd_up()  { [ -f "$WDPID" ] && kill -0 "$(cat "$WDPID" 2>/dev/null)" 2>/dev/null; }
 cur_url(){ sed -n 's/^dsh web: //p' "$URLFILE" 2>/dev/null | head -1; }
 ready()  { local c; c="$(port_code)"; [ "$c" = "200" ] || [ "$c" = "401" ]; }
+ensure_url() {
+  local u; u="$(cur_url)"
+  if [ -z "$u" ] && [ -f "$BASE/dsh-web.log" ]; then
+    u="$(grep -o 'http://127\.0\.0\.1:3080/?token=[A-Za-z0-9_-]*' "$BASE/dsh-web.log" 2>/dev/null | tail -1)"
+    [ -n "$u" ] && printf 'dsh web: %s\n' "$u" > "$URLFILE"
+  fi
+  printf '%s' "$u"
+}
 wait_ready() {
   local i; for i in $(seq 1 45); do ready && return 0; sleep 2; done; return 1
 }
@@ -39,7 +47,7 @@ status)
   MD=MISSING
   if [ -s "$HOME/.dsh/.credentials.yaml" ] && grep -q "DEEPSEEK_API_KEY" "$HOME/.dsh/.credentials.yaml" 2>/dev/null; then MD=OK; fi
   printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s"}\n' \
-    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(cur_url)")" "$PID" "$NP" "$RT" "$MD"
+    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(ensure_url)")" "$PID" "$NP" "$RT" "$MD"
   ;;
 
 start)
@@ -48,7 +56,8 @@ start)
     echo "看门狗已拉起"
   fi
   if wait_ready; then echo "服务就绪（HTTP $(port_code)）"; else echo "等待超时，请查看日志"; fi
-  echo "URL=$(cur_url)"
+  for i in $(seq 1 30); do [ -n "$(ensure_url)" ] && break; sleep 2; done
+  echo "URL=$(ensure_url)"
   ;;
 
 stop)
@@ -65,8 +74,9 @@ open)
     wd_up || setsid bash "$BASE/dsh-watchdog.sh" >/dev/null 2>&1 < /dev/null &
     wait_ready || { echo "服务未就绪，无法打开"; exit 1; }
   fi
-  U="$(cur_url)"
-  if [ -z "$U" ]; then echo "未取到地址"; exit 1; fi
+  for i in $(seq 1 15); do [ -n "$(ensure_url)" ] && break; sleep 2; done
+  U="$(ensure_url)"
+  if [ -z "$U" ]; then echo "未取到地址（服务可能在启动中，稍后重试）"; exit 1; fi
   echo "URL=$U"
   ;;
 

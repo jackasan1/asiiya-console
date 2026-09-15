@@ -17,12 +17,12 @@ import android.view.Gravity
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
 import com.dsh.console.databinding.ActivityMainBinding
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(receiver, f)
         }
 
-        b.btnMenu.setOnClickListener { showMenu(it) }
+        b.btnMenu.setOnClickListener { b.drawer.openDrawer(GravityCompat.START) }
         b.btnTopRight.setOnClickListener { showSettings() }
         b.ring.setOnClickListener { openConsole() }
         b.centerPanel.setOnClickListener { openConsole() }
@@ -78,10 +78,15 @@ class MainActivity : AppCompatActivity() {
         b.actLog.setOnClickListener { toggleLog() }
         b.actSettings.setOnClickListener { showSettings() }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
-        b.btnHome.setOnClickListener {
-            b.svLog.scrollTo(0, 0)
-            ctl(getString(R.string.act_refresh), "status")
-        }
+        b.btnConsole.setOnClickListener { openConsole() }
+
+        // 左侧抽屉
+        b.tvDrawerVer.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
+        b.drawerPreflight.setOnClickListener { closeDrawer(); ctl(getString(R.string.act_preflight), "preflight") }
+        b.drawerInstall.setOnClickListener { closeDrawer(); installDialog() }
+        b.drawerConsole.setOnClickListener { closeDrawer(); openConsole() }
+        b.drawerCopy.setOnClickListener { closeDrawer(); copyUrl() }
+        b.drawerAbout.setOnClickListener { closeDrawer(); about() }
         b.tvHost.setOnClickListener { copyUrl() }
 
         b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
@@ -203,26 +208,7 @@ class MainActivity : AppCompatActivity() {
 
     // ---------------- 交互 ----------------
 
-    private fun showMenu(anchor: View) {
-        PopupMenu(this, anchor).apply {
-            menu.add(getString(R.string.menu_preflight)).setOnMenuItemClickListener {
-                ctl(getString(R.string.act_preflight), "preflight"); true
-            }
-            menu.add(getString(R.string.menu_install)).setOnMenuItemClickListener {
-                installDialog(); true
-            }
-            menu.add(getString(R.string.menu_console)).setOnMenuItemClickListener {
-                openConsole(); true
-            }
-            menu.add(getString(R.string.menu_copy)).setOnMenuItemClickListener {
-                copyUrl(); true
-            }
-            menu.add(getString(R.string.menu_about)).setOnMenuItemClickListener {
-                about(); true
-            }
-            show()
-        }
-    }
+    private fun closeDrawer() { b.drawer.closeDrawers() }
 
     private fun showSettings() {
         val s = lastStatus
