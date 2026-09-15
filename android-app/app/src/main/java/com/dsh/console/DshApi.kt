@@ -20,7 +20,7 @@ object DshApi {
     /** 与 assets/dsh-ctl.sh 里的 CTL_VER 保持一致 */
     const val CTL_VERSION = "3"
 
-    /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 3KB） */
+    /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 4KB） */
     private fun bootstrap(ctx: Context): String {
         val b64 = Base64.encodeToString(
             ctx.assets.open("dsh-ctl.sh").readBytes(), Base64.NO_WRAP
@@ -28,8 +28,25 @@ object DshApi {
         return "mkdir -p ~/dsh && printf '%s' '$b64' | base64 -d > ~/dsh/dsh-ctl.sh && chmod +x ~/dsh/dsh-ctl.sh && "
     }
 
+    /**
+     * 安装脚本体积较大（约 25KB → base64 34KB），只在缺失时才落盘，
+     * 避免每次调用都把 34KB 塞进 Intent。
+     */
+    private fun bootstrapInstallScript(ctx: Context): String {
+        val b64 = Base64.encodeToString(
+            ctx.assets.open("dsh-oneclick.sh").readBytes(), Base64.NO_WRAP
+        )
+        return "if [ ! -s ~/dsh/dsh-oneclick.sh ]; then " +
+               "printf '%s' '$b64' | base64 -d > ~/dsh/dsh-oneclick.sh && " +
+               "chmod +x ~/dsh/dsh-oneclick.sh; fi && "
+    }
+
     fun cmd(ctx: Context, vararg args: String): String =
         bootstrap(ctx) + "bash ~/dsh/dsh-ctl.sh " + args.joinToString(" ")
+
+    /** 安装命令：额外确保 dsh-oneclick.sh 已就位 */
+    fun installCmd(ctx: Context): String =
+        bootstrap(ctx) + bootstrapInstallScript(ctx) + "bash ~/dsh/dsh-ctl.sh install"
 
     fun parseStatus(raw: String): Status? {
         val i = raw.indexOf('{')

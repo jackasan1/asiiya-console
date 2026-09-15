@@ -51,10 +51,14 @@ object TermuxRunner {
         if (result != null) putExtra(EXTRA_PENDING, result)
     }
 
-    fun resultPendingIntent(ctx: Context, reqCode: Int): PendingIntent =
+    fun resultPendingIntent(
+        ctx: Context,
+        reqCode: Int,
+        action: String = ACTION_RESULT
+    ): PendingIntent =
         PendingIntent.getBroadcast(
             ctx, reqCode,
-            Intent(ACTION_RESULT).setPackage(ctx.packageName),
+            Intent(action).setPackage(ctx.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 }

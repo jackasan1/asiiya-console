@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
+    private val REQ_NOTI = 2
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) = onResult(intent)
@@ -182,6 +183,14 @@ class MainActivity : AppCompatActivity() {
 
     // ---------------- 动作 ----------------
 
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), REQ_NOTI)
+        }
+    }
+
     private fun confirmInstall() {
         val key = b.etApiKey.text.toString().trim()
         AlertDialog.Builder(this)
@@ -192,7 +201,9 @@ class MainActivity : AppCompatActivity() {
                 b.tvInstall.text = ""
                 b.svInstall.visibility = View.VISIBLE
                 installPolling = true
-                ctl(getString(R.string.act_install), "install", stdin = if (key.isEmpty()) "" else "$key\n")
+                askNotificationPermission()
+                InstallService.start(this, key)
+                log(getString(R.string.act_install) + " → 已交给前台服务，通知栏可见进度")
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
