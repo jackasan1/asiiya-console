@@ -6,7 +6,7 @@ URLFILE="$BASE/dsh-web-url.txt"
 WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
 PORT=3080
-CTL_VER=3
+CTL_VER=4
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 port_code() { curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null || echo 000; }
@@ -26,8 +26,17 @@ status)
   P=DOWN; ready && P=UP
   V=""; command -v dsh >/dev/null 2>&1 && V="$(dsh --version 2>/dev/null | head -1)"
   I=IDLE; [ -f "$BASE/install.pid" ] && kill -0 "$(cat "$BASE/install.pid" 2>/dev/null)" 2>/dev/null && I=RUNNING
-  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s"}\n' \
-    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(cur_url)")"
+  PID="$(pgrep -f "expose-internals" 2>/dev/null | head -1)"
+  NP="$(pgrep -fc "expose-internals" 2>/dev/null || echo 0)"
+  RT=""
+  if [ -n "$PID" ]; then
+    ES="$(ps -o etimes= -p "$PID" 2>/dev/null | tr -d ' ')"
+    case "$ES" in ''|*[!0-9]*) RT="";; *) RT="$(printf '%02d:%02d:%02d' $((ES/3600)) $((ES%3600/60)) $((ES%60)));; esac
+  fi
+  MD=MISSING
+  if [ -s "$HOME/.dsh/.credentials.yaml" ] && grep -q "DEEPSEEK_API_KEY" "$HOME/.dsh/.credentials.yaml" 2>/dev/null; then MD=OK; fi
+  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s"}\n' \
+    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(cur_url)")" "$PID" "$NP" "$RT" "$MD"
   ;;
 
 start)

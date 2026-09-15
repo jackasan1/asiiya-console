@@ -12,7 +12,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
+import android.view.Gravity
 import android.view.View
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -28,12 +33,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var b: ActivityMainBinding
     private val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     private val ui = Handler(Looper.getMainLooper())
+
     private var seq = 100
     private var busy = 0
     private var auto = true
     private var pendingOpen = false
     private var lastUrl = ""
     private var installPolling = false
+    private var lastStatus: Status? = null
 
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
@@ -60,13 +67,22 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(receiver, f)
         }
 
-        b.btnPreflight.setOnClickListener { ctl(getString(R.string.act_preflight), "preflight") }
-        b.btnRefresh.setOnClickListener { ctl(getString(R.string.act_refresh), "status") }
-        b.btnStart.setOnClickListener { ctl(getString(R.string.act_start), "start") }
-        b.btnStop.setOnClickListener { confirm(getString(R.string.confirm_stop)) { ctl(getString(R.string.act_stop), "stop") } }
-        b.btnInstall.setOnClickListener { confirmInstall() }
-        b.btnOpen.setOnClickListener { openConsole() }
-        b.tvUrl.setOnClickListener { copyUrl() }
+        b.btnMenu.setOnClickListener { showMenu(it) }
+        b.btnTopRight.setOnClickListener { showSettings() }
+        b.ring.setOnClickListener { openConsole() }
+        b.centerPanel.setOnClickListener { openConsole() }
+        b.actStart.setOnClickListener { ctl(getString(R.string.act_start), "start") }
+        b.actStop.setOnClickListener {
+            confirm(getString(R.string.confirm_stop)) { ctl(getString(R.string.act_stop), "stop") }
+        }
+        b.actLog.setOnClickListener { toggleLog() }
+        b.actSettings.setOnClickListener { showSettings() }
+        b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
+        b.btnHome.setOnClickListener {
+            b.svLog.scrollTo(0, 0)
+            ctl(getString(R.string.act_refresh), "status")
+        }
+        b.tvHost.setOnClickListener { copyUrl() }
 
         b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
         log(getString(R.string.msg_ready))
@@ -88,13 +104,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------- 调用 Termux ----------------
+    // ---------------- Termux 调用 ----------------
 
     private fun ctl(label: String, vararg args: String, silent: Boolean = false, stdin: String? = null) {
         if (busy > 0 && !silent) { toast(getString(R.string.msg_busy, busy)); return }
         busy++
         if (!silent && label.isNotEmpty()) log("▶ " + label)
-        if (!silent) setButtons(false)
 
         try {
             startService(
@@ -107,7 +122,6 @@ class MainActivity : AppCompatActivity() {
             )
         } catch (e: Exception) {
             busy = (busy - 1).coerceAtLeast(0)
-            setButtons(true)
             log(getString(R.string.msg_call_failed, e.message ?: ""))
             log(getString(R.string.hint_allow_external))
         }
@@ -116,20 +130,14 @@ class MainActivity : AppCompatActivity() {
     private fun onResult(intent: Intent?) {
         val bundle = intent?.getBundleExtra(TermuxRunner.BUNDLE_KEY)
             ?: intent?.getBundleExtra(TermuxRunner.BUNDLE_KEY_LEGACY)
-
         val stdout = bundle?.getString("stdout")?.trim().orEmpty()
         val stderr = bundle?.getString("stderr")?.trim().orEmpty()
-        val errmsg = bundle?.getString("errmsg")?.trim().orEmpty()
 
-        if (bundle == null) {
-            log(getString(R.string.msg_no_bundle))
-        }
+        if (bundle == null) log(getString(R.string.msg_no_bundle))
         if (stdout.isNotEmpty()) onStdout(stdout)
         if (stderr.isNotEmpty()) log("[stderr] " + stderr)
-        if (errmsg.isNotEmpty()) log("[termux] " + errmsg)
 
         busy = (busy - 1).coerceAtLeast(0)
-        if (busy == 0) setButtons(true)
     }
 
     private fun onStdout(out: String) {
@@ -137,7 +145,7 @@ class MainActivity : AppCompatActivity() {
         if (st != null) { applyStatus(st); return }
 
         if (installPolling) {
-            b.svInstall.visibility = View.VISIBLE
+            b.installCard.visibility = View.VISIBLE
             b.tvInstall.text = out
             return
         }
@@ -148,7 +156,7 @@ class MainActivity : AppCompatActivity() {
 
         if (urlLine != null) {
             lastUrl = urlLine.removePrefix("URL=").trim()
-            if (lastUrl.isNotEmpty()) b.tvUrl.text = lastUrl
+            if (lastUrl.isNotEmpty()) hostLabel()
         }
         if (rest.isNotEmpty()) log(rest)
         if (urlLine != null && pendingOpen && lastUrl.isNotEmpty()) {
@@ -157,53 +165,116 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun hostLabel() {
+        val host = lastUrl.substringAfter("://").substringBefore("/")
+        if (host.isNotEmpty()) b.tvHost.text = host
+    }
+
+    // ---------------- 状态渲染 ----------------
+
     private fun applyStatus(s: Status) {
-        paint(b.tvSvc, s.service, getString(R.string.st_service))
-        paint(b.tvWd, s.watchdog, getString(R.string.st_watchdog))
-        paint(b.tvPort, s.port, getString(R.string.st_port_fmt, s.portCode))
+        lastStatus = s
 
-        b.tvVersion.text = getString(
-            R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION
-        ) + if (s.dshVersion.isNotEmpty()) "  ·  dsh ${s.dshVersion}" else ""
+        b.ring.sweep = if (s.service) 300f else 110f
+        b.tvState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)
+        b.tvState.setTextColor(ContextCompat.getColor(this, if (s.service) R.color.fg else R.color.dim))
 
-        if (s.url.isNotEmpty()) { lastUrl = s.url; b.tvUrl.text = s.url }
-        else b.tvUrl.text = getString(R.string.st_no_url)
+        b.tvPortValue.text = s.portCode
+        b.tvPortValue.setTextColor(
+            ContextCompat.getColor(this, if (s.port) R.color.fg else R.color.bad)
+        )
+
+        b.tvModelValue.text = getString(if (s.model == "OK") R.string.model_ok else R.string.model_missing)
+        b.tvModelValue.setTextColor(
+            ContextCompat.getColor(this, if (s.model == "OK") R.color.ok else R.color.dim)
+        )
+
+        b.tvProcValue.text = s.procs.ifEmpty { "0" }
+        b.tvUptimeValue.text = if (s.runtime.isNotEmpty()) s.runtime else "--:--:--"
+
+        if (s.url.isNotEmpty()) { lastUrl = s.url; hostLabel() }
 
         if (s.installing != installPolling) {
             installPolling = s.installing
-            b.svInstall.visibility = if (s.installing) View.VISIBLE else View.GONE
+            b.installCard.visibility = if (s.installing) View.VISIBLE else View.GONE
             if (!s.installing) b.tvInstall.text = ""
         }
     }
 
-    private fun paint(tv: TextView, up: Boolean, label: String) {
-        tv.text = getString(if (up) R.string.st_dot_up else R.string.st_dot_down, label)
-        tv.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
-    }
+    // ---------------- 交互 ----------------
 
-    // ---------------- 动作 ----------------
-
-    private fun askNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), REQ_NOTI)
+    private fun showMenu(anchor: View) {
+        PopupMenu(this, anchor).apply {
+            menu.add(getString(R.string.menu_preflight)).setOnMenuItemClickListener {
+                ctl(getString(R.string.act_preflight), "preflight"); true
+            }
+            menu.add(getString(R.string.menu_install)).setOnMenuItemClickListener {
+                installDialog(); true
+            }
+            menu.add(getString(R.string.menu_console)).setOnMenuItemClickListener {
+                openConsole(); true
+            }
+            menu.add(getString(R.string.menu_copy)).setOnMenuItemClickListener {
+                copyUrl(); true
+            }
+            menu.add(getString(R.string.menu_about)).setOnMenuItemClickListener {
+                about(); true
+            }
+            show()
         }
     }
 
-    private fun confirmInstall() {
-        val key = b.etApiKey.text.toString().trim()
+    private fun showSettings() {
+        val s = lastStatus
+        val msg = buildString {
+            append(getString(R.string.settings_app)).append(": ").append(BuildConfig.VERSION_NAME).append('\n')
+            append(getString(R.string.settings_ctl)).append(": ").append(s?.ctlVersion ?: DshApi.CTL_VERSION).append('\n')
+            append(getString(R.string.settings_dsh)).append(": ")
+            append(s?.dshVersion?.ifEmpty { "-" } ?: "-").append('\n')
+            append(getString(R.string.settings_url)).append(":\n")
+            append(lastUrl.ifEmpty { "-" })
+        }
         AlertDialog.Builder(this)
-            .setTitle(R.string.confirm_install_title)
-            .setMessage(if (key.isEmpty()) getString(R.string.confirm_install_no_key)
-                        else getString(R.string.confirm_install_with_key))
+            .setTitle(R.string.settings_title)
+            .setMessage(msg)
+            .setPositiveButton(R.string.settings_copy) { _, _ -> copyUrl() }
+            .setNeutralButton(R.string.menu_console) { _, _ -> openConsole() }
+            .setNegativeButton(R.string.settings_close, null)
+            .show()
+    }
+
+    private fun about() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.about_title)
+            .setMessage(R.string.about_body)
+            .setPositiveButton(R.string.ok, null)
+            .show()
+    }
+
+    private fun installDialog() {
+        val pad = (resources.displayMetrics.density * 20).toInt()
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad / 2, pad, 0)
+        }
+        val et = EditText(this).apply {
+            hint = getString(R.string.install_key_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            gravity = Gravity.START
+        }
+        box.addView(et)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.install_title)
+            .setView(box)
             .setPositiveButton(R.string.ok) { _, _ ->
+                val key = et.text.toString().trim()
                 b.tvInstall.text = ""
-                b.svInstall.visibility = View.VISIBLE
+                b.installCard.visibility = View.VISIBLE
                 installPolling = true
                 askNotificationPermission()
                 InstallService.start(this, key)
-                log(getString(R.string.act_install) + " → 已交给前台服务，通知栏可见进度")
+                log(getString(R.string.act_install) + " → 后台执行中，通知栏可见进度")
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -214,6 +285,11 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(R.string.ok) { _, _ -> action() }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun toggleLog() {
+        val show = b.logCard.visibility != View.VISIBLE
+        b.logCard.visibility = if (show) View.VISIBLE else View.GONE
     }
 
     private fun openConsole() {
@@ -233,6 +309,14 @@ class MainActivity : AppCompatActivity() {
         toast(getString(R.string.copied))
     }
 
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), REQ_NOTI)
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
@@ -241,13 +325,6 @@ class MainActivity : AppCompatActivity() {
             val ok = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
             log(getString(if (ok) R.string.perm_granted else R.string.perm_denied))
         }
-    }
-
-    // ---------------- 视图 ----------------
-
-    private fun setButtons(on: Boolean) {
-        listOf(b.btnPreflight, b.btnRefresh, b.btnStart, b.btnStop, b.btnInstall, b.btnOpen)
-            .forEach { it.isEnabled = on }
     }
 
     private fun log(msg: String) {

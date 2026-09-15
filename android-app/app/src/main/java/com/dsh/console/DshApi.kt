@@ -12,13 +12,17 @@ data class Status(
     val dshVersion: String,
     val installing: Boolean,
     val ctlVersion: String,
-    val url: String
+    val url: String,
+    val pid: String,
+    val procs: String,
+    val runtime: String,
+    val model: String
 )
 
 object DshApi {
 
     /** 与 assets/dsh-ctl.sh 里的 CTL_VER 保持一致 */
-    const val CTL_VERSION = "3"
+    const val CTL_VERSION = "4"
 
     /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 4KB） */
     private fun bootstrap(ctx: Context): String {
@@ -61,7 +65,11 @@ object DshApi {
                 dshVersion = o.optString("dshVersion", ""),
                 installing = o.optString("install") == "RUNNING",
                 ctlVersion = o.optString("ctlVersion", ""),
-                url = o.optString("url", "")
+                url = o.optString("url", ""),
+                pid = o.optString("pid", ""),
+                procs = o.optString("procs", "0"),
+                runtime = o.optString("runtime", ""),
+                model = o.optString("model", "MISSING")
             )
         } catch (e: Exception) {
             null

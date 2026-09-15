@@ -1,9 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg">#FF0F1115</color>
-    <color name="fg">#FFE8EAED</color>
+    <color name="bg">#FF0D1016</color>
+    <color name="surface">#FF161B23</color>
+    <color name="surface2">#FF1E242E</color>
+    <color name="stroke">#1FFFFFFF</color>
+    <color name="fg">#FFEDF0F5</color>
     <color name="dim">#FF8A9099</color>
-    <color name="accent">#FF4C8DFF</color>
-    <color name="ok">#FF3DDC84</color>
-    <color name="card">#FF1A1D23</color>
-    <color name="logfg">#FFB7BDC6</color>
+    <color name="accent">#FF4C86FF</color>
+    <color name="accent2">#FF35E08A</color>
+    <color name="ok">#FF35E08A</color>
+    <color name="bad">#FFFF7B7B</color>
+    <color name="ring_track">#254C86FF</color>
+    <color name="ring_tick">#33FFFFFF</color>
+    <color name="chip">#FF1E242E</color>
+    <color name="card">#FF161B23</color>
 </resources>
