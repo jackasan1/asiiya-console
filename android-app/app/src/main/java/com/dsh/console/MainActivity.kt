@@ -2,15 +2,20 @@ package com.dsh.console
 
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Base64
+import android.os.Handler
+import android.os.Looper
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.dsh.console.databinding.ActivityMainBinding
@@ -21,84 +26,200 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityMainBinding
+    private val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    private val ui = Handler(Looper.getMainLooper())
     private var seq = 100
+    private var busy = 0
+    private var auto = true
+    private var pendingOpen = false
+    private var lastUrl = ""
+    private var installPolling = false
+
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
 
-    private val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-
-    /** 接收 Termux 回传的执行结果 */
-    private val resultReceiver = object : BroadcastReceiver() {
-        override fun onReceive(ctx: Context?, intent: Intent?) {
-            val bundle = intent?.getBundleExtra(TermuxRunner.EXTRA_RESULT_BUNDLE)
-                ?: intent?.getBundleExtra("com.termux.RUN_COMMAND_RESULT_BUNDLE")
-            val stdout = bundle?.getString("stdout")?.trim().orEmpty()
-            val stderr = bundle?.getString("stderr")?.trim().orEmpty()
-            val exit = bundle?.getInt("exitCode", -1) ?: -1
-            val errmsg = bundle?.getString("errmsg")?.trim().orEmpty()
-
-            if (bundle == null) {
-                log("未收到结果 bundle（键名不匹配？）")
-                log("intent extras: " + (intent?.extras?.keySet()?.joinToString() ?: "无"))
-            }
-            if (stdout.isNotEmpty()) log(stdout)
-            if (stderr.isNotEmpty()) log("[stderr] $stderr")
-            if (errmsg.isNotEmpty()) log("[termux] $errmsg")
-            log("── 退出码 $exit ──")
-
-            if (stdout.contains("SERVICE=UP")) {
-                b.tvStatus.text = "服务：运行中 ●   看门狗：" +
-                    if (stdout.contains("WATCHDOG=UP")) "运行中 ●" else "未运行 ○"
-                b.tvStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.ok))
-            } else if (stdout.contains("SERVICE=DOWN")) {
-                b.tvStatus.text = "服务：已停止 ○   （点「启动」拉起）"
-                b.tvStatus.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.bad))
-            }
-            val url = Regex("https?://\\S+").find(stdout)?.value
-            if (url != null) {
-                lastUrl = url
-                if (pendingOpen) {
-                    pendingOpen = false
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    log("↗ 打开 $url")
-                }
-            } else if (pendingOpen) {
-                pendingOpen = false
-                log("✗ 没拿到地址：服务可能还没启动")
-            }
-        }
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context?, intent: Intent?) = onResult(intent)
     }
-
-    private var lastUrl: String? = null
-    private var pendingOpen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
 
-        // Termux 把 RUN_COMMAND 声明为 dangerous 权限，必须运行时申请
         if (checkSelfPermission(RUN_PERM) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(RUN_PERM), REQ_RUN)
         }
 
-        val filter = IntentFilter(TermuxRunner.ACTION_RESULT)
+        val f = IntentFilter(TermuxRunner.ACTION_RESULT)
         if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(receiver, f, Context.RECEIVER_NOT_EXPORTED)
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(resultReceiver, filter)
+            registerReceiver(receiver, f)
         }
 
-        b.btnPreflight.setOnClickListener { preflight() }
-        b.btnRefresh.setOnClickListener { refreshStatus() }
-        b.btnInstall.setOnClickListener { installDsh() }
-        b.btnStart.setOnClickListener { run("setsid bash ~/dsh/dsh-watchdog.sh >/dev/null 2>&1 < /dev/null & echo started", "启动 DSH") }
-        b.btnStop.setOnClickListener { run(stopCmd, "停止 DSH") }
-        b.btnOpen.setOnClickListener { openWeb() }
+        b.btnPreflight.setOnClickListener { ctl(getString(R.string.act_preflight), "preflight") }
+        b.btnRefresh.setOnClickListener { ctl(getString(R.string.act_refresh), "status") }
+        b.btnStart.setOnClickListener { ctl(getString(R.string.act_start), "start") }
+        b.btnStop.setOnClickListener { confirm(getString(R.string.confirm_stop)) { ctl(getString(R.string.act_stop), "stop") } }
+        b.btnInstall.setOnClickListener { confirmInstall() }
+        b.btnOpen.setOnClickListener { openConsole() }
+        b.tvUrl.setOnClickListener { copyUrl() }
 
-        log("DSH 控制台就绪")
-        refreshStatus()
+        b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
+        log(getString(R.string.msg_ready))
+        ctl(getString(R.string.act_refresh), "status")
+    }
+
+    override fun onResume() { super.onResume(); auto = true; ui.post(tick) }
+    override fun onPause() { super.onPause(); auto = false; ui.removeCallbacks(tick) }
+
+    /** 每 5 秒自动轮询；安装中则轮询安装日志 */
+    private val tick = object : Runnable {
+        override fun run() {
+            if (!auto) return
+            if (busy == 0) {
+                if (installPolling) ctl("", "log", "4000", silent = true)
+                else ctl("", "status", silent = true)
+            }
+            ui.postDelayed(this, 5000)
+        }
+    }
+
+    // ---------------- 调用 Termux ----------------
+
+    private fun ctl(label: String, vararg args: String, silent: Boolean = false, stdin: String? = null) {
+        if (busy > 0 && !silent) { toast(getString(R.string.msg_busy, busy)); return }
+        busy++
+        if (!silent && label.isNotEmpty()) log("▶ " + label)
+        if (!silent) setButtons(false)
+
+        try {
+            startService(
+                TermuxRunner.intent(
+                    DshApi.cmd(this, *args),
+                    label.ifEmpty { "status" },
+                    stdin,
+                    TermuxRunner.resultPendingIntent(this, ++seq)
+                )
+            )
+        } catch (e: Exception) {
+            busy = (busy - 1).coerceAtLeast(0)
+            setButtons(true)
+            log(getString(R.string.msg_call_failed, e.message ?: ""))
+            log(getString(R.string.hint_allow_external))
+        }
+    }
+
+    private fun onResult(intent: Intent?) {
+        val bundle = intent?.getBundleExtra(TermuxRunner.BUNDLE_KEY)
+            ?: intent?.getBundleExtra(TermuxRunner.BUNDLE_KEY_LEGACY)
+
+        val stdout = bundle?.getString("stdout")?.trim().orEmpty()
+        val stderr = bundle?.getString("stderr")?.trim().orEmpty()
+        val errmsg = bundle?.getString("errmsg")?.trim().orEmpty()
+
+        if (bundle == null) {
+            log(getString(R.string.msg_no_bundle))
+        }
+        if (stdout.isNotEmpty()) onStdout(stdout)
+        if (stderr.isNotEmpty()) log("[stderr] " + stderr)
+        if (errmsg.isNotEmpty()) log("[termux] " + errmsg)
+
+        busy = (busy - 1).coerceAtLeast(0)
+        if (busy == 0) setButtons(true)
+    }
+
+    private fun onStdout(out: String) {
+        val st = DshApi.parseStatus(out)
+        if (st != null) { applyStatus(st); return }
+
+        if (installPolling) {
+            b.svInstall.visibility = View.VISIBLE
+            b.tvInstall.text = out
+            return
+        }
+
+        val lines = out.lines()
+        val urlLine = lines.lastOrNull { it.startsWith("URL=") }
+        val rest = lines.filterNot { it.startsWith("URL=") }.joinToString("\n").trim()
+
+        if (urlLine != null) {
+            lastUrl = urlLine.removePrefix("URL=").trim()
+            if (lastUrl.isNotEmpty()) b.tvUrl.text = lastUrl
+        }
+        if (rest.isNotEmpty()) log(rest)
+        if (urlLine != null && pendingOpen && lastUrl.isNotEmpty()) {
+            pendingOpen = false
+            launchConsole(lastUrl)
+        }
+    }
+
+    private fun applyStatus(s: Status) {
+        paint(b.tvSvc, s.service, getString(R.string.st_service))
+        paint(b.tvWd, s.watchdog, getString(R.string.st_watchdog))
+        paint(b.tvPort, s.port, getString(R.string.st_port_fmt, s.portCode))
+
+        b.tvVersion.text = getString(
+            R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION
+        ) + if (s.dshVersion.isNotEmpty()) "  ·  dsh ${s.dshVersion}" else ""
+
+        if (s.url.isNotEmpty()) { lastUrl = s.url; b.tvUrl.text = s.url }
+        else b.tvUrl.text = getString(R.string.st_no_url)
+
+        if (s.installing != installPolling) {
+            installPolling = s.installing
+            b.svInstall.visibility = if (s.installing) View.VISIBLE else View.GONE
+            if (!s.installing) b.tvInstall.text = ""
+        }
+    }
+
+    private fun paint(tv: TextView, up: Boolean, label: String) {
+        tv.text = getString(if (up) R.string.st_dot_up else R.string.st_dot_down, label)
+        tv.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+    }
+
+    // ---------------- 动作 ----------------
+
+    private fun confirmInstall() {
+        val key = b.etApiKey.text.toString().trim()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.confirm_install_title)
+            .setMessage(if (key.isEmpty()) getString(R.string.confirm_install_no_key)
+                        else getString(R.string.confirm_install_with_key))
+            .setPositiveButton(R.string.ok) { _, _ ->
+                b.tvInstall.text = ""
+                b.svInstall.visibility = View.VISIBLE
+                installPolling = true
+                ctl(getString(R.string.act_install), "install", stdin = if (key.isEmpty()) "" else "$key\n")
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirm(msg: String, action: () -> Unit) {
+        AlertDialog.Builder(this).setMessage(msg)
+            .setPositiveButton(R.string.ok) { _, _ -> action() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun openConsole() {
+        pendingOpen = true
+        ctl(getString(R.string.act_open), "open")
+    }
+
+    private fun launchConsole(url: String) {
+        startActivity(Intent(this, ConsoleActivity::class.java).putExtra(ConsoleActivity.EXTRA_URL, url))
+        log(getString(R.string.msg_opened))
+    }
+
+    private fun copyUrl() {
+        if (lastUrl.isEmpty()) { toast(getString(R.string.no_url)); return }
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
+            .setPrimaryClip(ClipData.newPlainText("dsh", lastUrl))
+        toast(getString(R.string.copied))
     }
 
     override fun onRequestPermissionsResult(
@@ -107,99 +228,28 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_RUN) {
             val ok = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            log(if (ok) "RUN_COMMAND 权限已授予" else "RUN_COMMAND 权限被拒绝，按钮无法工作")
+            log(getString(if (ok) R.string.perm_granted else R.string.perm_denied))
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        try { unregisterReceiver(resultReceiver) } catch (_: Exception) {}
+    // ---------------- 视图 ----------------
+
+    private fun setButtons(on: Boolean) {
+        listOf(b.btnPreflight, b.btnRefresh, b.btnStart, b.btnStop, b.btnInstall, b.btnOpen)
+            .forEach { it.isEnabled = on }
     }
-
-    // ---------------- 命令定义 ----------------
-
-    private val stopCmd = """
-        if [ -f ~/dsh/dsh-watchdog.pid ]; then kill "$(cat ~/dsh/dsh-watchdog.pid)" 2>/dev/null && echo "看门狗已停"; fi
-        pkill -f "expose-internal[s]" 2>/dev/null && echo "dsh web 已停" || echo "dsh web 未在运行"
-    """.trimIndent()
-
-    private val statusCmd = """
-        if pgrep -f "expose-internal[s]" >/dev/null 2>&1; then echo SERVICE=UP; else echo SERVICE=DOWN; fi
-        if [ -f ~/dsh/dsh-watchdog.pid ] && kill -0 "$(cat ~/dsh/dsh-watchdog.pid)" 2>/dev/null; then echo WATCHDOG=UP; else echo WATCHDOG=DOWN; fi
-        if command -v dsh >/dev/null 2>&1; then echo "dsh: $(dsh --version 2>/dev/null | head -1)"; else echo "dsh: 未安装"; fi
-        curl -s -o /dev/null -w 'PORT=%{http_code}\n' --max-time 2 http://127.0.0.1:3080/
-        sed -n 's/^dsh web: //p' ~/dsh/dsh-web-url.txt 2>/dev/null | head -1
-    """.trimIndent()
-
-    private val openCmd = """
-        setsid bash ~/dsh/dsh-watchdog.sh >/dev/null 2>&1 < /dev/null &
-        for i in $(seq 1 30); do
-          curl -s -o /dev/null --max-time 2 http://127.0.0.1:3080/ && break
-          sleep 2
-        done
-        curl -s -o /dev/null -w 'PORT=%{http_code}\n' --max-time 3 http://127.0.0.1:3080/
-        sed -n 's/^dsh web: //p' ~/dsh/dsh-web-url.txt | head -1
-    """.trimIndent()
-
-    private val preflightCmd = """
-        echo "--- 环境体检 ---"
-        echo "HOME=$(printenv HOME)"
-        command -v bash >/dev/null && echo "bash: OK" || echo "bash: 缺失"
-        command -v node >/dev/null && echo "node: $(node -v)" || echo "node: 缺失"
-        command -v dsh  >/dev/null && echo "dsh: $(dsh --version 2>/dev/null|head -1)" || echo "dsh: 未安装"
-        [ -d ~/dsh ] && echo "~/dsh: 存在" || echo "~/dsh: 不存在"
-        grep -q 'allow-external-apps=true' ~/.termux/termux.properties 2>/dev/null && echo "allow-external-apps: OK" || echo "allow-external-apps: 未设置"
-        command -v termux-battery-status >/dev/null && echo "termux-api 脚本: OK" || echo "termux-api 脚本: 缺失"
-        echo "PREFLIGHT_DONE"
-    """.trimIndent()
-
-    // ---------------- 动作 ----------------
-
-    private fun run(cmd: String, label: String, background: Boolean = true) {
-        log("▶ $label")
-        val pi = PendingIntent.getBroadcast(
-            this, ++seq,
-            Intent(TermuxRunner.ACTION_RESULT).setPackage(packageName),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        )
-        try {
-            startService(TermuxRunner.buildIntent(cmd, label, background, pi))
-        } catch (e: Exception) {
-            log("✗ 调用 Termux 失败：${e.message}")
-            log("  请确认：① Termux 已装 ② allow-external-apps=true")
-        }
-    }
-
-    private fun preflight() = run(preflightCmd, "环境体检")
-
-    private fun refreshStatus() = run(statusCmd, "读取状态")
-
-    private fun installDsh() {
-        val key = b.etApiKey.text.toString().trim()
-        val script = assets.open("dsh-oneclick.sh").readBytes()
-        val b64 = Base64.encodeToString(script, Base64.NO_WRAP)
-        val args = if (key.isNotEmpty()) " --api-key '$key'" else ""
-        log("▶ 安装 dsh（脚本 ${script.size} 字节已注入，可能耗时 10~20 分钟）")
-        val cmd = """
-            set -e
-            mkdir -p ~/dsh && echo '$b64' | base64 -d > ~/dsh/dsh-oneclick.sh
-            chmod +x ~/dsh/dsh-oneclick.sh
-            bash ~/dsh/dsh-oneclick.sh$args
-        """.trimIndent()
-        run(cmd, "安装 dsh")
-    }
-
-    private fun openWeb() {
-        pendingOpen = true
-        run(openCmd, "确保就绪并打开")
-    }
-
-    // ---------------- 日志 ----------------
 
     private fun log(msg: String) {
         runOnUiThread {
             b.tvLog.append("[${fmt.format(Date())}] $msg\n")
-            b.svLog.post { b.svLog.fullScroll(android.view.View.FOCUS_DOWN) }
+            b.svLog.post { b.svLog.fullScroll(View.FOCUS_DOWN) }
         }
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try { unregisterReceiver(receiver) } catch (_: Exception) {}
     }
 }

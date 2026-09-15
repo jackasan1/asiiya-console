@@ -1,3 +1,45 @@
 <resources>
     <string name="app_name">DSH 控制台</string>
+    <string name="console_title">DSH 界面</string>
+    <string name="console_reload">刷新</string>
+    <string name="console_external">外部打开</string>
+
+    <string name="version_fmt">app %1$s · ctl v%2$s</string>
+    <string name="api_key_hint">DeepSeek API Key（可选，安装时写入）</string>
+
+    <string name="act_preflight">环境体检</string>
+    <string name="act_refresh">刷新状态</string>
+    <string name="act_install">安装 / 修复</string>
+    <string name="act_open">打开界面</string>
+    <string name="act_start">启动</string>
+    <string name="act_stop">停止</string>
+
+    <string name="st_service">服务</string>
+    <string name="st_watchdog">守护</string>
+    <string name="st_port_fmt">端口 %1$s</string>
+    <string name="st_dot_up">● %1$s</string>
+    <string name="st_dot_down">○ %1$s</string>
+    <string name="st_no_url">地址：—</string>
+
+    <string name="label_log">日志</string>
+    <string name="label_install_out">安装输出（实时）</string>
+
+    <string name="msg_ready">控制台就绪</string>
+    <string name="msg_busy">上一个操作还在执行（%1$d 个进行中）</string>
+    <string name="msg_call_failed">调用 Termux 失败：%1$s</string>
+    <string name="msg_no_bundle">未收到结果数据（Termux 版本不兼容？）</string>
+    <string name="msg_opened">已在内嵌界面打开</string>
+    <string name="hint_allow_external">请确认：① 已装 Termux ② allow-external-apps=true ③ RUN_COMMAND 权限已授予</string>
+
+    <string name="confirm_stop">确定停止 dsh 服务？会同时停掉看门狗。</string>
+    <string name="confirm_install_title">安装 / 修复 dsh</string>
+    <string name="confirm_install_with_key">将使用上方填入的 API Key，在后台执行一键部署脚本（约 10~20 分钟）。继续？</string>
+    <string name="confirm_install_no_key">未填写 API Key，将只安装、稍后在 Web UI 里配置密钥。继续？</string>
+
+    <string name="ok">继续</string>
+    <string name="cancel">取消</string>
+    <string name="copied">地址已复制</string>
+    <string name="no_url">暂无地址，请先启动服务</string>
+    <string name="perm_granted">RUN_COMMAND 权限已授予</string>
+    <string name="perm_denied">RUN_COMMAND 权限被拒绝，功能将不可用</string>
 </resources>

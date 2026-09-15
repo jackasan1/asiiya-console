@@ -21,7 +21,7 @@ D="$PREFIX/lib/node_modules/@deepseek-ai/dsh"
 PIN="${DSH_PIN:-0.1.5-rc.1}"
 MODEL="${DSH_MODEL:-deepseek-flash}"
 API_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0%2Bgithub.debug.apk"
-API_KEY="" ; MODE=deploy ; SKIP_NPM=0 ; NO_BOOT=0 ; NO_CSS=0 ; NO_WD=0
+API_KEY="${DSH_API_KEY:-}" ; MODE=deploy ; SKIP_NPM=0 ; NO_BOOT=0 ; NO_CSS=0 ; NO_WD=0
 
 while [ $# -gt 0 ]; do
   case "$1" in

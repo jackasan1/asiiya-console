@@ -4,10 +4,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/bg"
+    android:fitsSystemWindows="true"
     android:padding="14dp">
 
     <TextView
-        android:id="@+id/tvTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/app_name"
@@ -16,100 +16,111 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/tvStatus"
+        android:id="@+id/tvVersion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@color/dim"
+        android:textSize="11sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvSvc"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvWd"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvPort"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:gravity="end"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvUrl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
+        android:background="@color/card"
         android:fontFamily="monospace"
-        android:text="状态：未知"
+        android:padding="8dp"
         android:textColor="@color/accent"
-        android:textSize="13sp" />
+        android:textIsSelectable="false"
+        android:textSize="10sp" />
 
     <EditText
         android:id="@+id/etApiKey"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:hint="DeepSeek API Key（可选，安装时写入）"
+        android:layout_marginTop="8dp"
+        android:autofillHints=""
+        android:hint="@string/api_key_hint"
+        android:importantForAutofill="no"
         android:inputType="textVisiblePassword"
+        android:maxLines="1"
         android:textColor="@color/fg"
-        android:textColorHint="#FF6B7280"
-        android:textSize="13sp"
-        android:autofillHints="" />
+        android:textColorHint="@color/dim"
+        android:textSize="13sp" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:orientation="horizontal">
-
+    <LinearLayout style="@style/Row">
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPreflight"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="环境体检" />
-
+            style="@style/Btn"
+            android:text="@string/act_preflight" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRefresh"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="刷新状态" />
+            style="@style/Btn"
+            android:text="@string/act_refresh" />
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:orientation="horizontal">
-
+    <LinearLayout style="@style/Row">
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnInstall"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="安装 dsh" />
-
+            style="@style/Btn"
+            android:text="@string/act_install" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnOpen"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="打开界面" />
+            style="@style/Btn"
+            android:text="@string/act_open" />
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:orientation="horizontal">
-
+    <LinearLayout style="@style/Row">
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStart"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="启动" />
-
+            style="@style/Btn"
+            android:text="@string/act_start" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStop"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="停止" />
+            style="@style/Btn"
+            android:text="@string/act_stop" />
     </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="日志"
-        android:textColor="#FF9AA0A6"
-        android:textSize="12sp" />
+        android:layout_marginTop="10dp"
+        android:text="@string/label_log"
+        android:textColor="@color/dim"
+        android:textSize="11sp" />
 
     <ScrollView
         android:id="@+id/svLog"
@@ -125,8 +136,37 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
-            android:textColor="#FFB7BDC6"
+            android:textColor="@color/logfg"
             android:textIsSelectable="true"
-            android:textSize="11sp" />
+            android:textSize="10sp" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/labelInstall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/label_install_out"
+        android:textColor="@color/accent"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:id="@+id/svInstall"
+        android:layout_width="match_parent"
+        android:layout_height="170dp"
+        android:layout_marginTop="4dp"
+        android:background="@color/card"
+        android:padding="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvInstall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="@color/logfg"
+            android:textIsSelectable="true"
+            android:textSize="10sp" />
     </ScrollView>
 </LinearLayout>

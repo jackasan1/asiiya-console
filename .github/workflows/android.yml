@@ -6,9 +6,6 @@ on:
     paths:
       - 'android-app/**'
       - '.github/workflows/android.yml'
-  pull_request:
-    paths:
-      - 'android-app/**'
   workflow_dispatch:
 
 jobs:
@@ -28,25 +25,35 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Cache debug keystore
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: dsh-console-debug-keystore-v1
-
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Build debug APK
+      - name: Decode signing keystore
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "keystore ready"
+          else
+            echo "no keystore secret; building unsigned"
+          fi
+
+      - name: Build release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           gradle wrapper --gradle-version 8.7
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: dsh-console-debug
-          path: android-app/app/build/outputs/apk/debug/*.apk
+          name: dsh-console-release
+          path: android-app/app/build/outputs/apk/release/*.apk
           if-no-files-found: error

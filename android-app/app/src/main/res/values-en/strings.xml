@@ -1,0 +1,45 @@
+<resources>
+    <string name="app_name">DSH Console</string>
+    <string name="console_title">DSH UI</string>
+    <string name="console_reload">Reload</string>
+    <string name="console_external">Open externally</string>
+
+    <string name="version_fmt">app %1$s · ctl v%2$s</string>
+    <string name="api_key_hint">DeepSeek API Key (optional)</string>
+
+    <string name="act_preflight">Check env</string>
+    <string name="act_refresh">Refresh</string>
+    <string name="act_install">Install / repair</string>
+    <string name="act_open">Open UI</string>
+    <string name="act_start">Start</string>
+    <string name="act_stop">Stop</string>
+
+    <string name="st_service">Service</string>
+    <string name="st_watchdog">Watchdog</string>
+    <string name="st_port_fmt">Port %1$s</string>
+    <string name="st_dot_up">● %1$s</string>
+    <string name="st_dot_down">○ %1$s</string>
+    <string name="st_no_url">URL: —</string>
+
+    <string name="label_log">Log</string>
+    <string name="label_install_out">Install output (live)</string>
+
+    <string name="msg_ready">Console ready</string>
+    <string name="msg_busy">Previous command still running (%1$d in flight)</string>
+    <string name="msg_call_failed">Failed to call Termux: %1$s</string>
+    <string name="msg_no_bundle">No result payload (Termux version mismatch?)</string>
+    <string name="msg_opened">Opened in embedded view</string>
+    <string name="hint_allow_external">Check: 1) Termux installed 2) allow-external-apps=true 3) RUN_COMMAND permission granted</string>
+
+    <string name="confirm_stop">Stop the dsh service? The watchdog will be stopped too.</string>
+    <string name="confirm_install_title">Install / repair dsh</string>
+    <string name="confirm_install_with_key">Will run the one-click deploy script in the background using the API key above (10-20 min). Continue?</string>
+    <string name="confirm_install_no_key">No API key provided; will install without one. Continue?</string>
+
+    <string name="ok">Continue</string>
+    <string name="cancel">Cancel</string>
+    <string name="copied">URL copied</string>
+    <string name="no_url">No URL yet — start the service first</string>
+    <string name="perm_granted">RUN_COMMAND permission granted</string>
+    <string name="perm_denied">RUN_COMMAND permission denied — features unavailable</string>
+</resources>
