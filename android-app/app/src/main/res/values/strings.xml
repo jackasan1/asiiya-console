@@ -72,4 +72,7 @@
     <string name="install_key_hint">DeepSeek API Key（可留空）</string>
     <string name="about_title">关于</string>
     <string name="about_body">DSH 控制台 —— 在手机上控制 DeepSeek Harness。\n\n通过 Termux 的 RUN_COMMAND 接口工作，不需要 root。</string>
+    <string name="theme_toggle">切换主题</string>
+    <string name="theme_dark">已切到深色</string>
+    <string name="theme_light">已切到浅色</string>
 </resources>

@@ -8,6 +8,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.view.ViewAnimationUtils
+import android.view.animation.AccelerateDecelerateInterpolator
+import androidx.appcompat.app.AppCompatDelegate
+import kotlin.math.hypot
+import kotlin.math.max
 import android.graphics.Typeface
 import android.text.SpannableString
 import android.text.SpannableStringBuilder
@@ -77,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         b.btnMenu.setOnClickListener { b.drawer.openDrawer(GravityCompat.START) }
         listOf(b.circleStart, b.circleStop, b.circleLog, b.circleSettings,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
-        b.btnTopRight.setOnClickListener { showSettings() }
+        b.btnTopRight.setOnClickListener { toggleTheme(it) }
         b.ring.setOnClickListener { openConsole() }
         b.centerPanel.setOnClickListener { openConsole() }
         b.actStart.setOnClickListener { ctl(getString(R.string.act_start), "start") }
@@ -101,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
         log(getString(R.string.msg_ready))
         ctl(getString(R.string.act_refresh), "status")
+        maybeRevealTheme()
     }
 
     override fun onResume() { super.onResume(); auto = true; ui.post(tick) }
@@ -216,6 +223,60 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------------- 交互 ----------------
+
+    // ---------------- 主题 ----------------
+
+    private val prefs by lazy { getSharedPreferences("ui", MODE_PRIVATE) }
+
+    private fun isNightNow(): Boolean = when (AppCompatDelegate.getDefaultNightMode()) {
+        AppCompatDelegate.MODE_NIGHT_YES -> true
+        AppCompatDelegate.MODE_NIGHT_NO -> false
+        else -> (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+    }
+
+    private fun updateThemeIcon() {
+        b.ivTheme.setImageResource(if (isNightNow()) R.drawable.ic_sun else R.drawable.ic_moon)
+    }
+
+    /** 点太阳/月亮：记录点击位置 → 图标旋转 → 切主题 → 新界面圆形揭示 */
+    private fun toggleTheme(v: View) {
+        val next = if (isNightNow()) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
+        val loc = IntArray(2)
+        v.getLocationInWindow(loc)
+        prefs.edit()
+            .putBoolean("reveal", true)
+            .putFloat("cx", loc[0] + v.width / 2f)
+            .putFloat("cy", loc[1] + v.height / 2f)
+            .putInt("night", next)
+            .apply()
+        v.animate().rotationBy(180f).scaleX(0.75f).scaleY(0.75f).setDuration(180)
+            .withEndAction { AppCompatDelegate.setDefaultNightMode(next) }
+            .start()
+        toast(getString(if (next == AppCompatDelegate.MODE_NIGHT_YES) R.string.theme_dark else R.string.theme_light))
+    }
+
+    private fun maybeRevealTheme() {
+        if (!prefs.getBoolean("reveal", false)) { updateThemeIcon(); return }
+        prefs.edit().putBoolean("reveal", false).apply()
+        val cx = prefs.getFloat("cx", 0f).toInt()
+        val cy = prefs.getFloat("cy", 0f).toInt()
+        val root = b.root
+        root.post {
+            updateThemeIcon()
+            val w = root.width
+            val h = root.height
+            if (w <= 0 || h <= 0) return@post
+            val r = hypot(max(cx, w - cx).toDouble(), max(cy, h - cy).toDouble()).toFloat()
+            try {
+                val anim = ViewAnimationUtils.createCircularReveal(root, cx, cy, 0f, r)
+                anim.duration = 420L
+                anim.interpolator = AccelerateDecelerateInterpolator()
+                anim.start()
+            } catch (_: Exception) {
+            }
+        }
+    }
 
     private fun closeDrawer() { b.drawer.closeDrawers() }
 

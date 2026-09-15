@@ -8,7 +8,7 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/bg"
+        android:background="@drawable/bg_gradient"
         android:fillViewport="true">
 
     <LinearLayout
@@ -63,8 +63,9 @@
                     android:layout_width="21dp"
                     android:layout_height="21dp"
                     android:layout_gravity="center"
-                    android:contentDescription="@string/act_settings"
-                    android:src="@drawable/ic_settings"
+                    android:id="@+id/ivTheme"
+                    android:contentDescription="@string/theme_toggle"
+                    android:src="@drawable/ic_sun"
                     android:tint="@color/fg" />
             </FrameLayout>
         </LinearLayout>

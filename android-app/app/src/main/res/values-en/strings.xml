@@ -72,4 +72,7 @@
     <string name="install_key_hint">DeepSeek API Key (optional)</string>
     <string name="about_title">About</string>
     <string name="about_body">DSH Console — control DeepSeek Harness from your phone.\n\nWorks via Termux RUN_COMMAND, no root needed.</string>
+    <string name="theme_toggle">Toggle theme</string>
+    <string name="theme_dark">Dark theme</string>
+    <string name="theme_light">Light theme</string>
 </resources>
