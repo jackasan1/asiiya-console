@@ -310,7 +310,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_start"
                         android:src="@drawable/ic_home"
-                        android:tint="@color/blue" />
+                        android:tint="@color/accent" />
                 </FrameLayout>
 
                 <TextView
@@ -347,7 +347,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_stop"
                         android:src="@drawable/ic_stop"
-                        android:tint="@color/red" />
+                        android:tint="@color/bad" />
                 </FrameLayout>
 
                 <TextView
@@ -384,7 +384,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_log"
                         android:src="@drawable/ic_log"
-                        android:tint="@color/amber" />
+                        android:tint="@color/warn" />
                 </FrameLayout>
 
                 <TextView
@@ -421,7 +421,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/act_settings"
                         android:src="@drawable/ic_settings"
-                        android:tint="@color/gray" />
+                        android:tint="@color/dim" />
                 </FrameLayout>
 
                 <TextView
