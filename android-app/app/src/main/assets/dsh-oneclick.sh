@@ -146,6 +146,12 @@ fi
 
 # ============================ 4. 安装 dsh ============================
 sec "4/10 安装 @deepseek-ai/dsh@$PIN"
+# npm 替换包文件前先停掉服务，否则文件被占用会导致安装不完整
+if pgrep -f "expose-internals" >/dev/null 2>&1; then
+  log "先停止 dsh web（避免 npm 替换文件时被占用）"
+  pkill -f "expose-internals" 2>/dev/null || true
+  sleep 2
+fi
 if [ "$MODE" = deploy ] && [ "$SKIP_NPM" = "0" ]; then
   export CFLAGS="-target $TARGET" CXXFLAGS="-target $TARGET" CMAKE_BUILD_PARALLEL_LEVEL=2
   log "npm install -g @deepseek-ai/dsh@$PIN —— 最耗时（5~15 分钟，无输出属正常）"
