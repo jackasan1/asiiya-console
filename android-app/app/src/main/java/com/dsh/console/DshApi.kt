@@ -22,7 +22,7 @@ data class Status(
 object DshApi {
 
     /** 与 assets/dsh-ctl.sh 里的 CTL_VER 保持一致 */
-    const val CTL_VERSION = "4"
+    const val CTL_VERSION = "5"
 
     /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 4KB） */
     private fun bootstrap(ctx: Context): String {
