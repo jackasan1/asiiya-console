@@ -154,6 +154,15 @@ if [ "$MODE" = deploy ] && [ "$SKIP_NPM" = "0" ]; then
          npm install -g --foreground-scripts --no-audit --no-fund "@deepseek-ai/dsh@$PIN"; }
   unset CFLAGS CXXFLAGS CMAKE_BUILD_PARALLEL_LEVEL
 else warn "跳过 npm 安装"; fi
+# npm 会把 $PREFIX/bin/dsh 建成指向 bin.js 的符号链接，而 bin.js 的 shebang 是
+# #!/usr/bin/env node —— Termux 没有 /usr/bin/env，必须重建为真正的包装脚本
+log "重建 dsh 启动包装器（--expose-internals）"
+rm -f "$PREFIX/bin/dsh"
+cat > "$PREFIX/bin/dsh" <<'WRAP'
+#!/data/data/com.termux/files/usr/bin/sh
+exec node --expose-internals /data/data/com.termux/files/usr/lib/node_modules/@deepseek-ai/dsh/lib/bin.js "$@"
+WRAP
+chmod +x "$PREFIX/bin/dsh"
 command -v dsh >/dev/null && ok "dsh $(dsh --version 2>/dev/null | head -1)" || { err "dsh 命令未就位"; exit 1; }
 [ -d "$D" ] || { err "未找到 $D"; exit 1; }
 
@@ -221,6 +230,36 @@ else
   [ -f "$PROFILE" ] && cp -n "$PROFILE" "$PROFILE.bak" 2>/dev/null || true
   printf '\n- id: permission\n  config:\n    defaultPreset: danger-full-access\n' >> "$PROFILE"
   ok "已追加 defaultPreset"
+fi
+
+# 5e. sharp WebAssembly 兜底（sharp 无 android-arm64 预编译，缺它 dsh web 起不来）
+if [ -d "$D/node_modules/sharp" ]; then
+  SHARP_VER="$(python3 -c "import json;print(json.load(open('$D/node_modules/sharp/package.json'))['version'])" 2>/dev/null)"
+  if [ -n "$SHARP_VER" ]; then
+    wasm_ok() { [ -d "$D/node_modules/@img/sharp-wasm32" ] && ls "$D/node_modules/@img/sharp-wasm32"/lib/*.wasm >/dev/null 2>&1; }
+    if wasm_ok; then
+      ok "sharp wasm 兜底已就位 ($SHARP_VER)"
+    else
+      log "安装 sharp@$SHARP_VER 的 WebAssembly 兜底"
+      SW="$HOMEDIR/.dsh-sharp-sw"
+      rm -rf "$SW"; mkdir -p "$SW"; cd "$SW" || exit 1
+      npm install --no-save --no-audit --no-fund "@img/sharp-wasm32@$SHARP_VER" >/dev/null 2>&1 \
+        || npm install --no-save --no-audit --no-fund --registry=https://registry.npmmirror.com "@img/sharp-wasm32@$SHARP_VER" >/dev/null 2>&1
+      if [ -d "$SW/node_modules/@img/sharp-wasm32" ]; then
+        mkdir -p "$D/node_modules/@img"
+        rm -rf "$D/node_modules/@img/sharp-wasm32"
+        cp -r "$SW/node_modules/@img/sharp-wasm32" "$D/node_modules/@img/"
+        [ -d "$SW/node_modules/@emnapi" ] && cp -r "$SW/node_modules/@emnapi" "$D/node_modules/" 2>/dev/null || true
+        if wasm_ok; then ok "sharp wasm 兜底已安装"; else warn "sharp wasm 校验失败"; fi
+      else
+        warn "sharp wasm 下载失败（网络？）"
+      fi
+      cd "$HOMEDIR" || exit 1
+      rm -rf "$SW"
+    fi
+  fi
+else
+  warn "未找到 sharp 模块，跳过 wasm 兜底"
 fi
 
 # ============================ 6. 手机端 UI 适配 ============================
@@ -464,7 +503,7 @@ fi
 
 [ -f "$HOMEDIR/dsh/dsh-web-url.txt" ] || head -1 "$HOMEDIR/dsh/dsh-web.log" > "$HOMEDIR/dsh/dsh-web-url.txt" 2>/dev/null || true
 sleep 5
-CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1:3080/ 2>/dev/null || echo 000)"
+CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1:3080/ 2>/dev/null)"; [ -n "$CODE" ] || CODE=000
 if [ "$CODE" = "401" ] || [ "$CODE" = "200" ]; then
   ok "dsh web 正常（HTTP $CODE）"
 else
@@ -479,6 +518,16 @@ if [ "$ROOTOK" = "0" ]; then
   echo "  ④ 自启动权限   → MIUI/ColorOS 等需额外给 Termux:Boot 开「自启动」"
   echo
 fi
+# 安装完成后顺手把服务拉起来（看门狗会自动管理 dsh web）
+if [ -x "$HOMEDIR/dsh/dsh-watchdog.sh" ]; then
+  if pgrep -f "expose-internals" >/dev/null 2>&1; then
+    echo "  服务已在运行"
+  else
+    setsid bash "$HOMEDIR/dsh/dsh-watchdog.sh" >/dev/null 2>&1 < /dev/null &
+    echo "  已拉起服务（看门狗守护）"
+  fi
+fi
+
 printf '\n%s════════════════ 部署完成 ════════════════%s\n' "$G" "$RST"
 echo "  启动方式 : dsh web"
 echo "  当前地址 : $(cat "$HOMEDIR/dsh/dsh-web-url.txt" 2>/dev/null)"
