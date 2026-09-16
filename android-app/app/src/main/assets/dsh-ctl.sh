@@ -133,7 +133,7 @@ uninstall-npm)
 
 log)
   N="${2:-3000}"
-  if [ -f "$INSTLOG" ]; then tail -c "$N" "$INSTLOG"; else echo "(暂无日志)"; fi
+  if [ -f "$INSTLOG" ]; then tail -c "$N" "$INSTLOG" | sed 's/\x1b\[[0-9;]*m//g'; else echo "(暂无日志)"; fi
   ;;
 
 preflight)

@@ -531,6 +531,9 @@ class MainActivity : AppCompatActivity() {
 
     /** 按内容猜颜色 */
     private fun kindOf(l: String): K = when {
+        l.contains("✓") -> K.OK
+        l.contains("✗") -> K.ERR
+        l.trim().startsWith("!") -> K.WARN
         l.startsWith("SERVICE=UP") || l.startsWith("WATCHDOG=UP") || l.startsWith("PORT=UP") -> K.OK
         l.contains("=DOWN") -> K.ERR
         l.startsWith("URL=") -> K.DATA

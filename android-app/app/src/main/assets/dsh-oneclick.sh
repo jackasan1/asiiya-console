@@ -38,12 +38,12 @@ while [ $# -gt 0 ]; do
   esac; shift
 done
 
-C=$'\033[1;36m'; G=$'\033[1;32m'; Y=$'\033[1;33m'; R=$'\033[1;31m'; N=$'\033[0m'
-log(){ printf '%s==> %s%s\n' "$C" "$*" "$N"; }
-ok(){  printf '%s  ✓ %s%s\n' "$G" "$*" "$N"; }
-warn(){ printf '%s  ! %s%s\n' "$Y" "$*" "$N"; }
-err(){ printf '%s  ✗ %s%s\n' "$R" "$*" "$N"; }
-sec(){ printf '\n%s━━━ %s ━━━%s\n' "$C" "$*" "$N"; }
+C=$'\033[1;36m'; G=$'\033[1;32m'; Y=$'\033[1;33m'; R=$'\033[1;31m'; RST=$'\033[0m'
+log(){ printf '%s==> %s%s\n' "$C" "$*" "$RST"; }
+ok(){  printf '%s  ✓ %s%s\n' "$G" "$*" "$RST"; }
+warn(){ printf '%s  ! %s%s\n' "$Y" "$*" "$RST"; }
+err(){ printf '%s  ✗ %s%s\n' "$R" "$*" "$RST"; }
+sec(){ printf '\n%s━━━ %s ━━━%s\n' "$C" "$*" "$RST"; }
 
 # ============================ 0. 环境预检 ============================
 sec "0/10 环境预检"
@@ -472,14 +472,14 @@ else
 fi
 
 if [ "$ROOTOK" = "0" ]; then
-  printf '\n%s── 无 root，请手动完成这 4 件事 ──%s\n' "$Y" "$N"
+  printf '\n%s── 无 root，请手动完成这 4 件事 ──%s\n' "$Y" "$RST"
   echo "  ① Termux:API   → 安装 /sdcard/Download/termux-api.apk（脚本已为你下载）"
   echo "  ② Termux:Boot  → https://github.com/termux/termux-boot/releases 装好并【打开一次】"
   echo "  ③ 关电池优化   → 系统设置 → 应用 → Termux → 电池 → 无限制"
   echo "  ④ 自启动权限   → MIUI/ColorOS 等需额外给 Termux:Boot 开「自启动」"
   echo
 fi
-printf '\n%s════════════════ 部署完成 ════════════════%s\n' "$G" "$N"
+printf '\n%s════════════════ 部署完成 ════════════════%s\n' "$G" "$RST"
 echo "  启动方式 : dsh web"
 echo "  当前地址 : $(cat "$HOMEDIR/dsh/dsh-web-url.txt" 2>/dev/null)"
 echo "  看门狗   : ~/dsh-watchdog.sh   (日志 ~/dsh-watchdog.log)"
