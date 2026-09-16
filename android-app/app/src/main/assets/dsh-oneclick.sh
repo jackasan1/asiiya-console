@@ -268,6 +268,25 @@ else
   warn "未找到 sharp 模块，跳过 wasm 兜底"
 fi
 
+# 5f. 确保 link / rename 都已导入（正文既有 fs.link 简写属性，也有被换成 rename 的调用）
+python3 - <<'PYFIX'
+import os, re, glob
+D = os.environ["PREFIX"] + "/lib/node_modules/@deepseek-ai/dsh"
+for p in [D + "/node_modules/@deepseek-ai/dsh-session-persistence-jsonl/lib/index.js",
+          D + "/node_modules/@deepseek-ai/dsh-attachment-local/lib/index.js"]:
+    if not os.path.exists(p): continue
+    s = open(p).read()
+    def fix(m):
+        n = [x.strip() for x in m.group(1).split(",") if x.strip()]
+        for r in ("link", "rename"):
+            if r not in n: n.append(r)
+        return "import { " + ", ".join(n) + ' } from "node:fs/promises";'
+    s2 = re.sub(r'import \{([^}]*)\} from "node:fs/promises";', fix, s)
+    if s2 != s:
+        open(p, "w").write(s2)
+print("  link/rename 导入已校验")
+PYFIX
+
 # ============================ 6. 手机端 UI 适配 ============================
 sec "6/10 手机端 UI 适配"
 F="$D/node_modules/@deepseek-ai/dsh-web-frontend/dist"
@@ -525,6 +544,9 @@ if [ "$ROOTOK" = "0" ]; then
   echo
 fi
 # 安装完成后顺手把服务拉起来（看门狗会自动管理 dsh web）
+# 清理上次崩溃残留的僵尸锁（会导致 atomic-write timed out）
+find "$HOMEDIR/.dsh" -name "*.lock" -delete 2>/dev/null || true
+
 if [ -x "$HOMEDIR/dsh/dsh-watchdog.sh" ]; then
   if pgrep -f "expose-internals" >/dev/null 2>&1; then
     echo "  服务已在运行"
