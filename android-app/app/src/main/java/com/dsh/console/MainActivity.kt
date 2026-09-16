@@ -414,7 +414,10 @@ class MainActivity : AppCompatActivity() {
                 installPolling = true
                 ringBusy()
                 askNotificationPermission()
-                InstallService.start(this, key)
+                // 用 MainActivity 这条已验证可用的路径发起安装
+                ctl(getString(R.string.act_install), "install",
+                    stdin = if (key.isEmpty()) "" else "$key\n")
+                InstallService.watch(this)
                 log(getString(R.string.act_install) + " → 后台执行中，通知栏可见进度")
             }
             .setNegativeButton(R.string.cancel, null)

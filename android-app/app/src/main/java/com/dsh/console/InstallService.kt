@@ -27,10 +27,18 @@ class InstallService : Service() {
         private const val NOTI_ONGOING = 1001
         private const val NOTI_DONE = 1002
         private const val ACTION_TICK = "com.dsh.console.INSTALL_TICK"
-        private const val ACTION_START = "com.dsh.console.INSTALL_WATCH"
+        private const val ACTION_START = "com.dsh.console.INSTALL_SEND"
+        const val ACTION_WATCH = "com.dsh.console.INSTALL_WATCH"
         private const val EXTRA_KEY = "api_key"
         private const val POLL_MS = 10_000L
         private const val MAX_TICKS = 300          // 约 50 分钟上限
+
+        /** 只观察进度，不发安装命令（安装由 MainActivity 用已验证的路径发起） */
+        fun watch(ctx: Context) {
+            val i = Intent(ctx, InstallService::class.java).setAction(ACTION_WATCH)
+            if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i)
+            else ctx.startService(i)
+        }
 
         fun start(ctx: Context, apiKey: String) {
             val i = Intent(ctx, InstallService::class.java)
@@ -45,6 +53,7 @@ class InstallService : Service() {
     private var seq = 900
     private var ticks = 0
     private var busy = false
+    private var busySince = 0L
     private var wasRunning = false
     private var lastLine = ""
 
@@ -73,6 +82,7 @@ class InstallService : Service() {
             val key = intent.getStringExtra(EXTRA_KEY) ?: ""
             send(DshApi.installCmd(this), "install", if (key.isEmpty()) "" else "$key\n")
         }
+        // ACTION_WATCH：只轮询进度，不发安装命令
 
         ui.removeCallbacks(tick)
         ui.postDelayed(tick, POLL_MS)
@@ -83,6 +93,8 @@ class InstallService : Service() {
         override fun run() {
             ticks++
             if (ticks > MAX_TICKS) { finish("安装超时，请查看日志"); return }
+            // 回包丢失兜底：超过 60 秒没结果就强制解锁
+            if (busy && System.currentTimeMillis() - busySince > 60_000L) busy = false
             if (!busy) {
                 if (ticks % 3 == 0) send(DshApi.cmd(this@InstallService, "status"), "status")
                 else send(DshApi.cmd(this@InstallService, "log", "1200"), "log")
@@ -93,6 +105,7 @@ class InstallService : Service() {
 
     private fun send(cmd: String, label: String, stdin: String? = null) {
         busy = true
+        busySince = System.currentTimeMillis()
         try {
             startService(
                 TermuxRunner.intent(
