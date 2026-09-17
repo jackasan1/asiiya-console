@@ -8,6 +8,9 @@ on:
       - '.github/workflows/android.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -58,3 +61,15 @@ jobs:
           name: dsh-console-release
           path: android-app/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      - name: Publish latest release
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest android-app/app/build/outputs/apk/release/app-release.apk \
+            --title "DSH 控制台 ${GITHUB_SHA:0:7}" \
+            --notes "自动构建 ${GITHUB_SHA}" --latest
+          echo "APK: https://github.com/${{ github.repository }}/releases/latest/download/app-release.apk"

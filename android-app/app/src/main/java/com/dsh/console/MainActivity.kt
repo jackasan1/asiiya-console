@@ -31,6 +31,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
+import android.provider.Settings
+import androidx.core.content.FileProvider
+import java.io.File
 import android.view.Gravity
 import android.view.View
 import android.widget.EditText
@@ -570,8 +573,11 @@ class MainActivity : AppCompatActivity() {
                         if (!silent) log(getString(R.string.update_failed) + (err?.let { "（$it）" } ?: ""))
                     sha == mine ->
                         if (!silent) log(getString(R.string.update_uptodate) + "  ($mine)")
-                    else ->
+                    else -> {
                         log(getString(R.string.update_available) + "  （本机 $mine → 最新 $sha）")
+                        // 自动检查只在日志提示；手动点「检查更新」才弹窗
+                        if (!silent) askUpdate(sha)
+                    }
                 }
             }
         }.start()
@@ -619,6 +625,88 @@ class MainActivity : AppCompatActivity() {
             return null to "解析失败"
         } catch (e: Exception) {
             return null to (e.message?.take(48) ?: "网络异常")
+        }
+    }
+
+    // ---------------- 应用内更新 ----------------
+
+    /** 固定下载地址：GitHub 会把 /releases/latest 解析到最新 release（CI 每次推送重建） */
+    private val APK_URL =
+        "https://github.com/jackasan1/deepseek-harness-android/releases/latest/download/app-release.apk"
+
+    private var updating = false
+
+    private fun askUpdate(sha: String) {
+        if (updating) { toast(getString(R.string.update_downloading)); return }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(getString(R.string.update_dialog_msg, BuildConfig.VERSION_NAME, sha))
+            .setPositiveButton(R.string.update_now) { _, _ -> startUpdate(sha) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun startUpdate(sha: String) {
+        // Android 8+ 要先允许「安装未知应用」
+        if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.update_perm_title)
+                .setMessage(R.string.update_perm_msg)
+                .setPositiveButton(R.string.update_perm_go) { _, _ ->
+                    try {
+                        startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:$packageName")))
+                    } catch (e: Exception) {
+                        toast(getString(R.string.update_perm_failed))
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+            return
+        }
+
+        updating = true
+        log(getString(R.string.update_downloading))
+        Thread {
+            try {
+                val dir = File(getExternalFilesDir(null), "update")
+                dir.mkdirs()
+                val f = File(dir, "dsh-console-$sha.apk")
+                val c = java.net.URL(APK_URL).openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 15000
+                c.readTimeout = 90000
+                c.instanceFollowRedirects = true
+                c.setRequestProperty("User-Agent", "DSHConsole")
+                val code = c.responseCode
+                if (code != 200) throw Exception("HTTP $code")
+                c.inputStream.use { ins -> f.outputStream().use { outs -> ins.copyTo(outs, 64 * 1024) } }
+                c.disconnect()
+                val mb = f.length() / 1024 / 1024
+                runOnUiThread {
+                    updating = false
+                    log(getString(R.string.update_downloaded, mb))
+                    installApk(f)
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    updating = false
+                    log(getString(R.string.update_failed) + "（下载：${e.message?.take(60)}）")
+                }
+            }
+        }.start()
+    }
+
+    private fun installApk(f: File) {
+        try {
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", f)
+            startActivity(Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            log(getString(R.string.update_installing))
+        } catch (e: Exception) {
+            log(getString(R.string.update_failed) + "（安装：${e.message?.take(60)}）")
         }
     }
 

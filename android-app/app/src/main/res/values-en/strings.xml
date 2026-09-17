@@ -179,4 +179,14 @@
     <string name="cost_sub_official">Official · %1$s · total %2$s</string>
     <string name="cost_need_login">Session expired — re-login at platform.deepseek.com in the agent browser</string>
     <string name="cost_hint_usage">%1$d reqs · %2$s tokens today</string>
+    <string name="update_dialog_title">Update available</string>
+    <string name="update_dialog_msg">Current %1$s, latest build %2$s.\n\nDownload and install now? (~5MB)</string>
+    <string name="update_now">Download &amp; install</string>
+    <string name="update_downloading">⏳ Downloading new version…</string>
+    <string name="update_downloaded">✅ Downloaded (%1$d MB), launching installer…</string>
+    <string name="update_installing">Tap &quot;Install&quot; in the system installer</string>
+    <string name="update_perm_title">Permission needed: install unknown apps</string>
+    <string name="update_perm_msg">Android requires allowing this app to install APKs. Tap Go to settings, enable it, then check for updates again.</string>
+    <string name="update_perm_go">Go to settings</string>
+    <string name="update_perm_failed">Cannot open settings — Settings > Apps > Special access > Install unknown apps</string>
 </resources>
