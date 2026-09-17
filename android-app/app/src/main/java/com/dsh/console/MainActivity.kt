@@ -1,5 +1,6 @@
 package com.dsh.console
 
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -61,6 +62,10 @@ class MainActivity : AppCompatActivity() {
     /** 连续几次探测到服务未运行 */
     private var downTicks = 0
     private var lastAutoStart = 0L
+    /** 首次状态到达前显示骨架态 */
+    private var skeleton = true
+    private var skeletonAnim: ObjectAnimator? = null
+    private var logEmpty = true
 
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
@@ -88,7 +93,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         b.btnMenu.setOnClickListener { b.drawer.openDrawer(GravityCompat.START) }
-        listOf(b.circleStart, b.circleStop, b.circleLog, b.circleSettings,
+        b.actRestart.setOnClickListener {
+            confirm(getString(R.string.act_restart) + "？") { ringBusy(); action(getString(R.string.act_restart), "restart") }
+        }
+        b.drawerPatch.setOnClickListener { closeDrawer(); action(getString(R.string.menu_checkpatch), "checkpatch") }
+        b.drawerUpdate.setOnClickListener { closeDrawer(); checkUpdate(false) }
+        listOf(b.circleStart, b.circleStop, b.circleRestart, b.circleLog, b.circleSettings,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
         b.ring.setOnClickListener { openConsole() }
@@ -113,6 +123,9 @@ class MainActivity : AppCompatActivity() {
         b.btnSetConsole.setOnClickListener { hideSheet(); openConsole() }
         b.tvSetKey.setOnClickListener { hideSheet(); keyDialog() }
         b.tvSetModel.setOnClickListener { hideSheet(); modelDialog() }
+        b.tvCfgPort.setOnClickListener { numConfDialog("port", getString(R.string.cfg_port), 1024, 65535) }
+        b.tvCfgWd.setOnClickListener { numConfDialog("wdInterval", getString(R.string.cfg_wd), 15, 3600) }
+        b.tvCfgBoot.setOnClickListener { bootConfDialog() }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
         b.btnConsole.setOnClickListener { openConsole() }
         b.swipeMain.setColorSchemeColors(
@@ -145,6 +158,16 @@ class MainActivity : AppCompatActivity() {
         log(getString(R.string.msg_ready))
         ctl(getString(R.string.act_refresh), "status")
         maybeRevealTheme()
+        checkUpdate(true)
+        startSkeleton()
+        maybeFirstRun()
+
+        // 桌面小组件触发的动作
+        when (intent?.getStringExtra("widget_action")) {
+            "start" -> { userStopped = false; ringBusy(); action(getString(R.string.act_start), "start") }
+            "stop" -> { userStopped = true; ringBusy(); action(getString(R.string.act_stop), "stop") }
+            "open" -> openConsole()
+        }
     }
 
     override fun onResume() { super.onResume(); auto = true; ui.post(tick) }
@@ -202,6 +225,8 @@ class MainActivity : AppCompatActivity() {
         val st = DshApi.parseStatus(out)
         if (st != null) { applyStatus(st); return }
 
+        if (parseConf(out)) return
+
         if (installPolling) {
             b.installCard.visibility = View.VISIBLE
             out.lines().filter { it.isNotBlank() }.forEach { log(it, kindOf(it)) }
@@ -234,6 +259,7 @@ class MainActivity : AppCompatActivity() {
         val prev = lastStatus
         lastStatus = s
 
+        stopSkeleton()
         if (prev == null || prev.service != s.service) pulse()
 
         // ---- 保活：前台检测到服务挂了就自动拉起（用户主动停止的除外）----
@@ -279,6 +305,106 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------------- 交互 ----------------
+
+    /** 首次启动引导 */
+    private fun maybeFirstRun() {
+        if (prefs.getBoolean("seen", false)) return
+        prefs.edit().putBoolean("seen", true).apply()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.firstrun_title)
+            .setMessage(R.string.firstrun_body)
+            .setPositiveButton(R.string.firstrun_go) { _, _ ->
+                action(getString(R.string.act_preflight), "preflight")
+            }
+            .setNegativeButton(R.string.settings_close, null)
+            .show()
+    }
+
+    // ---------------- 运行配置 ----------------
+
+    private var cfgLoaded = false
+
+    /** 解析 getconf 的 JSON；命中返回 true */
+    private fun parseConf(raw: String): Boolean {
+        val i = raw.indexOf('{')
+        if (i < 0 || raw.indexOf("\"port\"") < 0) return false
+        return try {
+            val o = org.json.JSONObject(raw.substring(i, raw.lastIndexOf('}') + 1))
+            b.tvCfgPort.text = o.optString("port", "-")
+            b.tvCfgWd.text = o.optString("wdInterval", "-") + getString(R.string.cfg_hint)
+            b.tvCfgBoot.text = if (o.optString("boot") == "on") getString(R.string.model_ok) else getString(R.string.model_missing)
+            cfgLoaded = true
+            true
+        } catch (e: Exception) { false }
+    }
+
+    private fun numConfDialog(key: String, title: String, min: Int, max: Int) {
+        val pad = (resources.displayMetrics.density * 20).toInt()
+        val et = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = "$min ~ $max"
+        }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad / 2, pad, 0)
+            addView(et)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(box)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val v = et.text.toString().trim()
+                if (v.isEmpty()) return@setPositiveButton
+                action(title, "setconf", key, v)
+                ui.postDelayed({ ctl("", "getconf", silent = true) }, 800)
+                if (key == "port") toast(getString(R.string.cfg_title) + " 需重启服务生效")
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun bootConfDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.cfg_boot)
+            .setItems(arrayOf(getString(R.string.model_ok), getString(R.string.model_missing))) { _, which ->
+                action(getString(R.string.cfg_boot), "setconf", "boot", if (which == 0) "on" else "off")
+                ui.postDelayed({ ctl("", "getconf", silent = true) }, 800)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    // ---------------- 检查更新 ----------------
+
+    /** silent=true 时不打日志（启动时静默检查） */
+    private fun checkUpdate(silent: Boolean) {
+        val mine = BuildConfig.GIT_SHA.take(7)
+        if (mine == "unknown" || mine.isEmpty()) {
+            if (!silent) log(getString(R.string.update_failed) + "（构建未注入版本）")
+            return
+        }
+        if (!silent) log(getString(R.string.update_checking))
+        Thread {
+            val res = try {
+                val c = java.net.URL("https://api.github.com/repos/jackasan1/deepseek-harness-android/commits/main")
+                    .openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 10000
+                c.readTimeout = 10000
+                c.setRequestProperty("Accept", "application/vnd.github+json")
+                val body = c.inputStream.bufferedReader().readText()
+                c.disconnect()
+                Regex("\"sha\\s*\\*:\\s*\"([0-9a-f]{40})\"").find(body)?.groupValues?.get(1)?.take(7)
+            } catch (e: Exception) { null }
+
+            runOnUiThread {
+                when {
+                    res == null -> if (!silent) log(getString(R.string.update_failed))
+                    res == mine -> if (!silent) log(getString(R.string.update_uptodate))
+                    else -> log(getString(R.string.update_available) + "  （本机 $mine → 最新 $res）")
+                }
+            }
+        }.start()
+    }
 
     // ---------------- 主题 ----------------
 
@@ -339,6 +465,7 @@ class MainActivity : AppCompatActivity() {
     // ---------------- 设置弹出卡片 ----------------
 
     private fun showSheet() {
+        ctl("", "getconf", silent = true)
         val st = lastStatus
         b.tvSetApp.text = BuildConfig.VERSION_NAME
         b.tvSetCtl.text = st?.ctlVersion ?: DshApi.CTL_VERSION
@@ -407,6 +534,34 @@ class MainActivity : AppCompatActivity() {
         ctl(label, *args, stdin = stdin)
     }
 
+    /** 首次状态到达前的骨架态：占位 + 呼吸闪烁 */
+    private fun startSkeleton() {
+        b.tvPortValue.text = "—"
+        b.tvModelValue.text = "—"
+        b.tvProcValue.text = "—"
+        b.tvUptimeValue.text = "--:--:--"
+        b.tvState.text = getString(R.string.state_loading)
+        b.tvLog.text = getString(R.string.log_empty)
+        ui.postDelayed({
+            if (skeleton) {
+                skeletonAnim = ObjectAnimator.ofFloat(b.centerPanel, "alpha", 1f, 0.35f).apply {
+                    duration = 900
+                    repeatMode = ValueAnimator.REVERSE
+                    repeatCount = ValueAnimator.INFINITE
+                    start()
+                }
+            }
+        }, 1200)
+    }
+
+    private fun stopSkeleton() {
+        if (!skeleton) return
+        skeleton = false
+        skeletonAnim?.cancel()
+        skeletonAnim = null
+        b.centerPanel.alpha = 1f
+    }
+
     /** 数字平滑滚动；非数字则直接替换 */
     private fun rollText(tv: TextView, target: String) {
         val a = (tv.text?.toString() ?: "").trim().toIntOrNull()
@@ -469,6 +624,7 @@ class MainActivity : AppCompatActivity() {
                 val k = et.text.toString().trim()
                 if (k.isEmpty()) { toast(getString(R.string.key_hint)); return@setPositiveButton }
                 action(getString(R.string.key_set), "setkey", stdin = "$k\n")
+                ui.postDelayed({ ctl(getString(R.string.key_title), "checkey") }, 1500)
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -639,6 +795,7 @@ class MainActivity : AppCompatActivity() {
         override fun run() {
             val next = q.removeFirstOrNull()
             if (next == null) { typing = false; return }
+            if (logEmpty) { logBuf.clear(); logEmpty = false }
             logBuf.append(next)
             if (logBuf.length > 80000) {
                 val cut = logBuf.indexOf("\n", 40000)

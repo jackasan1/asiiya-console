@@ -100,4 +100,21 @@
     <string name="settings_model">模型</string>
     <string name="model_pick">选择默认模型</string>
     <string name="model_switched">模型已切换，重启服务后生效</string>
+    <string name="act_restart">重启</string>
+    <string name="menu_checkpatch">补丁自检</string>
+    <string name="menu_update">检查更新</string>
+    <string name="update_checking">正在检查更新…</string>
+    <string name="update_uptodate">✅ 已是最新版本</string>
+    <string name="update_available">🆕 有新版本可用</string>
+    <string name="update_failed">✗ 检查更新失败（网络？）</string>
+    <string name="cfg_port">端口</string>
+    <string name="cfg_wd">看门狗间隔</string>
+    <string name="cfg_boot">开机自启</string>
+    <string name="cfg_title">运行配置</string>
+    <string name="cfg_hint">秒</string>
+    <string name="log_empty">暂无日志 · 操作一下试试</string>
+    <string name="state_loading">连接中…</string>
+    <string name="firstrun_title">首次使用引导</string>
+    <string name="firstrun_body">首次使用建议先确认这几项：\n\n① Termux 已安装（GitHub / F-Droid 版）\n② Termux 里执行过一次并重启：\n    mkdir -p ~/.termux &amp;&amp; echo \'allow-external-apps=true\' &gt;&gt; ~/.termux/termux.properties\n③ 授予本 App「运行 Termux 命令」权限\n④ 允许通知（安装进度可见）\n⑤ Termux 电池优化设为「无限制」\n\n点下面的按钮可以直接跑一次体检。</string>
+    <string name="firstrun_go">运行环境体检</string>
 </resources>

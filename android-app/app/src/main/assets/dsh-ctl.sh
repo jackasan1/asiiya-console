@@ -5,7 +5,8 @@ BASE="$HOME/dsh"
 URLFILE="$BASE/dsh-web-url.txt"
 WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
-PORT=3080
+[ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
+PORT="${DSH_PORT:-3080}"
 CTL_VER=5
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
@@ -195,6 +196,74 @@ open(p, "w").write("\n".join(lines))
 PYM
   echo "✅ 默认模型已设为 $M"
   echo "  重启服务后生效"
+  ;;
+
+restart)
+  echo "==> 重启服务"
+  "$0" stop >/dev/null 2>&1
+  sleep 2
+  "$0" start
+  ;;
+
+checkpatch)
+  DSH="$PREFIX/lib/node_modules/@deepseek-ai/dsh"
+  N="$DSH/node_modules/@deepseek-ai"
+  FE="$N/dsh-web-frontend/dist"
+  OK=0; BAD=0
+  ck() { if eval "$2" >/dev/null 2>&1; then echo "✅ $1"; OK=$((OK+1)); else echo "✗ $1"; BAD=$((BAD+1)); fi; }
+  echo "==> 补丁状态自检"
+  ck "flock 原生模块已编译"      "[ -f '$N/node-addon-system/lib/flock-android.node' ]"
+  ck "flock.js 含 android 分支"  "grep -q \"platform === 'android'\" '$N/node-addon-system/lib/flock.js'"
+  ck "session 持久化 link+rename" "grep -qE '^import \{[^}]*\blink\b' '$N/dsh-session-persistence-jsonl/lib/index.js' && grep -qE '^import \{[^}]*\brename\b' '$N/dsh-session-persistence-jsonl/lib/index.js'"
+  ck "权限预设 defaultPreset"     "grep -q defaultPreset '$BASE/profiles/web/cordis.patch.yml' 2>/dev/null || grep -q defaultPreset '$HOME/.dsh/profiles/web/cordis.patch.yml'"
+  ck "sharp wasm 兜底"           "ls '$DSH/node_modules/@img/sharp-wasm32'/lib/*.wasm"
+  ck "dsh 包装器 expose-internals" "grep -q expose-internals '$PREFIX/bin/dsh'"
+  ck "前端手机适配已注入"          "grep -q dsh-mobile-adapt '$FE/index.html'"
+  ck "看门狗脚本存在"             "[ -x '$BASE/dsh-watchdog.sh' ]"
+  ck "开机自启脚本存在"           "[ -f '$HOME/.termux/boot/start-dsh.sh' ]"
+  echo "----"
+  echo "通过 $OK 项，失败 $BAD 项"
+  [ "$BAD" -eq 0 ] || exit 1
+  ;;
+
+checkey)
+  CF="$HOME/.dsh/.credentials.yaml"
+  K="$(sed -n 's/^[[:space:]]*DEEPSEEK_API_KEY:[[:space:]]*//p' "$CF" 2>/dev/null | head -1)"
+  [ -z "$K" ] && [ -f "$BASE/.apikey" ] && K="$(cat "$BASE/.apikey" 2>/dev/null)"
+  if [ -z "$K" ]; then echo "✗ 未配置 API Key"; exit 1; fi
+  C="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://api.deepseek.com/models -H "Authorization: Bearer $K" 2>/dev/null)"
+  if [ "$C" = "200" ]; then echo "✅ API Key 有效（HTTP 200）"; else echo "✗ API Key 无效（HTTP ${C:-超时}）"; exit 1; fi
+  ;;
+
+getconf)
+  [ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
+  BOOT=off; [ -x "$HOME/.termux/boot/start-dsh.sh" ] && BOOT=on
+  printf '{"port":"%s","wdInterval":"%s","boot":"%s"}\n' "${DSH_PORT:-3080}" "${WD_INTERVAL:-60}" "$BOOT"
+  ;;
+
+setconf)
+  key="$(printf '%s' "${2:-}" | tr 'A-Z' 'a-z')"; val="${3:-}"
+  case "$key" in
+    port)       case "$val" in ''|*[!0-9]*) echo "✗ 端口必须是数字"; exit 1;; esac
+                [ "$val" -ge 1024 ] && [ "$val" -le 65535 ] || { echo "✗ 端口范围 1024-65535"; exit 1; }
+                line="DSH_PORT=$val";;
+    wdinterval) case "$val" in ''|*[!0-9]*) echo "✗ 间隔必须是数字"; exit 1;; esac
+                [ "$val" -ge 15 ] && [ "$val" -le 3600 ] || { echo "✗ 间隔范围 15-3600 秒"; exit 1; }
+                line="WD_INTERVAL=$val";;
+    boot)       [ "$val" = "on" ] || [ "$val" = "off" ] || { echo "✗ 只能是 on / off"; exit 1; }
+                if [ "$val" = "on" ]; then chmod +x "$HOME/.termux/boot/start-dsh.sh" 2>/dev/null; else chmod -x "$HOME/.termux/boot/start-dsh.sh" 2>/dev/null; fi
+                echo "✅ 开机自启已$([ "$val" = on ] && echo 开启 || echo 关闭)"; exit 0;;
+    *)          echo "✗ 未知配置项: $key（可用 port / wdInterval / boot）"; exit 1;;
+  esac
+  LOWER="$(printf '%s' "$key" | tr 'A-Z' 'a-z')"
+  CFG="$BASE/config.sh"; touch "$CFG"
+  grep -q "^DSH_PORT=" "$CFG" 2>/dev/null || echo "DSH_PORT=3080" >> "$CFG"
+  grep -q "^WD_INTERVAL=" "$CFG" 2>/dev/null || echo "WD_INTERVAL=60" >> "$CFG"
+  case "$key" in
+    port)       sed -i "s/^DSH_PORT=.*/$line/" "$CFG";;
+    wdinterval) sed -i "s/^WD_INTERVAL=.*/$line/" "$CFG";;
+  esac
+  echo "✅ 已设置 $key = $val"
   ;;
 
 tail)

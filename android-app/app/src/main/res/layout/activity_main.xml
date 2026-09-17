@@ -371,6 +371,41 @@
             </LinearLayout>
 
 <LinearLayout
+    android:id="@+id/actRestart"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:id="@+id/circleRestart"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_circle_blue"
+        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/act_restart"
+            android:src="@drawable/ic_restart"
+            android:tint="@color/cyan" />
+    </FrameLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="9dp"
+        android:text="@string/act_restart"
+        android:textColor="@color/fg"
+        android:textSize="12sp" />
+</LinearLayout>
+
+<LinearLayout
                 android:id="@+id/actLog"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -777,6 +812,99 @@
                 </LinearLayout>
 
                 <TextView
+                    android:id="@+id/sheetSec2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="2dp"
+                    android:text="@string/cfg_title"
+                    android:textColor="@color/dim"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/cfg_port"
+                        android:textColor="@color/dim"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvCfgPort"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.4"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="end"
+                        android:text="-"
+                        android:textColor="@color/accent"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/cfg_wd"
+                        android:textColor="@color/dim"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvCfgWd"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.4"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="end"
+                        android:text="-"
+                        android:textColor="@color/accent"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/cfg_boot"
+                        android:textColor="@color/dim"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvCfgBoot"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.4"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="end"
+                        android:text="-"
+                        android:textColor="@color/accent"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
@@ -972,7 +1100,63 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
+                        <LinearLayout
+                android:id="@+id/drawerPatch"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_uptime"
+                    android:tint="@color/ok" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/menu_checkpatch"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
             <LinearLayout
+                android:id="@+id/drawerUpdate"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_restart"
+                    android:tint="@color/cyan" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/menu_update"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+<LinearLayout
                 android:id="@+id/drawerCopy"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"

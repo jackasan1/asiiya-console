@@ -385,21 +385,64 @@ sec "7/10 看门狗（进程守护）"
 if [ "$NO_WD" = "0" ]; then
 cat > "$HOMEDIR/dsh/dsh-watchdog.sh" <<'WD'
 #!/data/data/com.termux/files/usr/bin/bash
-PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"; export PATH="$PREFIX/bin:$PATH"
-LOG="$HOME/dsh/dsh-web.log"; WDLOG="$HOME/dsh/dsh-watchdog.log"
-URLFILE="$HOME/dsh/dsh-web-url.txt"; PIDFILE="$HOME/dsh/dsh-watchdog.pid"
+# DSH 看门狗：dsh web 挂了自动拉起
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+export PATH="$PREFIX/bin:$PATH"
+BASE="$HOME/dsh"
+LOG="$BASE/dsh-web.log"; WDLOG="$BASE/dsh-watchdog.log"
+URLFILE="$BASE/dsh-web-url.txt"; PIDFILE="$BASE/dsh-watchdog.pid"
+[ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
+DSH_PORT="${DSH_PORT:-3080}"
+WD_INTERVAL="${WD_INTERVAL:-60}"
+FAILS=0
+
 say(){ echo "[$(date '+%F %T')] $*" >> "$WDLOG"; }
-if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then echo "看门狗已在运行 (PID $(cat "$PIDFILE"))"; exit 0; fi
+
+# 地址文件丢失/为空时，从日志里捞回地址
+recover_url() {
+  [ -s "$URLFILE" ] && return 0
+  local u
+  u="$(grep -o "http://127\\.0\\.0\\.1:[0-9]*/?token=[A-Za-z0-9_-]*" "$LOG" 2>/dev/null | tail -1)"
+  [ -n "$u" ] && printf 'dsh web: %s\n' "$u" > "$URLFILE" && say "地址自愈: $u"
+}
+
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+  echo "看门狗已在运行 (PID $(cat "$PIDFILE"))"; exit 0
+fi
 echo $$ > "$PIDFILE"; trap 'rm -f "$PIDFILE"' EXIT
+
 command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock 2>/dev/null && say "wakelock 已请求"
 say "看门狗启动 (PID $$)"
+recover_url
+
 while true; do
   if ! pgrep -f "expose-internals" >/dev/null 2>&1; then
-    say "dsh web 不在运行 → 拉起"; cd "$HOME" || exit 1
-    setsid dsh web > "$LOG" 2>&1 < /dev/null &
-    sleep 25; U="$(head -1 "$LOG" 2>/dev/null)"; printf '%s\n' "$U" > "$URLFILE"; say "已拉起: $U"
+    say "dsh web 不在运行 → 拉起"
+    rm -f "$URLFILE"
+    cd "$HOME" || exit 1
+    setsid dsh web --port "$DSH_PORT" > "$LOG" 2>&1 < /dev/null &
+    U=""
+    for _i in $(seq 1 40); do
+      U="$(grep -o "http://127\\.0\\.0\\.1:[0-9]*/?token=[A-Za-z0-9_-]*" "$LOG" 2>/dev/null | tail -1)"
+      [ -n "$U" ] && break
+      sleep 2
+    done
+    printf 'dsh web: %s\n' "$U" > "$URLFILE"
+    if [ -n "$U" ]; then
+      FAILS=0
+      say "已拉起: $U"
+    else
+      FAILS=$((FAILS + 1))
+      say "拉起失败（连续 $FAILS 次）"
+      if [ "$FAILS" -eq 3 ] && command -v termux-notification >/dev/null 2>&1; then
+        termux-notification --id dsh-fail --title "DSH 服务启动失败" \
+          --content "连续 3 次启动 dsh web 失败，请打开「DSH 控制台」查看日志" 2>/dev/null
+      fi
+    fi
+  else
+    recover_url
   fi
-  sleep 60
+  sleep "$WD_INTERVAL"
 done
 WD
   chmod +x "$HOMEDIR/dsh/dsh-watchdog.sh"

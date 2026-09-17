@@ -13,6 +13,7 @@ android {
         targetSdk = 34
         versionCode = 2
         versionName = "0.2.0"
+        buildConfigField("String", "GIT_SHA", "\"" + (System.getenv("GIT_SHA") ?: "unknown") + "\"")
     }
 
     // 固定签名：CI 从 Secrets 解出 keystore，本地没设环境变量则不启用
