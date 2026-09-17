@@ -213,4 +213,14 @@
     <string name="menu_cost_hourly">今日逐小时</string>
     <string name="menu_cost_keys">今日分 API Key</string>
     <string name="menu_cost_refresh">刷新数据（清缓存）</string>
+    <string name="proj_dsh_sub">服务 · 安装 · 日志</string>
+    <string name="proj_ol_title">OpenList 网盘</string>
+    <string name="proj_ol_sub">网盘 · 密码 · 自启</string>
+    <string name="proj_cost_title">DeepSeek 费用</string>
+    <string name="proj_cost_sub">余额 · 明细 · 预算</string>
+    <string name="proj_cost_state_fmt">今日 %1$s</string>
+    <string name="sec_control">控制</string>
+    <string name="sec_maint">维护</string>
+    <string name="sec_overview">概览</string>
+    <string name="sec_action">操作</string>
 </resources>

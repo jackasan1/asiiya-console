@@ -35,6 +35,10 @@ import android.text.InputType
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import java.io.File
+import android.view.animation.LinearInterpolator
+import android.widget.ImageView
+import androidx.activity.OnBackPressedCallback
+import androidx.drawerlayout.widget.DrawerLayout
 import android.view.Gravity
 import android.view.View
 import android.widget.EditText
@@ -83,6 +87,11 @@ class MainActivity : AppCompatActivity() {
     /** 每 6 次 5s 轮询（=30s）刷一次费用 */
     private var costTick = 0
 
+    /** 抽屉二级页：当前项目 + 过渡状态 + 下拉起点 */
+    private var subProject: String? = null
+    private var pageBusy = false
+    private var subDragX = 0f
+
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
     private val REQ_NOTI = 2
@@ -112,21 +121,48 @@ class MainActivity : AppCompatActivity() {
         b.actRestart.setOnClickListener {
             confirm(getString(R.string.act_restart) + "？") { ringBusy(); action(getString(R.string.act_restart), "restart") }
         }
-        b.drawerPatch.setOnClickListener { closeDrawer(); action(getString(R.string.menu_checkpatch), "checkpatch") }
+        // ---- 抽屉一级：项目行 → 二级操作台 ----
+        b.projDsh.setOnClickListener { openSubPage("dsh") }
+        b.projOl.setOnClickListener { openSubPage("ol") }
+        b.projCost.setOnClickListener { openSubPage("cost") }
 
-        // 手风琴分组：按项目分类（默认展开 dsh，最常用）
-        setupGroup(b.grpApp, b.grpAppItems, b.grpAppArrow, false)
-        setupGroup(b.grpDsh, b.grpDshItems, b.grpDshArrow, true)
-        setupGroup(b.grpOl, b.grpOlItems, b.grpOlArrow, false)
-        setupGroup(b.grpCost, b.grpCostItems, b.grpCostArrow, false)
+        b.btnSubBack.setOnClickListener { closeSubPage() }
 
-        // 分组里的快捷项
-        b.drawerStart.setOnClickListener { closeDrawer(); userStopped = false; ringBusy(); action(getString(R.string.act_start), "start") }
-        b.drawerStop.setOnClickListener { closeDrawer(); userStopped = true; ringBusy(); action(getString(R.string.act_stop), "stop") }
-        b.drawerRestart.setOnClickListener {
-            closeDrawer()
-            confirm(getString(R.string.act_restart) + "？") { ringBusy(); action(getString(R.string.act_restart), "restart") }
+        // 二级页头部下拉返回（跟手，松手过 28% 就返回）
+        b.subHeader.setOnTouchListener { _, ev ->
+            val w = b.drawer.width.toFloat().coerceAtLeast(1f)
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> { subDragX = ev.rawX; true }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = (ev.rawX - subDragX).coerceIn(0f, w)
+                    b.drawerSubPage.translationX = dx
+                    b.drawerSubPage.alpha = 1f - 0.6f * (dx / w)
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (b.drawerSubPage.translationX > w * 0.28f) closeSubPage()
+                    else b.drawerSubPage.animate().translationX(0f).alpha(1f)
+                        .setDuration(120).setInterpolator(LinearInterpolator()).start()
+                    false
+                }
+                else -> false
+            }
         }
+
+        // 返回键：二级 → 一级 → 关抽屉
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when {
+                    b.drawerSubPage.visibility == View.VISIBLE -> closeSubPage()
+                    b.drawerInstallPage.visibility == View.VISIBLE -> showInstallPage(false)
+                    b.drawer.isDrawerOpen(GravityCompat.START) -> b.drawer.closeDrawer(GravityCompat.START)
+                    else -> { isEnabled = false; onBackPressedDispatcher.onBackPressed(); isEnabled = true }
+                }
+            }
+        })
+        b.drawer.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerClosed(drawerView: View) = resetSubPage()
+        })
 
         // 全面屏手势：把左侧边缘排除出系统返回手势，让抽屉侧滑可用
         if (Build.VERSION.SDK_INT >= 29) {
@@ -203,8 +239,6 @@ class MainActivity : AppCompatActivity() {
 
         // 左侧抽屉
         b.tvDrawerVer.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
-        b.drawerPreflight.setOnClickListener { closeDrawer(); ctl(getString(R.string.act_preflight), "preflight") }
-        b.drawerInstall.setOnClickListener { showInstallPage(true) }
         b.drawerBack.setOnClickListener { showInstallPage(false) }
         b.navInstall.setOnClickListener { showInstallPage(false); closeDrawer(); installDialog() }
         b.navRepair.setOnClickListener {
@@ -212,34 +246,8 @@ class MainActivity : AppCompatActivity() {
             ringBusy(); action(getString(R.string.act_repair), "repair")
         }
         b.navUninstall.setOnClickListener { showInstallPage(false); closeDrawer(); uninstallDialog() }
-        b.drawerConsole.setOnClickListener { closeDrawer(); openConsole() }
-        b.drawerCopy.setOnClickListener { closeDrawer(); copyUrl() }
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
 
-        // ---- OpenList 网盘组 ----
-        b.drawerOlStart.setOnClickListener { closeDrawer(); action(getString(R.string.act_start), "openlist-start") }
-        b.drawerOlStop.setOnClickListener { closeDrawer(); action(getString(R.string.act_stop), "openlist-stop") }
-        b.drawerOlRestart.setOnClickListener { closeDrawer(); action(getString(R.string.act_restart), "openlist-restart") }
-        b.drawerOlOpen.setOnClickListener { closeDrawer(); openOpenList() }
-        b.drawerOlCopy.setOnClickListener { closeDrawer(); copyOlUrl() }
-        b.drawerOlPasswd.setOnClickListener { closeDrawer(); olPasswdDialog(false) }
-        b.drawerOlLog.setOnClickListener {
-            closeDrawer(); action(getString(R.string.ol_view_log), "openlist-log", "4000")
-        }
-        b.drawerOlInstall.setOnClickListener { closeDrawer(); olPrimary() }
-        b.drawerOlBoot.setOnClickListener {
-            closeDrawer()
-            val on = lastStatus?.olBoot == true
-            action(getString(R.string.ol_boot_setting), "openlist-boot", if (on) "off" else "on")
-        }
-
-        // ---- DeepSeek 费用组 ----
-        b.drawerCostReport.setOnClickListener { closeDrawer(); showCostDetail() }
-        b.drawerCost30.setOnClickListener { closeDrawer(); costCommandDialog("daily", "30") }
-        b.drawerCostHourly.setOnClickListener { closeDrawer(); costCommandDialog("hourly") }
-        b.drawerCostKeys.setOnClickListener { closeDrawer(); costCommandDialog("keys") }
-        b.drawerCostRefresh.setOnClickListener { closeDrawer(); costCommandDialog("refresh") }
-        b.drawerLogs.setOnClickListener { closeDrawer(); logFileDialog() }
         b.costCard.setOnClickListener { showCostDetail() }
         pressable(b.costCard)
 
@@ -407,6 +415,10 @@ class MainActivity : AppCompatActivity() {
             b.pbCostBudget.progress = 0
         }
 
+        // 抽屉一级：费用行的今日金额徽标
+        b.tvProjCostState.text = costStateText(c)
+        if (subProject == "cost") refreshSubChip()
+
         // 近 14 天柱状
         b.sparkCost.setData(FloatArray(c.daily.size) { c.daily[it].toFloat() })
         b.tvCostSpark.text = if (c.daily.isNotEmpty())
@@ -536,6 +548,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.ivDshIcon.alpha = if (s.service) 1f else 0.5f
+
+        // 抽屉一级：三个项目行的状态徽标（实时）
+        b.tvProjDshState.text = stateText(s.service)
+        b.tvProjDshState.setTextColor(ContextCompat.getColor(this, if (s.service) R.color.ok else R.color.dim))
+        b.tvProjOlState.text = olStateText(s)
+        b.tvProjOlState.setTextColor(ContextCompat.getColor(this, if (s.olService) R.color.ok else R.color.dim))
+        if (subProject != null) refreshSubChip()
 
         rollText(b.tvPortValue, s.portCode)
         b.tvPortValue.setTextColor(
@@ -865,7 +884,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun closeDrawer() { b.drawer.closeDrawers() }
+    private fun closeDrawer() {
+        b.drawer.closeDrawers()
+        resetSubPage()          // 下次打开回到一级
+    }
 
     // ---------------- 设置弹出卡片 ----------------
 
@@ -899,6 +921,252 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------------- 抽屉二级页 ----------------
+
+    // ---------------- 抽屉：一级项目目录 / 二级操作台 ----------------
+
+    /** 二级页里的一行动作 */
+    private class Act(val icon: Int, val tint: Int, val label: Int,
+                      val arrow: Boolean = false, val run: () -> Unit)
+
+    private val PAGE_OUT_MS = 140L      // 一级淡出
+    private val PAGE_IN_MS = 160L       // 二级滑入（Linear，更干脆）
+
+    private fun pageWidth(): Float =
+        b.drawer.width.toFloat().takeIf { it > 1f } ?: (260 * resources.displayMetrics.density)
+
+    private fun openSubPage(project: String) {
+        if (pageBusy) return
+        pageBusy = true
+        subProject = project
+        fillSubPage(project)
+        val w = pageWidth()
+        val sub = b.drawerSubPage
+        sub.visibility = View.VISIBLE
+        sub.translationX = w
+        sub.alpha = 0f
+        b.drawerRoot.animate().translationX(-w).alpha(0f).setDuration(PAGE_OUT_MS)
+            .setInterpolator(LinearInterpolator())
+            .withEndAction { pageBusy = false }
+            .start()
+        sub.animate().translationX(0f).alpha(1f).setDuration(PAGE_IN_MS)
+            .setInterpolator(LinearInterpolator()).start()
+    }
+
+    private fun closeSubPage() {
+        if (pageBusy || subProject == null) return
+        pageBusy = true
+        val w = pageWidth()
+        val sub = b.drawerSubPage
+        val root = b.drawerRoot
+        root.visibility = View.VISIBLE
+        root.translationX = -w
+        root.alpha = 0f
+        sub.animate().translationX(w).alpha(0f).setDuration(PAGE_IN_MS)
+            .setInterpolator(LinearInterpolator())
+            .withEndAction {
+                sub.visibility = View.GONE
+                sub.translationX = 0f
+                sub.alpha = 1f
+                subProject = null
+                pageBusy = false
+            }.start()
+        root.animate().translationX(0f).alpha(1f).setDuration(PAGE_OUT_MS)
+            .setInterpolator(LinearInterpolator()).start()
+    }
+
+    /** 直接回到一级（关抽屉 / 从安装页返回时用），不加动画 */
+    private fun resetSubPage() {
+        if (subProject == null && b.drawerSubPage.visibility != View.VISIBLE) return
+        b.drawerSubPage.visibility = View.GONE
+        b.drawerSubPage.translationX = 0f
+        b.drawerSubPage.alpha = 1f
+        b.drawerRoot.visibility = View.VISIBLE
+        b.drawerRoot.translationX = 0f
+        b.drawerRoot.alpha = 1f
+        subProject = null
+        pageBusy = false
+    }
+
+    private fun fillSubPage(project: String) {
+        val s = lastStatus
+        val c = lastCost
+        val sections: List<Pair<String, List<Act>>>
+        when (project) {
+            "dsh" -> {
+                b.tvSubTitle.text = getString(R.string.dsh_card_title)
+                b.tvSubState.text = stateText(s?.service == true)
+                b.tvSubState.setTextColor(ContextCompat.getColor(
+                    this, if (s?.service == true) R.color.ok else R.color.dim))
+                sections = dshSections()
+            }
+            "ol" -> {
+                b.tvSubTitle.text = getString(R.string.proj_ol_title)
+                b.tvSubState.text = olStateText(s)
+                b.tvSubState.setTextColor(ContextCompat.getColor(
+                    this, if (s?.olService == true) R.color.ok else R.color.dim))
+                sections = olSections()
+            }
+            else -> {
+                b.tvSubTitle.text = getString(R.string.proj_cost_title)
+                b.tvSubState.text = costStateText(c)
+                b.tvSubState.setTextColor(ContextCompat.getColor(this, R.color.warn))
+                sections = costSections()
+            }
+        }
+        val box = b.subActions
+        box.removeAllViews()
+        for ((sec, acts) in sections) {
+            val head = layoutInflater.inflate(R.layout.item_drawer_section, box, false) as TextView
+            head.text = sec
+            box.addView(head)
+            for (a in acts) {
+                val rowV = layoutInflater.inflate(R.layout.item_drawer_row, box, false)
+                val ic = rowV.findViewById<ImageView>(R.id.rowIcon)
+                ic.setImageResource(a.icon)
+                ic.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, a.tint))
+                rowV.findViewById<TextView>(R.id.rowLabel).text = getString(a.label)
+                rowV.findViewById<TextView>(R.id.rowArrow).visibility =
+                    if (a.arrow) View.VISIBLE else View.GONE
+                rowV.setOnClickListener { a.run() }
+                box.addView(rowV)
+            }
+        }
+    }
+
+    private fun refreshSubChip() {
+        when (subProject) {
+            "dsh" -> b.tvSubState.text = stateText(lastStatus?.service == true)
+            "ol" -> b.tvSubState.text = olStateText(lastStatus)
+            "cost" -> b.tvSubState.text = costStateText(lastCost)
+        }
+    }
+
+    private fun stateText(up: Boolean): String =
+        getString(if (up) R.string.state_running else R.string.state_stopped)
+
+    private fun olStateText(s: Status?): String = when {
+        s == null -> getString(R.string.ol_dash)
+        !s.olInstalled -> getString(R.string.ol_not_installed)
+        s.olService -> getString(R.string.state_running)
+        else -> getString(R.string.state_stopped)
+    }
+
+    private fun costStateText(c: Cost?): String =
+        if (c == null) getString(R.string.ol_dash)
+        else getString(R.string.proj_cost_state_fmt, money(c.today.cost))
+
+    private fun dshSections(): List<Pair<String, List<Act>>> = listOf(
+        getString(R.string.sec_control) to listOf(
+            Act(R.drawable.ic_home, R.color.accent, R.string.act_start) {
+                closeDrawer(); userStopped = false; downTicks = 0
+                action(getString(R.string.act_start), "start")
+            },
+            Act(R.drawable.ic_stop, R.color.bad, R.string.act_stop) {
+                closeDrawer()
+                confirm(getString(R.string.confirm_stop)) {
+                    userStopped = true; downTicks = 0
+                    action(getString(R.string.act_stop), "stop")
+                }
+            },
+            Act(R.drawable.ic_restart, R.color.accent, R.string.act_restart) {
+                closeDrawer()
+                confirm(getString(R.string.act_restart) + "？") {
+                    action(getString(R.string.act_restart), "restart")
+                }
+            },
+            Act(R.drawable.ic_process, R.color.accent, R.string.menu_console) {
+                closeDrawer(); openConsole()
+            },
+            Act(R.drawable.ic_port, R.color.dim, R.string.menu_copy) {
+                closeDrawer(); copyUrl()
+            },
+            Act(R.drawable.ic_log, R.color.dim, R.string.menu_logfiles) {
+                closeDrawer(); logFileDialog()
+            }
+        ),
+        getString(R.string.sec_maint) to listOf(
+            Act(R.drawable.ic_settings, R.color.dim, R.string.act_install_only, true) {
+                showInstallFromSub()
+            },
+            Act(R.drawable.ic_model, R.color.dim, R.string.menu_checkpatch) {
+                closeDrawer(); action(getString(R.string.menu_checkpatch), "checkpatch")
+            },
+            Act(R.drawable.ic_uptime, R.color.dim, R.string.menu_preflight) {
+                closeDrawer(); ctl(getString(R.string.act_preflight), "preflight")
+            }
+        )
+    )
+
+    private fun olSections(): List<Pair<String, List<Act>>> = listOf(
+        getString(R.string.sec_control) to listOf(
+            Act(R.drawable.ic_home, R.color.accent, R.string.act_start) {
+                closeDrawer(); action(getString(R.string.act_start), "openlist-start")
+            },
+            Act(R.drawable.ic_stop, R.color.bad, R.string.act_stop) {
+                closeDrawer(); action(getString(R.string.act_stop), "openlist-stop")
+            },
+            Act(R.drawable.ic_restart, R.color.accent, R.string.act_restart) {
+                closeDrawer(); action(getString(R.string.act_restart), "openlist-restart")
+            },
+            Act(R.drawable.ic_cloud, R.color.ok, R.string.act_ol_open) {
+                closeDrawer(); openOpenList()
+            },
+            Act(R.drawable.ic_port, R.color.dim, R.string.ol_copy_url) {
+                closeDrawer(); copyOlUrl()
+            },
+            Act(R.drawable.ic_log, R.color.dim, R.string.ol_view_log) {
+                closeDrawer(); action(getString(R.string.ol_view_log), "openlist-log", "4000")
+            }
+        ),
+        getString(R.string.sec_maint) to listOf(
+            Act(R.drawable.ic_settings, R.color.dim, R.string.ol_set_passwd) {
+                closeDrawer(); olPasswdDialog(false)
+            },
+            Act(R.drawable.ic_cloud, R.color.violet, R.string.ol_install) {
+                closeDrawer(); olPrimary()
+            },
+            Act(R.drawable.ic_uptime, R.color.dim, R.string.ol_boot_setting) {
+                closeDrawer()
+                val on = lastStatus?.olBoot == true
+                action(getString(R.string.ol_boot_setting), "openlist-boot", if (on) "off" else "on")
+            }
+        )
+    )
+
+    private fun costSections(): List<Pair<String, List<Act>>> = listOf(
+        getString(R.string.sec_overview) to listOf(
+            Act(R.drawable.ic_coin, R.color.warn, R.string.menu_cost_report) {
+                closeDrawer(); showCostDetail()
+            },
+            Act(R.drawable.ic_log, R.color.dim, R.string.menu_cost_30) {
+                closeDrawer(); costCommandDialog("daily", "30")
+            },
+            Act(R.drawable.ic_uptime, R.color.dim, R.string.menu_cost_hourly) {
+                closeDrawer(); costCommandDialog("hourly")
+            },
+            Act(R.drawable.ic_model, R.color.dim, R.string.menu_cost_keys) {
+                closeDrawer(); costCommandDialog("keys")
+            }
+        ),
+        getString(R.string.sec_action) to listOf(
+            Act(R.drawable.ic_restart, R.color.accent, R.string.menu_cost_refresh) {
+                closeDrawer(); costCommandDialog("refresh")
+            }
+        )
+    )
+
+    /** 从二级页进安装页：先把二级页收掉（不加动画），再走原有的安装页切换 */
+    private fun showInstallFromSub() {
+        b.drawerSubPage.visibility = View.GONE
+        b.drawerSubPage.translationX = 0f
+        b.drawerSubPage.alpha = 1f
+        b.drawerRoot.visibility = View.VISIBLE
+        b.drawerRoot.translationX = 0f
+        b.drawerRoot.alpha = 1f
+        subProject = null
+        pageBusy = false
+        showInstallPage(true)
+    }
 
     private fun showInstallPage(show: Boolean) {
         val from = if (show) b.drawerRoot else b.drawerInstallPage
@@ -936,17 +1204,6 @@ class MainActivity : AppCompatActivity() {
     private fun action(label: String, vararg args: String, stdin: String? = null) {
         if (b.logCard.visibility != View.VISIBLE) b.logCard.visibility = View.VISIBLE
         ctl(label, *args, stdin = stdin)
-    }
-
-    /** 手风琴分组：点击标题展开/收起，箭头旋转 */
-    private fun setupGroup(header: View, items: View, arrow: TextView, expanded: Boolean) {
-        items.visibility = if (expanded) View.VISIBLE else View.GONE
-        arrow.rotation = if (expanded) 0f else -90f
-        header.setOnClickListener {
-            val show = items.visibility != View.VISIBLE
-            items.visibility = if (show) View.VISIBLE else View.GONE
-            arrow.animate().rotation(if (show) 0f else -90f).setDuration(180).start()
-        }
     }
 
     /** 只有当前已在底部时才自动跟随；用户上滑查看历史时不打断 */

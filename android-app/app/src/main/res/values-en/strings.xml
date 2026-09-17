@@ -213,4 +213,14 @@ Works via Termux RUN_COMMAND, no root needed.</string>
     <string name="menu_cost_hourly">Today by hour</string>
     <string name="menu_cost_keys">Today by API key</string>
     <string name="menu_cost_refresh">Refresh (clear cache)</string>
+    <string name="proj_dsh_sub">Service · install · logs</string>
+    <string name="proj_ol_title">OpenList Storage</string>
+    <string name="proj_ol_sub">Storage · password · autostart</string>
+    <string name="proj_cost_title">DeepSeek Cost</string>
+    <string name="proj_cost_sub">Balance · details · budget</string>
+    <string name="proj_cost_state_fmt">Today %1$s</string>
+    <string name="sec_control">Control</string>
+    <string name="sec_maint">Maintenance</string>
+    <string name="sec_overview">Overview</string>
+    <string name="sec_action">Actions</string>
 </resources>
