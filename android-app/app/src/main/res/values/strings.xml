@@ -85,4 +85,6 @@
     <string name="uninstall_scripts">仅移除脚本</string>
     <string name="uninstall_all">连 npm 包一起卸载</string>
     <string name="settings_hint">点地址可复制</string>
+    <string name="msg_service_down">⚠ 服务未运行，稍后自动拉起…</string>
+    <string name="msg_auto_start">服务已停止，自动拉起中</string>
 </resources>

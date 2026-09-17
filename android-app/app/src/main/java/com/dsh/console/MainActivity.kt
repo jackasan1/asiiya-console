@@ -55,6 +55,11 @@ class MainActivity : AppCompatActivity() {
     private var lastUrl = ""
     private var installPolling = false
     private var lastStatus: Status? = null
+    /** 用户主动点过「停止」后，不再自动拉起 */
+    private var userStopped = false
+    /** 连续几次探测到服务未运行 */
+    private var downTicks = 0
+    private var lastAutoStart = 0L
 
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
@@ -87,9 +92,13 @@ class MainActivity : AppCompatActivity() {
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
         b.ring.setOnClickListener { openConsole() }
         b.centerPanel.setOnClickListener { openConsole() }
-        b.actStart.setOnClickListener { ringBusy(); action(getString(R.string.act_start), "start") }
+        b.actStart.setOnClickListener {
+            userStopped = false; downTicks = 0
+            ringBusy(); action(getString(R.string.act_start), "start")
+        }
         b.actStop.setOnClickListener {
             confirm(getString(R.string.confirm_stop)) {
+                userStopped = true; downTicks = 0
                 ringBusy(); action(getString(R.string.act_stop), "stop")
             }
         }
@@ -214,6 +223,21 @@ class MainActivity : AppCompatActivity() {
         lastStatus = s
 
         if (prev == null || prev.service != s.service) pulse()
+
+        // ---- 保活：前台检测到服务挂了就自动拉起（用户主动停止的除外）----
+        if (s.service) {
+            downTicks = 0
+        } else if (!userStopped && auto && busy == 0) {
+            downTicks++
+            if (downTicks == 2) log(getString(R.string.msg_service_down))
+            val now = System.currentTimeMillis()
+            if (downTicks >= 3 && now - lastAutoStart > 120_000L) {
+                lastAutoStart = now
+                downTicks = 0
+                log(getString(R.string.msg_auto_start))
+                action(getString(R.string.act_start), "start")
+            }
+        }
         b.ring.spin(false)
         b.ring.animateTo(if (s.service) 300f else 110f, 850)
         b.tvState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)

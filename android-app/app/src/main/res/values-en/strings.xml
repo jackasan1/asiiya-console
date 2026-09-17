@@ -85,4 +85,6 @@
     <string name="uninstall_scripts">Scripts only</string>
     <string name="uninstall_all">Remove npm package too</string>
     <string name="settings_hint">Tap the URL to copy</string>
+    <string name="msg_service_down">Service down; will retry shortly…</string>
+    <string name="msg_auto_start">Service was down — restarting automatically</string>
 </resources>
