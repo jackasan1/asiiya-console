@@ -149,6 +149,16 @@ class MainActivity : AppCompatActivity() {
         b.tvCfgPort.setOnClickListener { numConfDialog("port", getString(R.string.cfg_port), 1024, 65535) }
         b.tvCfgWd.setOnClickListener { numConfDialog("wdInterval", getString(R.string.cfg_wd), 15, 3600) }
         b.tvCfgBoot.setOnClickListener { bootConfDialog() }
+        // 日志区嵌在主界面的 ScrollView 里，必须禁止父级拦截触摸，否则内层永远滚不动
+        b.svLog.setOnTouchListener { v, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE ->
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    v.parent?.requestDisallowInterceptTouchEvent(false)
+            }
+            false
+        }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
         b.btnLogCopy.setOnClickListener {
             val t = b.tvLog.text?.toString().orEmpty()
@@ -465,7 +475,7 @@ class MainActivity : AppCompatActivity() {
             .putFloat("cy", loc[1] + v.height / 2f)
             .putInt("night", next)
             .apply()
-        v.animate().rotationBy(180f).scaleX(0.75f).scaleY(0.75f).setDuration(180)
+        v.animate().rotationBy(180f).scaleX(0.80f).scaleY(0.80f).setDuration(340)
             .withEndAction { AppCompatDelegate.setDefaultNightMode(next) }
             .start()
         toast(getString(if (next == AppCompatDelegate.MODE_NIGHT_YES) R.string.theme_dark else R.string.theme_light))
@@ -485,8 +495,8 @@ class MainActivity : AppCompatActivity() {
             val r = hypot(max(cx, w - cx).toDouble(), max(cy, h - cy).toDouble()).toFloat()
             try {
                 val anim = ViewAnimationUtils.createCircularReveal(root, cx, cy, 0f, r)
-                anim.duration = 420L
-                anim.interpolator = AccelerateDecelerateInterpolator()
+                anim.duration = 760L
+                anim.interpolator = android.view.animation.PathInterpolator(0.22f, 0.61f, 0.36f, 1f)
                 anim.start()
             } catch (_: Exception) {
             }
