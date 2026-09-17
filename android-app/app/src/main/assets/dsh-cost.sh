@@ -2,8 +2,9 @@
 # dsh-cost.sh — DSH 调用费用查询
 #   余额      DeepSeek 官方余额（实时，用 API Key 查 /user/balance）
 #   用量/费用  扫描 ~/.dsh/sessions 的会话记录，按官方峰谷单价估算
-#   对账     余额快照差值 = 实际扣费，可与本地估算互校
-# 用法: bash ~/dsh/dsh-cost.sh [report|balance|usage [today|7d|30d|all|YYYY-MM-DD]|daily [N]|snapshot|json|help]
+#   实际扣费  余额流水差分（含所有客户端）—— 官方没有用量接口，这是唯一的账号级真值
+#   采样     sample / snapshot 往 cost-balance.tsv 追加一条余额，越密越准
+# 用法: bash ~/dsh/dsh-cost.sh [report|balance|usage [...]|daily [N]|sample|snapshot|json|help]
 exec python3 - "$@" <<'PY'
 # -*- coding: utf-8 -*-
 """dsh-cost — DeepSeek 调用费用查询（余额 / 本地用量估算 / 余额对账）"""
@@ -179,49 +180,112 @@ def snap_read():
                     pass
     return rows
 
+# ---------------- 账号级实际扣费（余额流水差分）----------------
+def actual_window(rows, since_ms, until_ms=None):
+    """区间真实消耗：余额下降=消耗，上升=充值（不计）。partial=True 表示缺区间起点前的基线"""
+    if not rows: return None
+    until_ms = until_ms or (rows[-1]["t"] + 1)
+    win = [r for r in rows if since_ms < r["t"] <= until_ms]
+    base = None
+    for r in rows:
+        if r["t"] <= since_ms: base = r
+        else: break
+    partial = False
+    if base is None:
+        if len(win) < 2: return None
+        base = win[0]; win = win[1:]; partial = True
+    seq = [base] + win
+    if len(seq) < 2: return None
+    spent = 0.0
+    for a, b in zip(seq, seq[1:]):
+        d = a["total"] - b["total"]
+        if d > 0: spent += d
+    span_h = max(1e-9, (seq[-1]["t"] - seq[0]["t"]) / 3600000.0)
+    return {"spent": spent, "from": seq[0]["t"], "to": seq[-1]["t"], "n": len(seq),
+            "partial": partial, "span_h": span_h}
+
 def cmd_snapshot():
     b = balance()
     if "error" in b:
         print("✗ " + b["error"]); return 1
+    now_ms = time.time() * 1000
+    rows = snap_read()
+    if rows and now_ms - rows[-1]["t"] < 30_000:
+        print("（距上次采样不到 30 秒，跳过）")
+        return 0
     with open(BALLOG, "a") as f:
-        f.write("%d\t%.4f\t%.4f\t%.4f\n" % (time.time() * 1000, b["total"], b["granted"], b["topped_up"]))
+        f.write("%d\t%.4f\t%.4f\t%.4f\n" % (now_ms, b["total"], b["granted"], b["topped_up"]))
+    compact()
     print("✅ 已记录余额快照：%s（%s）" % (money(b["total"]), BALLOG))
     return 0
+
+def compact():
+    """7 天内全留；更早的降采样为每小时一条，避免流水无限膨胀"""
+    rows = snap_read()
+    if len(rows) < 5000: return
+    cut_ms = (time.time() - 7 * 86400) * 1000
+    keep, seen = [], set()
+    for r in rows:
+        if r["t"] >= cut_ms:
+            keep.append(r); continue
+        h = r["t"] // 3600000
+        if h in seen: continue
+        seen.add(h); keep.append(r)
+    if len(keep) != len(rows):
+        with open(BALLOG, "w") as f:
+            for r in keep:
+                f.write("%d\t%.4f\t%.4f\t%.4f\n" % (r["t"], r["total"], r["granted"], r["topped"]))
 
 # ---------------- 子命令 ----------------
 def cmd_report(recs):
     now = datetime.datetime.now()
     b = balance()
+    rows = snap_read()
     print("💰 DeepSeek 余额"); print(bal_line(b))
+
+    print("💳 账号实际扣费（余额流水 · 含所有客户端 · %d 条采样）" % len(rows))
+    if len(rows) < 2:
+        print("   ——采样不足：先跑 `cost sample`，或挂定时采样（建议 5 分钟一次）")
+    else:
+        for label, since in (("今日", ms(midnight(now))),
+                             ("近1小时", ms(now - datetime.timedelta(hours=1))),
+                             ("近6小时", ms(now - datetime.timedelta(hours=6))),
+                             ("近24小时", ms(now - datetime.timedelta(hours=24)))):
+            w = actual_window(rows, since)
+            if not w:
+                print("   %-8s ——（采样未覆盖）" % label); continue
+            tail = ""
+            if w["partial"]:
+                tail = "  ⚠ 仅覆盖 %s 起" % dt_of(w["from"]).strftime("%m-%d %H:%M")
+            elif w["span_h"] >= 0.5:
+                tail = "  （%.1f 小时，¥%.3f/时）" % (w["span_h"], w["spent"] / w["span_h"])
+            print("   %-8s %-10s%s" % (label, money(w["spent"]), tail))
+        print("   注：余额上升按充值处理、不计消耗；采样越密，区间越准")
+
     nsess = len(set(r["sess"] for r in recs))
-    print("📊 本地用量估算（%d 个会话 · %d 轮 · 官方峰谷单价）" % (nsess, len(recs)))
+    print("📊 dsh 会话用量估算（只统计 dsh 自己发起的调用 · %d 会话 %d 轮）" % (nsess, len(recs)))
     print(row("今日",   agg(cut(recs, ms(midnight(now))))))
     print(row("昨日",   agg(cut(recs, ms(midnight(now) - datetime.timedelta(days=1)), ms(midnight(now))))))
     print(row("近7天",  agg(cut(recs, ms(midnight(now) - datetime.timedelta(days=6))))))
     print(row("本月",   agg(cut(recs, ms(midnight(now.replace(day=1)))))))
     print(row("累计",   agg(recs)))
+
     mr = cut(recs, ms(midnight(now.replace(day=1))))
     if mr:
         by = {}
         for r in mr: by.setdefault(r["model"], []).append(r)
-        print("🏷 本月分模型")
+        print("🏷 本月分模型（dsh 侧）")
         for k in sorted(by, key=lambda k: -agg(by[k])["cost"]):
             t = agg(by[k])
             print("   %-32s %3d 轮  ≈ %s  （高峰 %d 轮）" % (k, t["n"], money(t["cost"]), t["peak"]))
-    rows = snap_read()
-    if rows and "error" not in b:
-        last = rows[-1]
-        days = (time.time() * 1000 - last["t"]) / 86400000.0
-        delta = last["total"] - b["total"]
-        est = agg(cut(recs, last["t"]))["cost"]
-        print("📈 余额对账（上次快照 → 现在）")
-        print("   %s %s → %s ｜ %.1f 天 ｜ 实际扣费 %s" % (
-            datetime.datetime.fromtimestamp(last["t"] / 1000).strftime("%m-%d %H:%M"),
-            money(last["total"]), money(b["total"]), days, money(delta)))
-        print("   同期本地估算 %s（差 %s）%s" % (
-            money(est), money(delta - est),
-            "   ⚠ 期间可能充值过，差值仅供参考" if delta < 0 else ""))
-    print("   提示: 单价见 api-docs.deepseek.com/zh-cn/quick_start/pricing")
+
+    if len(rows) >= 2:
+        w = actual_window(rows, ms(midnight(now)))
+        e = agg(cut(recs, ms(midnight(now))))["cost"]
+        if w and w["spent"] > 0:
+            print("📉 今日对账：账号实际 %s − dsh 侧 %s = %s（不在 dsh 里的调用）" % (
+                money(w["spent"]), money(e), money(w["spent"] - e)))
+    print("   单价: api-docs.deepseek.com/zh-cn/quick_start/pricing")
 
 def cmd_usage(recs, spec):
     sel, label = win(recs, spec)
@@ -257,6 +321,15 @@ def cmd_daily(recs, n=14):
         print("   %s  %4d   %8s   %8s  %8s   %s" % (
             d0.strftime("%m-%d %a"), t["n"], tk(t["miss"]), tk(t["hit"]), tk(t["out"]), money(t["cost"])))
     print("   %-34s 合计 ≈ %s" % ("", money(total)))
+    rows = snap_read()
+    if len(rows) >= 2:
+        print("💳 实际扣费（按天 · 余额流水，含所有客户端）")
+        for i in range(n - 1, -1, -1):
+            d0 = midnight() - datetime.timedelta(days=i)
+            w = actual_window(rows, ms(d0), ms(d0 + datetime.timedelta(days=1)))
+            if not w: continue
+            print("   %s        %s%s" % (d0.strftime("%m-%d %a"), money(w["spent"]),
+                  "  ⚠ 部分覆盖" if w["partial"] else ""))
 
 def cmd_json(recs):
     now = datetime.datetime.now()
@@ -269,6 +342,17 @@ def cmd_json(recs):
            "month": pack(agg(cut(recs, ms(midnight(now.replace(day=1)))))),
            "total": pack(agg(recs)),
            "sessions": len(set(r["sess"] for r in recs))}
+    rows = snap_read()
+    def packA(w):
+        if not w: return None
+        return {"spent": round(w["spent"], 4), "from": w["from"], "to": w["to"],
+                "samples": w["n"], "partial": w["partial"],
+                "spanHours": round(w["span_h"], 2)}
+    out["actual"] = {
+        "today": packA(actual_window(rows, ms(midnight(now)))),
+        "hour":  packA(actual_window(rows, ms(now - datetime.timedelta(hours=1)))),
+        "day":   packA(actual_window(rows, ms(now - datetime.timedelta(hours=24)))),
+        "samples": len(rows)}
     print(json.dumps(out, ensure_ascii=False))
 
 def main():
@@ -276,7 +360,7 @@ def main():
     cmd = (argv[0] if argv else "report").lower()
     if cmd in ("help", "-h", "--help", "用法"):
         print(__doc__); return 0
-    if cmd in ("snapshot", "快照", "log"): return cmd_snapshot()
+    if cmd in ("snapshot", "sample", "快照", "采样"): return cmd_snapshot()
     if cmd in ("balance", "余额"):
         b = balance()
         if "error" in b: print("✗ " + b["error"]); return 1

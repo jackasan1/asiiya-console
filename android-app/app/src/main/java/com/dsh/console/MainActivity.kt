@@ -317,12 +317,14 @@ class MainActivity : AppCompatActivity() {
             b.tvCostBal.text = money(c.balance)
             b.tvCostState.text = getString(R.string.cost_state_ok)
             b.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.ok))
-            b.tvCostSub.text = getString(R.string.cost_sub_fmt, c.updatedAt, c.sessions)
+            b.tvCostSub.text = getString(R.string.cost_sub_fmt, c.updatedAt, c.samples) +
+                if (c.todayPartial) " · " + getString(R.string.cost_partial) else ""
         }
 
-        b.tvCostToday.text = money(c.todayCost)
-        b.tvCostMonth.text = money(c.monthCost)
-        b.tvCostTotal.text = money(c.totalCost)
+        // 三格：今日实际 / 近24h实际（余额流水，含所有客户端）｜本月 dsh 侧估算
+        b.tvCostToday.text = money(c.todayActual)
+        b.tvCostMonth.text = money(c.dayActual)
+        b.tvCostTotal.text = money(c.monthCost)
 
         val input = (c.monthHit + c.monthMiss).toDouble()
         b.tvCostHint.text =

@@ -158,18 +158,19 @@
     <!-- 费用卡（DeepSeek API） -->
     <string name="cost_title">DeepSeek 费用</string>
     <string name="cost_sub_init">读取中…</string>
-    <string name="cost_sub_fmt">%1$s · %2$d 个会话</string>
+    <string name="cost_sub_fmt">%1$s · 采样 %2$d 条</string>
     <string name="cost_card_balance">余额</string>
-    <string name="cost_card_today">今日</string>
-    <string name="cost_card_month">本月</string>
-    <string name="cost_card_total">累计</string>
+    <string name="cost_card_today">今日实际</string>
+    <string name="cost_card_month">近24h</string>
+    <string name="cost_card_total">本月 dsh</string>
     <string name="cost_dash">—</string>
     <string name="cost_state_ok">可用</string>
     <string name="cost_state_err">异常</string>
-    <string name="cost_hint">点按看明细（按官方峰谷价估算）</string>
+    <string name="cost_hint">实际＝余额流水（含所有客户端 · 5 分钟采样）</string>
     <string name="cost_hint_fmt">本月 %1$d 轮 · 缓存命中 %2$.0f%% · 点按看明细</string>
     <string name="cost_loading">正在拉取费用明细…</string>
     <string name="cost_report_title">调用费用明细</string>
     <string name="cost_report_ok">复制</string>
     <string name="cost_report_copied">已复制到剪贴板</string>
+    <string name="cost_partial">区间未全覆盖</string>
 </resources>

@@ -48,7 +48,12 @@ data class Cost(
     val monthMiss: Long,
     val monthOut: Long,
     val totalCost: Double,
-    val totalTurns: Int
+    val totalTurns: Int,
+    /** 账号级实际扣费（余额流水，含所有客户端） */
+    val todayActual: Double,
+    val dayActual: Double,
+    val todayPartial: Boolean,
+    val samples: Int
 )
 
 object DshApi {
@@ -57,7 +62,7 @@ object DshApi {
     const val CTL_VERSION = "7"
 
     /** 与 assets/dsh-cost.sh 的版本对应：改脚本就让旧标记失效，重新落盘一次 */
-    private const val COST_VER = "2"
+    private const val COST_VER = "3"
 
     /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 4KB） */
     private fun bootstrap(ctx: Context): String {
@@ -114,6 +119,9 @@ object DshApi {
             val week = o.optJSONObject("week") ?: org.json.JSONObject()
             val month = o.optJSONObject("month") ?: org.json.JSONObject()
             val total = o.optJSONObject("total") ?: org.json.JSONObject()
+            val act = o.optJSONObject("actual") ?: org.json.JSONObject()
+            val actToday = act.optJSONObject("today") ?: org.json.JSONObject()
+            val actDay = act.optJSONObject("day") ?: org.json.JSONObject()
             Cost(
                 currency = bal.optString("currency", "CNY"),
                 balance = bal.optDouble("total", 0.0),
@@ -131,7 +139,11 @@ object DshApi {
                 monthMiss = month.optLong("miss", 0),
                 monthOut = month.optLong("out", 0),
                 totalCost = total.optDouble("cost", 0.0),
-                totalTurns = total.optInt("turns", 0)
+                totalTurns = total.optInt("turns", 0),
+                todayActual = actToday.optDouble("spent", 0.0),
+                dayActual = actDay.optDouble("spent", 0.0),
+                todayPartial = actToday.optBoolean("partial", false),
+                samples = act.optInt("samples", 0)
             )
         } catch (e: Exception) {
             null
