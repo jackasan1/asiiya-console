@@ -189,4 +189,13 @@
     <string name="update_perm_msg">Android 要求先允许本应用安装 APK。点「去设置」打开开关，回来再点一次「检查更新」。</string>
     <string name="update_perm_go">去设置</string>
     <string name="update_perm_failed">无法打开设置页，请手动到 设置 → 应用 → 特殊权限 → 安装未知应用</string>
+    <string name="cost_peak_init">⚡ 读取峰谷…</string>
+    <string name="cost_budget_init">预算读取中…</string>
+    <string name="cost_spark_init">近 14 天趋势读取中…</string>
+    <string name="cost_peak_line">⚡ 峰价 ×2 ｜ 距谷价 %1$s ｜ 今日峰时 %2$s / 谷时 %3$s</string>
+    <string name="cost_off_line">⚡ 谷价 ｜ 距峰价 %1$s ｜ 今日峰时 %2$s / 谷时 %3$s</string>
+    <string name="cost_weekend">（周末全谷价）</string>
+    <string name="cost_budget_fmt">今日预算 %1$s / %2$s</string>
+    <string name="cost_budget_none">预算未设置（~/dsh/cost-config.sh）</string>
+    <string name="cost_spark_fmt">近 %1$d 天 %2$s ｜ 日均 %3$s</string>
 </resources>

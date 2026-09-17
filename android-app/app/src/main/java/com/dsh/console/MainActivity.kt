@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.net.Uri
 import android.graphics.Rect
@@ -307,6 +308,13 @@ class MainActivity : AppCompatActivity() {
         if (v < 1.0) String.format(Locale.US, "¥%.4f", v)
         else String.format(Locale.US, "¥%.2f", v)
 
+    private fun fmtLeft(min: Int): String {
+        val h = min / 60
+        val m = min % 60
+        return if (h > 0) String.format(Locale.US, "%dh%02dm", h, m)
+        else String.format(Locale.US, "%dm", m)
+    }
+
     private fun tokens(n: Long): String = when {
         n >= 1_000_000_000L -> String.format(Locale.US, "%.2fB", n / 1e9)
         n >= 1_000_000L -> String.format(Locale.US, "%.2fM", n / 1e6)
@@ -326,6 +334,11 @@ class MainActivity : AppCompatActivity() {
                 if (c.error == "NO_TOKEN" || c.error.contains("invalid token", true))
                     getString(R.string.cost_need_login)
                 else c.error
+            b.tvCostPeak.text = getString(R.string.cost_peak_init)
+            b.tvCostBudget.text = ""
+            b.tvCostBudgetPct.text = ""
+            b.pbCostBudget.progress = 0
+            b.sparkCost.setData(FloatArray(0))
         } else {
             // 官方数据（与「DeepSeek 开放平台」网页同源）
             b.tvCostBal.text = money(c.balance)
@@ -339,6 +352,42 @@ class MainActivity : AppCompatActivity() {
         b.tvCostMonth.text = money(c.month.cost)
         b.tvCostD30.text = money(c.d30.cost)
         b.tvCostHint.text = getString(R.string.cost_hint_usage, c.today.req, tokens(c.today.tokens))
+
+        // 峰谷档位（峰=琥珀，谷=绿）
+        val left = fmtLeft(c.peakMinutesLeft)
+        b.tvCostPeak.text = (if (c.peakIsPeak)
+            getString(R.string.cost_peak_line, left, money(c.peakCost), money(c.offCost))
+        else
+            getString(R.string.cost_off_line, left, money(c.peakCost), money(c.offCost))) +
+            if (c.peakWeekend) getString(R.string.cost_weekend) else ""
+        b.tvCostPeak.setTextColor(
+            ContextCompat.getColor(this, if (c.peakIsPeak) R.color.warn else R.color.ok))
+
+        // 预算进度（≥80% 接近、≥100% 超支）
+        if (c.budgetDaily > 0) {
+            b.tvCostBudget.text =
+                getString(R.string.cost_budget_fmt, money(c.today.cost), money(c.budgetDaily))
+            b.tvCostBudgetPct.text = String.format(Locale.US, "%.0f%%", c.dailyPct)
+            val col = when {
+                c.dailyPct >= 100 -> R.color.bad
+                c.dailyPct >= 80 -> R.color.warn
+                else -> R.color.ok
+            }
+            val c2 = ContextCompat.getColor(this, col)
+            b.tvCostBudgetPct.setTextColor(c2)
+            b.pbCostBudget.progressTintList = ColorStateList.valueOf(c2)
+            b.pbCostBudget.progress = c.dailyPct.coerceIn(0.0, 100.0).toInt()
+        } else {
+            b.tvCostBudget.text = getString(R.string.cost_budget_none)
+            b.tvCostBudgetPct.text = ""
+            b.pbCostBudget.progress = 0
+        }
+
+        // 近 14 天柱状
+        b.sparkCost.setData(FloatArray(c.daily.size) { c.daily[it].toFloat() })
+        b.tvCostSpark.text = if (c.daily.isNotEmpty())
+            getString(R.string.cost_spark_fmt, c.daily.size, money(c.dailyTotal), money(c.dailyAvg))
+        else getString(R.string.cost_spark_init)
     }
 
     /** 点卡片：拉一份明细（余额 + 今日/昨日/近7天/本月/累计 + 分模型 + 对账）弹窗显示 */

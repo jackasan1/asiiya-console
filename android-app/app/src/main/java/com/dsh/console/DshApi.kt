@@ -62,7 +62,22 @@ data class Cost(
     val d30: CostPeriod,
     val d7: CostPeriod,
     val models: Map<String, Double>,
-    val keys: Map<String, Double>
+    val keys: Map<String, Double>,
+    // ---- 峰谷（参考 dsh-cost-meter：工作日 09-12 / 14-18 峰价 ×2，周末全谷价）----
+    val peakIsPeak: Boolean,
+    val peakWeekend: Boolean,
+    val peakMinutesLeft: Int,
+    val peakCost: Double,
+    val offCost: Double,
+    // ---- 预算 ----
+    val budgetDaily: Double,
+    val budgetMonth: Double,
+    val dailyPct: Double,
+    val monthPct: Double,
+    // ---- 近 14 天（官方天桶）----
+    val daily: List<Double>,
+    val dailyTotal: Double,
+    val dailyAvg: Double
 )
 
 object DshApi {
@@ -128,6 +143,16 @@ object DshApi {
         return try {
             val o = org.json.JSONObject(raw.substring(i, raw.lastIndexOf('}') + 1))
             val ps = o.optJSONObject("periods") ?: org.json.JSONObject()
+            val pk = o.optJSONObject("peak") ?: org.json.JSONObject()
+            val bg = o.optJSONObject("budget") ?: org.json.JSONObject()
+            val dl = o.optJSONObject("daily") ?: org.json.JSONObject()
+            val dArr = dl.optJSONArray("days") ?: org.json.JSONArray()
+            val dayCosts = ArrayList<Double>()
+            var di = 0
+            while (di < dArr.length()) {
+                dayCosts.add(dArr.optJSONObject(di)?.optDouble("cost", 0.0) ?: 0.0)
+                di++
+            }
             fun per(k: String): CostPeriod {
                 val p = ps.optJSONObject(k) ?: org.json.JSONObject()
                 return CostPeriod(
@@ -155,7 +180,19 @@ object DshApi {
                 totalCost = o.optDouble("totalCost", 0.0),
                 today = per("today"), yesterday = per("yesterday"),
                 month = per("month"), d30 = per("d30"), d7 = per("d7"),
-                models = flat("models"), keys = flat("keys")
+                models = flat("models"), keys = flat("keys"),
+                peakIsPeak = pk.optBoolean("isPeak", false),
+                peakWeekend = pk.optBoolean("weekend", false),
+                peakMinutesLeft = pk.optInt("minutesLeft", 0),
+                peakCost = pk.optDouble("peakCost", 0.0),
+                offCost = pk.optDouble("offCost", 0.0),
+                budgetDaily = bg.optDouble("daily", 0.0),
+                budgetMonth = bg.optDouble("month", 0.0),
+                dailyPct = bg.optDouble("dailyPct", 0.0),
+                monthPct = bg.optDouble("monthPct", 0.0),
+                daily = dayCosts,
+                dailyTotal = dl.optDouble("total", 0.0),
+                dailyAvg = dl.optDouble("avg", 0.0)
             )
         } catch (e: Exception) {
             null

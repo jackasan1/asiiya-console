@@ -12,6 +12,8 @@
 #   dsh-cost.sh today|yesterday|month|d30
 #   dsh-cost.sh hourly [天数]  # 逐小时（默认今天）
 #   dsh-cost.sh keys|models    # 分 API Key / 分模型（今天）
+#   dsh-cost.sh daily [30]     # 近 N 天（官方天桶 + 柱状）
+#   dsh-cost.sh peak           # 当前峰/谷档位与倒计时
 #   dsh-cost.sh json           # 供 App / 定时任务消费
 #   dsh-cost.sh sample         # 余额快照（官方接口不可用时的兜底曲线）
 #   dsh-cost.sh check          # 自检：token 是否有效
@@ -22,6 +24,7 @@ import os, sys, json, time, subprocess, datetime
 
 BASE   = os.path.expanduser("~/dsh")
 TOKF   = os.path.join(BASE, ".dsp_token")
+CFGF   = os.path.join(BASE, "cost-config.sh")
 CACHE  = os.path.join(BASE, ".cost-cache.json")
 BALLOG = os.path.join(BASE, "cost-balance.tsv")
 UA = ("Mozilla/5.0 (Linux; Android 16; PLR110) AppleWebKit/537.36 "
@@ -114,6 +117,50 @@ def range_of(name):
 
 def ttl_for(e):
     return 60 if e > time.time() else 3600
+
+# ---------------- 峰谷时段（北京时间工作日 09-12 / 14-18 为峰，周末全谷价）----------------
+def is_peak_dt(d):
+    if d.weekday() >= 5:            # 周六/周日：全天谷价
+        return False
+    return (9 <= d.hour < 12) or (14 <= d.hour < 18)
+
+def peak_state(now=None):
+    now = now or datetime.datetime.now()
+    cur = is_peak_dt(now)
+    t = now.replace(minute=0, second=0, microsecond=0) + datetime.timedelta(hours=1)
+    for _ in range(24 * 9):
+        if is_peak_dt(t) != cur: break
+        t += datetime.timedelta(hours=1)
+    return {"isPeak": cur, "switchAt": int(t.timestamp()),
+            "minutesLeft": int((t - now).total_seconds() // 60),
+            "weekend": now.weekday() >= 5}
+
+def peak_split(hourly):
+    """按峰/谷归类官方小时桶"""
+    pk = off = 0.0
+    for h, v in (hourly or {}).items():
+        if is_peak_dt(datetime.datetime.fromtimestamp(int(h) * 3600)): pk += v
+        else: off += v
+    return pk, off
+
+def cfg():
+    c = {"DAILY_BUDGET": 0.0, "MONTH_BUDGET": 0.0, "PEAK_ALERT_MIN": 10}
+    try:
+        for line in open(CFGF):
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line: continue
+            k, v = line.split("=", 1); k = k.strip()
+            if k in c:
+                try: c[k] = float(v.strip())
+                except Exception: pass
+    except Exception:
+        pass
+    c["PEAK_ALERT_MIN"] = int(c["PEAK_ALERT_MIN"])
+    return c
+
+def fmt_left(m):
+    h, mm = divmod(max(0, int(m)), 60)
+    return ("%dh%02dm" % (h, mm)) if h else ("%dm" % mm)
 
 # ---------------- 官方数据 ----------------
 def cost_of(name):
@@ -250,6 +297,37 @@ def cmd_report():
                 bar = "█" * min(30, int(v * 3)) if v > 0 else ""
                 print("   %s  %-8s %s" % (
                     datetime.datetime.fromtimestamp(h * 3600).strftime("%H:00"), money(v), bar))
+
+    ps = peak_state()
+    pk, off = peak_split(None if t.get("err") else t.get("hourly"))
+    print("⚡ 峰谷（工作日 09-12 / 14-18 峰价，周末全天谷价）")
+    print("   现在      %s%s   距切换 %s（%s）" % (
+        "峰价 ×2" if ps["isPeak"] else "谷价",
+        "（周末全谷价）" if ps["weekend"] else "",
+        fmt_left(ps["minutesLeft"]),
+        datetime.datetime.fromtimestamp(ps["switchAt"]).strftime("%m-%d %H:%M")))
+    if pk or off:
+        tip = "   ← 峰值那部分挪到谷时可省一半" if pk > 0 else ""
+        print("   今日峰时  %-10s 谷时  %s%s" % (money(pk), money(off), tip))
+
+    cf = cfg()
+    if cf["DAILY_BUDGET"] or cf["MONTH_BUDGET"]:
+        print("🎯 预算")
+        for label, cur, bud in (("今日", t.get("total", 0) if not t.get("err") else 0, cf["DAILY_BUDGET"]),
+                                ("本月", cost_of("month").get("total", 0), cf["MONTH_BUDGET"])):
+            if not bud: continue
+            pct = 100.0 * cur / bud
+            n = min(20, int(pct / 5))
+            print("   %s  %-10s / %-10s %5.0f%%  %s%s" % (
+                label, money(cur), money(bud), pct, "█" * n + "░" * (20 - n),
+                "  ⚠ 超预算" if pct >= 100 else ("  ⚠ 接近" if pct >= 80 else "")))
+    else:
+        print("🎯 预算未设置 → 在 ~/dsh/cost-config.sh 里填 DAILY_BUDGET / MONTH_BUDGET")
+    dd = daily_map(14)
+    if dd:
+        tot = sum(dd.values())
+        print("📅 近14天 合计 %s ｜ 日均 %s" % (money(tot), money(tot / max(1, len(dd)))))
+        print("   %s" % spark(dd))
     return 0
 
 def cmd_period(name):
@@ -300,6 +378,59 @@ def cmd_keys():
         print("   请求 %d 次 ｜ tokens %s" % (a.get("req", 0), tk(a["hit"] + a["miss"] + a["resp"])))
     return 0
 
+def daily_map(days=14):
+    """近 N 天官方天桶（dict: 时间戳字符串 -> 金额）"""
+    s0, e0 = rng(days - 1, days)
+    ck = "daily:%d:%d" % (s0, e0)
+    d = cache_get(ck, 600)
+    if d is None:
+        bd = api("usage/by_api_key/cost?start=%d&end=%d&tz=%d" % (s0, e0, tz_off()))
+        d = {}
+        if "_err" not in bd:
+            for blk in bd.get("data") or []:
+                for row in blk.get("series") or []:
+                    for b in row.get("buckets") or []:
+                        k = str(int(b.get("time") or 0))
+                        d[k] = d.get(k, 0.0) + float(b.get("cost") or 0)
+        cache_put(ck, d)
+    return d
+
+def spark(d, width=28):
+    """把日金额渲染成一行方块柱状（▁▂▃▄▅▆▇█）"""
+    if not d: return ""
+    ks = sorted(int(k) for k in d)
+    vs = [d[str(k)] for k in ks]
+    mx = max(vs) or 1
+    blocks = "▁▂▃▄▅▆▇█"
+    return "".join(blocks[min(7, int(v / mx * 7.999))] for v in vs)
+
+def cmd_daily(days=30):
+    """近 N 天（官方天桶 + 柱状）"""
+    d = daily_map(days)
+    if not d:
+        print("（无数据）"); return 1
+    ks = sorted(int(k) for k in d)
+    tot = sum(d.values()); mx = max(d.values()) or 1
+    print("📅 近 %d 天：合计 %s（日均 %s）" % (len(ks), money(tot), money(tot / len(ks))))
+    for k in ks:
+        v = d[str(k)]
+        bar = "█" * int(round(24.0 * v / mx))
+        day = datetime.datetime.fromtimestamp(k)
+        mark = "  ← 今天" if day.date() == datetime.date.today() else ""
+        print("   %s %s  %-9s %s%s" % (day.strftime("%m-%d"), day.strftime("%a"), money(v), bar, mark))
+    print("   趋势 %s" % spark(d))
+    return 0
+
+def cmd_peak():
+    ps = peak_state(); t = cost_of("today")
+    pk, off = peak_split(None if t.get("err") else t.get("hourly"))
+    print("⚡ 现在 %s%s" % ("峰价 ×2" if ps["isPeak"] else "谷价",
+          "（周末全谷价）" if ps["weekend"] else ""))
+    print("   距下次切换 %s → %s" % (fmt_left(ps["minutesLeft"]),
+          datetime.datetime.fromtimestamp(ps["switchAt"]).strftime("%m-%d %H:%M")))
+    print("   今日 峰时 %s ｜ 谷时 %s" % (money(pk), money(off)))
+    return 0
+
 def cmd_json():
     sm = summary()
     out = {"source": "official", "at": datetime.datetime.now().strftime("%m-%d %H:%M"),
@@ -319,6 +450,19 @@ def cmd_json():
     if not t.get("err"):
         out["models"] = {k: round(v, 4) for k, v in t["byModel"].items()}
         out["keys"] = {k: round(v, 4) for k, v in t["byKey"].items()}
+    ps = peak_state()
+    pk, off = peak_split(None if t.get("err") else t.get("hourly"))
+    out["peak"] = {"isPeak": ps["isPeak"], "weekend": ps["weekend"], "minutesLeft": ps["minutesLeft"],
+                   "switchAt": ps["switchAt"], "peakCost": round(pk, 4), "offCost": round(off, 4)}
+    cf = cfg(); tc = 0 if t.get("err") else t.get("total", 0); mc = cost_of("month").get("total", 0)
+    out["budget"] = {"daily": cf["DAILY_BUDGET"], "month": cf["MONTH_BUDGET"],
+                     "dailyPct": (round(100.0 * tc / cf["DAILY_BUDGET"], 1) if cf["DAILY_BUDGET"] else None),
+                     "monthPct": (round(100.0 * mc / cf["MONTH_BUDGET"], 1) if cf["MONTH_BUDGET"] else None)}
+    dd = daily_map(14)
+    dk = sorted(int(x) for x in dd)
+    out["daily"] = {"days": [{"t": x, "cost": round(dd[str(x)], 4)} for x in dk],
+                    "total": round(sum(dd.values()), 4),
+                    "avg": round(sum(dd.values()) / max(1, len(dk)), 4)}
     print(json.dumps(out, ensure_ascii=False))
 
 def cmd_sample():
@@ -355,6 +499,8 @@ def main():
         return cmd_period("today" if cmd == "today" else cmd)
     if cmd == "hourly":              return cmd_hourly(int(a[1]) if len(a) > 1 and a[1].isdigit() else 1)
     if cmd == "keys":                return cmd_keys()
+    if cmd == "daily":               return cmd_daily(int(a[1]) if len(a) > 1 and a[1].isdigit() else 30)
+    if cmd == "peak":                return cmd_peak()
     if cmd == "models":              return cmd_period("today")
     if cmd == "json":                return cmd_json()
     if cmd in ("sample", "snapshot"): return cmd_sample()

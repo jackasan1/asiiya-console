@@ -189,4 +189,13 @@
     <string name="update_perm_msg">Android requires allowing this app to install APKs. Tap Go to settings, enable it, then check for updates again.</string>
     <string name="update_perm_go">Go to settings</string>
     <string name="update_perm_failed">Cannot open settings — Settings > Apps > Special access > Install unknown apps</string>
+    <string name="cost_peak_init">⚡ reading peak/off-peak…</string>
+    <string name="cost_budget_init">reading budget…</string>
+    <string name="cost_spark_init">reading 14-day trend…</string>
+    <string name="cost_peak_line">⚡ PEAK ×2 ｜ off-peak in %1$s ｜ today peak %2$s / off %3$s</string>
+    <string name="cost_off_line">⚡ OFF-PEAK ｜ peak in %1$s ｜ today peak %2$s / off %3$s</string>
+    <string name="cost_weekend"> (weekend: all off-peak)</string>
+    <string name="cost_budget_fmt">Budget today %1$s / %2$s</string>
+    <string name="cost_budget_none">No budget set (~/dsh/cost-config.sh)</string>
+    <string name="cost_spark_fmt">Last %1$d days %2$s ｜ avg %3$s</string>
 </resources>
