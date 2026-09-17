@@ -93,4 +93,7 @@
     <string name="key_set">设置 API Key</string>
     <string name="key_cleared">API Key 已清除</string>
     <string name="key_hint">粘贴新的 API Key</string>
+    <string name="menu_logfiles">服务日志</string>
+    <string name="logfiles_title">查看日志文件</string>
+    <string name="logfiles_pick">选择要查看的文件</string>
 </resources>

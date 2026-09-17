@@ -169,6 +169,17 @@ PYK
   echo "✅ API Key 已清除"
   ;;
 
+tail)
+  F="${2:-dsh-web.log}"; N="${3:-3000}"
+  case "$F" in
+    dsh-web.log|dsh-watchdog.log|install.log|install.log.old|dsh-boot.log|reinstall.log|fix.log) ;;
+    *) echo "✗ 不允许查看: $F"; exit 1 ;;
+  esac
+  if [ ! -f "$BASE/$F" ]; then echo "（$F 不存在）"; exit 0; fi
+  echo "===== $F  （末尾 $N 字节）====="
+  tail -c "$N" "$BASE/$F" | sed 's/\x1b\[[0-9;]*m//g'
+  ;;
+
 log)
   N="${2:-3000}"
   if [ -f "$INSTLOG" ]; then tail -c "$N" "$INSTLOG" | sed 's/\x1b\[[0-9;]*m//g'; else echo "(暂无日志)"; fi

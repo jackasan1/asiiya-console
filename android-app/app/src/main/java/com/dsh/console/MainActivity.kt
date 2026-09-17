@@ -129,6 +129,7 @@ class MainActivity : AppCompatActivity() {
         b.drawerConsole.setOnClickListener { closeDrawer(); openConsole() }
         b.drawerCopy.setOnClickListener { closeDrawer(); copyUrl() }
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
+        b.drawerLogs.setOnClickListener { closeDrawer(); logFileDialog() }
         b.tvHost.setOnClickListener { copyUrl() }
 
         b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
@@ -458,6 +459,18 @@ class MainActivity : AppCompatActivity() {
             }
             .setNeutralButton(R.string.uninstall_scripts) { _, _ ->
                 action(getString(R.string.act_uninstall), "uninstall")
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /** 选择要查看的 Termux 侧日志文件 */
+    private fun logFileDialog() {
+        val files = arrayOf("dsh-web.log", "dsh-watchdog.log", "install.log", "dsh-boot.log")
+        AlertDialog.Builder(this)
+            .setTitle(R.string.logfiles_title)
+            .setItems(files) { _, which ->
+                action(files[which], "tail", files[which], "4000")
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
