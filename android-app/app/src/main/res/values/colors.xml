@@ -20,4 +20,6 @@
     <color name="tint_red">#1AFF6B6B</color>
     <color name="tint_amber">#1AE8912A</color>
     <color name="tint_gray">#14000000</color>
+    <color name="violet">#FF8B5CF6</color>
+    <color name="cyan">#FF06B6D4</color>
 </resources>

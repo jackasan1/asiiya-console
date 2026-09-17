@@ -242,6 +242,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.ring.spin(false)
+        b.ring.glow(s.service)
         b.ring.animateTo(if (s.service) 300f else 110f, 850)
         b.tvState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)
         b.tvState.setTextColor(ContextCompat.getColor(this, if (s.service) R.color.fg else R.color.dim))

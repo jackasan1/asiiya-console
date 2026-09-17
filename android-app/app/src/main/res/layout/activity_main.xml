@@ -595,7 +595,18 @@
                     android:textColor="@color/fg"
                     android:textSize="16sp"
                     android:textStyle="bold" />
-            <LinearLayout
+                        <TextView
+                android:id="@+id/sheetSec1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="2dp"
+                android:text="@string/section_status"
+                android:textColor="@color/dim"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+<LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="38dp"
                 android:gravity="center_vertical"
@@ -860,7 +871,7 @@
                     android:layout_height="20dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_process"
-                    android:tint="@color/dim" />
+                    android:tint="@color/ok" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -888,7 +899,7 @@
                     android:layout_height="20dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_uptime"
-                    android:tint="@color/dim" />
+                    android:tint="@color/accent" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -916,7 +927,7 @@
                     android:layout_height="20dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_log"
-                    android:tint="@color/dim" />
+                    android:tint="@color/cyan" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -944,7 +955,7 @@
                     android:layout_height="20dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_port"
-                    android:tint="@color/dim" />
+                    android:tint="@color/warn" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -972,7 +983,7 @@
                     android:layout_height="20dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_log"
-                    android:tint="@color/dim" />
+                    android:tint="@color/violet" />
 
                 <TextView
                     android:layout_width="wrap_content"

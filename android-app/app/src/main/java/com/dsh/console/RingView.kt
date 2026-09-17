@@ -91,6 +91,26 @@ class RingView @JvmOverloads constructor(
     }
     private val rect = RectF()
 
+    // 运行时呼吸光晕
+    private var glow = 0f
+    private var glowAnim: ValueAnimator? = null
+    fun glow(on: Boolean) {
+        if (on) {
+            if (glowAnim == null) {
+                glowAnim = ValueAnimator.ofFloat(0.25f, 0.75f).apply {
+                    duration = 1600
+                    repeatMode = ValueAnimator.REVERSE
+                    repeatCount = ValueAnimator.INFINITE
+                    interpolator = DecelerateInterpolator()
+                    addUpdateListener { glow = it.animatedValue as Float; invalidate() }
+                    start()
+                }
+            }
+        } else {
+            glowAnim?.cancel(); glowAnim = null; glow = 0f; invalidate()
+        }
+    }
+
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
         super.onSizeChanged(w, h, ow, oh)
         val inset = strokeW / 2f + tickLen + gap
@@ -102,6 +122,17 @@ class RingView @JvmOverloads constructor(
         val cx = width / 2f
         val cy = height / 2f
         val r = min(rect.width(), rect.height()) / 2f
+
+        // 光晕（运行时的呼吸感）
+        if (glow > 0f) {
+            ring.shader = null
+            ring.color = primary
+            ring.alpha = (glow * 60).toInt().coerceIn(0, 255)
+            ring.strokeWidth = strokeW * 2.2f
+            canvas.drawCircle(cx, cy, r, ring)
+            ring.strokeWidth = strokeW
+            ring.alpha = 255
+        }
 
         // 底环
         ring.shader = null

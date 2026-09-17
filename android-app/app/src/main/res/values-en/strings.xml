@@ -96,4 +96,5 @@
     <string name="menu_logfiles">Service logs</string>
     <string name="logfiles_title">View log files</string>
     <string name="logfiles_pick">Pick a file to view</string>
+    <string name="section_status">STATUS</string>
 </resources>
