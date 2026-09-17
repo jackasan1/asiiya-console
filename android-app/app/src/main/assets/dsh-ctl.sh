@@ -131,6 +131,44 @@ uninstall-npm)
   echo "✅ 已彻底卸载 @deepseek-ai/dsh"
   ;;
 
+setkey)
+  KEY=""; read -r KEY 2>/dev/null || true
+  KEY="$(printf '%s' "$KEY" | tr -d '\r\n')"
+  if [ -z "$KEY" ]; then echo "✗ 未收到密钥"; exit 1; fi
+  CF="$HOME/.dsh/.credentials.yaml"; mkdir -p "$HOME/.dsh"
+  [ -f "$CF" ] || printf 'version: 1\nrefs: {}\n' > "$CF"
+  printf '%s' "$KEY" > "$BASE/.apikey"; chmod 600 "$BASE/.apikey"
+  python3 - "$CF" "$KEY" <<'PYK'
+import re, sys
+p, k = sys.argv[1], sys.argv[2]
+s = open(p).read()
+if "DEEPSEEK_API_KEY:" in s:
+    s = re.sub(r'(?m)^(\s*DEEPSEEK_API_KEY:\s*).*$', lambda m: m.group(1) + k, s)
+elif re.search(r'(?m)^refs:\s*$', s):
+    s = re.sub(r'(?m)^refs:\s*$', 'refs:\n  DEEPSEEK_API_KEY: ' + k, s, count=1)
+else:
+    s = s.rstrip("\n") + "\nrefs:\n  DEEPSEEK_API_KEY: " + k + "\n"
+open(p, "w").write(s)
+PYK
+  chmod 600 "$CF"
+  echo "✅ API Key 已更新（$(printf '%s' "$KEY" | cut -c1-6)…）"
+  ;;
+
+clearkey)
+  rm -f "$BASE/.apikey"
+  CF="$HOME/.dsh/.credentials.yaml"
+  if [ -f "$CF" ]; then
+    python3 - "$CF" <<'PYK'
+import re, sys
+p = sys.argv[1]; s = open(p).read()
+s = re.sub(r'(?m)^\s*DEEPSEEK_API_KEY:.*\n?', '', s)
+open(p, "w").write(s)
+PYK
+    chmod 600 "$CF"
+  fi
+  echo "✅ API Key 已清除"
+  ;;
+
 log)
   N="${2:-3000}"
   if [ -f "$INSTLOG" ]; then tail -c "$N" "$INSTLOG" | sed 's/\x1b\[[0-9;]*m//g'; else echo "(暂无日志)"; fi

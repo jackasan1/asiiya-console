@@ -1,5 +1,6 @@
 package com.dsh.console
 
+import android.animation.ValueAnimator
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ClipData
@@ -110,6 +111,7 @@ class MainActivity : AppCompatActivity() {
         b.btnSetClose.setOnClickListener { hideSheet() }
         b.btnSetCopy.setOnClickListener { copyUrl() }
         b.btnSetConsole.setOnClickListener { hideSheet(); openConsole() }
+        b.tvSetKey.setOnClickListener { hideSheet(); keyDialog() }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
         b.btnConsole.setOnClickListener { openConsole() }
 
@@ -243,7 +245,7 @@ class MainActivity : AppCompatActivity() {
         b.tvState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)
         b.tvState.setTextColor(ContextCompat.getColor(this, if (s.service) R.color.fg else R.color.dim))
 
-        b.tvPortValue.text = s.portCode
+        rollText(b.tvPortValue, s.portCode)
         b.tvPortValue.setTextColor(
             ContextCompat.getColor(this, if (s.port) R.color.fg else R.color.bad)
         )
@@ -253,7 +255,7 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.getColor(this, if (s.model == "OK") R.color.ok else R.color.dim)
         )
 
-        b.tvProcValue.text = s.procs.ifEmpty { "0" }
+        rollText(b.tvProcValue, s.procs.ifEmpty { "0" })
         b.tvUptimeValue.text = if (s.runtime.isNotEmpty()) s.runtime else "--:--:--"
 
         if (s.url.isNotEmpty()) { lastUrl = s.url; hostLabel() }
@@ -331,6 +333,7 @@ class MainActivity : AppCompatActivity() {
         b.tvSetCtl.text = st?.ctlVersion ?: DshApi.CTL_VERSION
         b.tvSetDsh.text = st?.dshVersion?.ifEmpty { "-" } ?: "-"
         b.tvSetUrl.text = lastUrl.ifEmpty { "-" }
+        b.tvSetKey.text = getString(if (st?.model == "OK") R.string.model_ok else R.string.model_missing)
         b.sheetScrim.visibility = View.VISIBLE
         b.sheetCard.post {
             val h = b.sheetCard.height.toFloat().let { if (it > 0) it else 420f }
@@ -387,9 +390,63 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 统一的动作入口：自动展开日志卡，让输出可见 */
-    private fun action(label: String, vararg args: String) {
+    private fun action(label: String, vararg args: String, stdin: String? = null) {
         if (b.logCard.visibility != View.VISIBLE) b.logCard.visibility = View.VISIBLE
-        ctl(label, *args)
+        ctl(label, *args, stdin = stdin)
+    }
+
+    /** 数字平滑滚动；非数字则直接替换 */
+    private fun rollText(tv: TextView, target: String) {
+        val a = (tv.text?.toString() ?: "").trim().toIntOrNull()
+        val b = target.trim().toIntOrNull()
+        if (a != null && b != null && a != b) {
+            ValueAnimator.ofInt(a, b).apply {
+                duration = 420
+                interpolator = DecelerateInterpolator()
+                addUpdateListener { tv.text = (it.animatedValue as Int).toString() }
+                start()
+            }
+        } else {
+            tv.text = target
+        }
+    }
+
+    // ---------------- API Key 管理 ----------------
+
+    private fun keyDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.key_title)
+            .setPositiveButton(R.string.key_change) { _, _ -> keyInputDialog() }
+            .setNeutralButton(R.string.key_clear) { _, _ ->
+                confirm(getString(R.string.key_clear) + "？") {
+                    action(getString(R.string.key_clear), "clearkey")
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun keyInputDialog() {
+        val pad = (resources.displayMetrics.density * 20).toInt()
+        val et = EditText(this).apply {
+            hint = getString(R.string.key_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad / 2, pad, 0)
+            addView(et)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.key_set)
+            .setView(box)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val k = et.text.toString().trim()
+                if (k.isEmpty()) { toast(getString(R.string.key_hint)); return@setPositiveButton }
+                action(getString(R.string.key_set), "setkey", stdin = "$k\n")
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun uninstallDialog() {

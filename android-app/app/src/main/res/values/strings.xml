@@ -87,4 +87,10 @@
     <string name="settings_hint">点地址可复制</string>
     <string name="msg_service_down">⚠ 服务未运行，稍后自动拉起…</string>
     <string name="msg_auto_start">服务已停止，自动拉起中</string>
+    <string name="key_title">DeepSeek API Key</string>
+    <string name="key_change">更换密钥</string>
+    <string name="key_clear">清除密钥</string>
+    <string name="key_set">设置 API Key</string>
+    <string name="key_cleared">API Key 已清除</string>
+    <string name="key_hint">粘贴新的 API Key</string>
 </resources>
