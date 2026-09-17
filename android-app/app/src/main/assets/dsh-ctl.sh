@@ -44,10 +44,11 @@ status)
       RT="$(printf '%02d:%02d:%02d' "$H" "$M" "$S2")"
     fi
   fi
+  MN="$(grep -A4 '^agent-default-model:' "$HOME/.dsh/settings.yaml" 2>/dev/null | grep -m1 -E '^[[:space:]]+model:' | sed 's/.*model:[[:space:]]*//')"
   MD=MISSING
   if [ -s "$HOME/.dsh/.credentials.yaml" ] && grep -q "DEEPSEEK_API_KEY" "$HOME/.dsh/.credentials.yaml" 2>/dev/null; then MD=OK; fi
-  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s"}\n' \
-    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(ensure_url)")" "$PID" "$NP" "$RT" "$MD"
+  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s","modelName":"%s"}\n' \
+    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(ensure_url)")" "$PID" "$NP" "$RT" "$MD" "$(jesc "$MN")"
   ;;
 
 start)
@@ -167,6 +168,33 @@ PYK
     chmod 600 "$CF"
   fi
   echo "✅ API Key 已清除"
+  ;;
+
+setmodel)
+  M="${2:-}"
+  [ -n "$M" ] || { echo "✗ 未指定模型"; exit 1; }
+  SF="$HOME/.dsh/settings.yaml"; mkdir -p "$HOME/.dsh"
+  [ -f "$SF" ] || printf 'agent-default-model:\n  provider: deepseek-official\n  model: deepseek-flash\n' > "$SF"
+  python3 - "$SF" "$M" <<'PYM'
+import sys
+p, m = sys.argv[1], sys.argv[2]
+lines = open(p).read().split("\n")
+done = False
+for i, l in enumerate(lines):
+    if l.startswith("agent-default-model:"):
+        for j in range(i + 1, len(lines)):
+            if lines[j] and not lines[j][0].isspace(): break
+            if lines[j].strip().startswith("model:"):
+                lines[j] = lines[j][:len(lines[j]) - len(lines[j].lstrip())] + "model: " + m
+                done = True
+                break
+        break
+if not done:
+    lines += ["agent-default-model:", "  provider: deepseek-official", "  model: " + m]
+open(p, "w").write("\n".join(lines))
+PYM
+  echo "✅ 默认模型已设为 $M"
+  echo "  重启服务后生效"
   ;;
 
 tail)

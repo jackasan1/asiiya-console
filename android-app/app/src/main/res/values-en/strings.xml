@@ -97,4 +97,7 @@
     <string name="logfiles_title">View log files</string>
     <string name="logfiles_pick">Pick a file to view</string>
     <string name="section_status">STATUS</string>
+    <string name="settings_model">Model</string>
+    <string name="model_pick">Pick default model</string>
+    <string name="model_switched">Model switched; restart the service to apply</string>
 </resources>

@@ -16,7 +16,8 @@ data class Status(
     val pid: String,
     val procs: String,
     val runtime: String,
-    val model: String
+    val model: String,
+    val modelName: String
 )
 
 object DshApi {
@@ -69,7 +70,8 @@ object DshApi {
                 pid = o.optString("pid", ""),
                 procs = o.optString("procs", "0"),
                 runtime = o.optString("runtime", ""),
-                model = o.optString("model", "MISSING")
+                model = o.optString("model", "MISSING"),
+                modelName = o.optString("modelName", "")
             )
         } catch (e: Exception) {
             null

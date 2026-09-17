@@ -112,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         b.btnSetCopy.setOnClickListener { copyUrl() }
         b.btnSetConsole.setOnClickListener { hideSheet(); openConsole() }
         b.tvSetKey.setOnClickListener { hideSheet(); keyDialog() }
+        b.tvSetModel.setOnClickListener { hideSheet(); modelDialog() }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
         b.btnConsole.setOnClickListener { openConsole() }
 
@@ -336,6 +337,7 @@ class MainActivity : AppCompatActivity() {
         b.tvSetDsh.text = st?.dshVersion?.ifEmpty { "-" } ?: "-"
         b.tvSetUrl.text = lastUrl.ifEmpty { "-" }
         b.tvSetKey.text = getString(if (st?.model == "OK") R.string.model_ok else R.string.model_missing)
+        b.tvSetModel.text = st?.modelName?.ifEmpty { "-" } ?: "-"
         b.sheetScrim.visibility = View.VISIBLE
         b.sheetCard.post {
             val h = b.sheetCard.height.toFloat().let { if (it > 0) it else 420f }
@@ -411,6 +413,19 @@ class MainActivity : AppCompatActivity() {
         } else {
             tv.text = target
         }
+    }
+
+    /** 选择默认模型 */
+    private fun modelDialog() {
+        val models = arrayOf("deepseek-flash", "deepseek-v4-pro")
+        AlertDialog.Builder(this)
+            .setTitle(R.string.model_pick)
+            .setItems(models) { _, which ->
+                action(getString(R.string.settings_model), "setmodel", models[which])
+                toast(getString(R.string.model_switched))
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     // ---------------- API Key 管理 ----------------

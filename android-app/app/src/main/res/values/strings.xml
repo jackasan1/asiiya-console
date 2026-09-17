@@ -97,4 +97,7 @@
     <string name="logfiles_title">查看日志文件</string>
     <string name="logfiles_pick">选择要查看的文件</string>
     <string name="section_status">状态</string>
+    <string name="settings_model">模型</string>
+    <string name="model_pick">选择默认模型</string>
+    <string name="model_switched">模型已切换，重启服务后生效</string>
 </resources>
