@@ -11,8 +11,8 @@ android {
         applicationId = "com.dsh.console"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
-        versionName = "0.4.6"
+        versionCode = 11
+        versionName = "0.4.7"
         buildConfigField("String", "GIT_SHA", "\"" + (System.getenv("GIT_SHA") ?: "unknown") + "\"")
     }
 

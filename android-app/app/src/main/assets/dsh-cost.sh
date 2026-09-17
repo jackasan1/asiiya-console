@@ -480,6 +480,14 @@ def cmd_sample():
         f.write("%d\t%.4f\t%.4f\t0\n" % (now_ms, sm["balance"], sm["granted"]))
     return 0
 
+def cmd_refresh():
+    """清缓存后立刻重拉（卡片「刷新数据」用）"""
+    try:
+        os.remove(CACHE)
+    except Exception:
+        pass
+    return cmd_json()
+
 def cmd_check():
     t = token()
     print("token: %s（长度 %d）" % ("存在" if t else "缺失", len(t)))
@@ -505,6 +513,7 @@ def main():
     if cmd == "json":                return cmd_json()
     if cmd in ("sample", "snapshot"): return cmd_sample()
     if cmd in ("check", "预检"):      return cmd_check()
+    if cmd in ("refresh", "刷新"):    return cmd_refresh()
     if cmd in ("help", "-h", "--help"):
         print(__doc__); return 0
     print("✗ 未知命令: %s" % cmd); print(__doc__); return 1

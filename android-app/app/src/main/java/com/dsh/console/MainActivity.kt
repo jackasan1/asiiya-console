@@ -114,10 +114,11 @@ class MainActivity : AppCompatActivity() {
         }
         b.drawerPatch.setOnClickListener { closeDrawer(); action(getString(R.string.menu_checkpatch), "checkpatch") }
 
-        // 手风琴分组（默认展开第一组）
-        setupGroup(b.grpService, b.grpServiceItems, b.grpServiceArrow, true)
-        setupGroup(b.grpMaint, b.grpMaintItems, b.grpMaintArrow, false)
-        setupGroup(b.grpInfo, b.grpInfoItems, b.grpInfoArrow, false)
+        // 手风琴分组：按项目分类（默认展开 dsh，最常用）
+        setupGroup(b.grpApp, b.grpAppItems, b.grpAppArrow, false)
+        setupGroup(b.grpDsh, b.grpDshItems, b.grpDshArrow, true)
+        setupGroup(b.grpOl, b.grpOlItems, b.grpOlArrow, false)
+        setupGroup(b.grpCost, b.grpCostItems, b.grpCostArrow, false)
 
         // 分组里的快捷项
         b.drawerStart.setOnClickListener { closeDrawer(); userStopped = false; ringBusy(); action(getString(R.string.act_start), "start") }
@@ -137,12 +138,11 @@ class MainActivity : AppCompatActivity() {
         }
         b.drawerUpdate.setOnClickListener { closeDrawer(); checkUpdate(false) }
         b.drawerBuild.setOnClickListener { closeDrawer(); action(getString(R.string.menu_buildtime), "buildtime", "6") }
-        listOf(b.actOpen, b.actStart, b.actStop, b.actRestart, b.actLog,
+        listOf(b.actStart, b.actStop, b.actRestart, b.actLog,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
         // 方案 A：点标题行或「打开」按钮进控制台；更多收进 ⋮
         b.dshHead.setOnClickListener { openConsole() }
-        b.actOpen.setOnClickListener { openConsole() }
         b.btnDshMore.setOnClickListener { dshMoreDialog() }
         b.actStart.setOnClickListener {
             userStopped = false; downTicks = 0
@@ -215,6 +215,30 @@ class MainActivity : AppCompatActivity() {
         b.drawerConsole.setOnClickListener { closeDrawer(); openConsole() }
         b.drawerCopy.setOnClickListener { closeDrawer(); copyUrl() }
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
+
+        // ---- OpenList 网盘组 ----
+        b.drawerOlStart.setOnClickListener { closeDrawer(); action(getString(R.string.act_start), "openlist-start") }
+        b.drawerOlStop.setOnClickListener { closeDrawer(); action(getString(R.string.act_stop), "openlist-stop") }
+        b.drawerOlRestart.setOnClickListener { closeDrawer(); action(getString(R.string.act_restart), "openlist-restart") }
+        b.drawerOlOpen.setOnClickListener { closeDrawer(); openOpenList() }
+        b.drawerOlCopy.setOnClickListener { closeDrawer(); copyOlUrl() }
+        b.drawerOlPasswd.setOnClickListener { closeDrawer(); olPasswdDialog(false) }
+        b.drawerOlLog.setOnClickListener {
+            closeDrawer(); action(getString(R.string.ol_view_log), "openlist-log", "4000")
+        }
+        b.drawerOlInstall.setOnClickListener { closeDrawer(); olPrimary() }
+        b.drawerOlBoot.setOnClickListener {
+            closeDrawer()
+            val on = lastStatus?.olBoot == true
+            action(getString(R.string.ol_boot_setting), "openlist-boot", if (on) "off" else "on")
+        }
+
+        // ---- DeepSeek 费用组 ----
+        b.drawerCostReport.setOnClickListener { closeDrawer(); showCostDetail() }
+        b.drawerCost30.setOnClickListener { closeDrawer(); costCommandDialog("daily", "30") }
+        b.drawerCostHourly.setOnClickListener { closeDrawer(); costCommandDialog("hourly") }
+        b.drawerCostKeys.setOnClickListener { closeDrawer(); costCommandDialog("keys") }
+        b.drawerCostRefresh.setOnClickListener { closeDrawer(); costCommandDialog("refresh") }
         b.drawerLogs.setOnClickListener { closeDrawer(); logFileDialog() }
         b.costCard.setOnClickListener { showCostDetail() }
         pressable(b.costCard)
@@ -391,12 +415,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** 点卡片：拉一份明细（余额 + 今日/昨日/近7天/本月/累计 + 分模型 + 对账）弹窗显示 */
-    private fun showCostDetail() {
+    private fun showCostDetail() = costCommandDialog("report")
+
+    /** 抽屉里点费用项：跑对应子命令，输出照样走明细弹窗 */
+    private fun costCommandDialog(vararg args: String) {
         if (busy > 0) { toast(getString(R.string.msg_busy, busy)); return }
         pendingCostReport = true
         pendingCostReportAt = System.currentTimeMillis()
         toast(getString(R.string.cost_loading))
-        ctlCost(true, "report")
+        ctlCost(true, *args)
     }
 
     private fun costReportDialog(text: String) {
@@ -682,20 +709,19 @@ class MainActivity : AppCompatActivity() {
 
     /** 服务卡右上角 ⋮：与网盘卡一致的「更多」入口 */
     private fun dshMoreDialog() {
+        // 只放本卡片（dsh 服务）相关的事；「关于 App」在抽屉的「应用」组里
         val items = arrayOf(
             getString(R.string.act_settings),
             getString(R.string.menu_copy),
-            getString(R.string.logfiles_title),
-            getString(R.string.menu_about)
+            getString(R.string.logfiles_title)
         )
         MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.app_name)
+            .setTitle(R.string.dsh_card_title)
             .setItems(items) { _, which ->
                 when (which) {
                     0 -> showSheet()
                     1 -> copyUrl()
                     2 -> logFileDialog()
-                    3 -> about()
                 }
             }
             .setNegativeButton(R.string.cancel, null)

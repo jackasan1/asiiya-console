@@ -203,4 +203,14 @@
     <string name="dsh_card_title">DeepSeek Harness</string>
     <string name="dsh_card_sub_init">读取中…</string>
     <string name="dsh_card_sub_fmt">%1$s · %2$s</string>
+    <string name="grp_app">应用</string>
+    <string name="grp_dsh">DeepSeek Harness</string>
+    <string name="grp_ol">OpenList 网盘</string>
+    <string name="grp_cost">DeepSeek 费用</string>
+    <string name="menu_about_app">关于 Asiiya 工作台</string>
+    <string name="menu_cost_report">费用明细</string>
+    <string name="menu_cost_30">近 30 天</string>
+    <string name="menu_cost_hourly">今日逐小时</string>
+    <string name="menu_cost_keys">今日分 API Key</string>
+    <string name="menu_cost_refresh">刷新数据（清缓存）</string>
 </resources>

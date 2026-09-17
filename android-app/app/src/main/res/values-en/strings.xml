@@ -203,4 +203,14 @@ Works via Termux RUN_COMMAND, no root needed.</string>
     <string name="dsh_card_title">DeepSeek Harness</string>
     <string name="dsh_card_sub_init">Reading…</string>
     <string name="dsh_card_sub_fmt">%1$s · %2$s</string>
+    <string name="grp_app">App</string>
+    <string name="grp_dsh">DeepSeek Harness</string>
+    <string name="grp_ol">OpenList Storage</string>
+    <string name="grp_cost">DeepSeek Cost</string>
+    <string name="menu_about_app">About Asiiya Workbench</string>
+    <string name="menu_cost_report">Cost details</string>
+    <string name="menu_cost_30">Last 30 days</string>
+    <string name="menu_cost_hourly">Today by hour</string>
+    <string name="menu_cost_keys">Today by API key</string>
+    <string name="menu_cost_refresh">Refresh (clear cache)</string>
 </resources>
