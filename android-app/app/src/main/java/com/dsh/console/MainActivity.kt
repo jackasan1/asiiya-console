@@ -115,6 +115,14 @@ class MainActivity : AppCompatActivity() {
         b.tvSetModel.setOnClickListener { hideSheet(); modelDialog() }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
         b.btnConsole.setOnClickListener { openConsole() }
+        b.swipeMain.setColorSchemeColors(
+            ContextCompat.getColor(this, R.color.accent),
+            ContextCompat.getColor(this, R.color.accent2)
+        )
+        b.swipeMain.setOnRefreshListener {
+            b.swipeMain.isRefreshing = false
+            ctl(getString(R.string.act_refresh), "status")
+        }
 
         // 左侧抽屉
         b.tvDrawerVer.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
