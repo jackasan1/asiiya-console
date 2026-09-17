@@ -137,11 +137,13 @@ class MainActivity : AppCompatActivity() {
         }
         b.drawerUpdate.setOnClickListener { closeDrawer(); checkUpdate(false) }
         b.drawerBuild.setOnClickListener { closeDrawer(); action(getString(R.string.menu_buildtime), "buildtime", "6") }
-        listOf(b.circleStart, b.circleStop, b.circleRestart, b.circleLog, b.circleSettings,
+        listOf(b.actOpen, b.actStart, b.actStop, b.actRestart, b.actLog,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
-        b.ring.setOnClickListener { openConsole() }
-        b.centerPanel.setOnClickListener { openConsole() }
+        // 方案 A：点标题行或「打开」按钮进控制台；更多收进 ⋮
+        b.dshHead.setOnClickListener { openConsole() }
+        b.actOpen.setOnClickListener { openConsole() }
+        b.btnDshMore.setOnClickListener { dshMoreDialog() }
         b.actStart.setOnClickListener {
             userStopped = false; downTicks = 0
             ringBusy(); action(getString(R.string.act_start), "start")
@@ -153,7 +155,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.actLog.setOnClickListener { toggleLog() }
-        b.actSettings.setOnClickListener { showSheet() }
 
         // 设置弹出卡片
         b.sheetBg.setOnClickListener { hideSheet() }
@@ -215,7 +216,6 @@ class MainActivity : AppCompatActivity() {
         b.drawerCopy.setOnClickListener { closeDrawer(); copyUrl() }
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
         b.drawerLogs.setOnClickListener { closeDrawer(); logFileDialog() }
-        b.tvHost.setOnClickListener { copyUrl() }
         b.costCard.setOnClickListener { showCostDetail() }
         pressable(b.costCard)
 
@@ -474,9 +474,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** 刷新服务卡头部：副标题（版本 · 地址）+ 状态徽标 */
     private fun hostLabel() {
         val host = lastUrl.substringAfter("://").substringBefore("/")
-        if (host.isNotEmpty()) b.tvHost.text = host
+        val st = lastStatus
+        b.tvDshSub.text = getString(
+            R.string.dsh_card_sub_fmt, (st?.dshVersion ?: "").ifEmpty { "?" }, host.ifEmpty { "--" })
+        val up = st?.service == true
+        b.tvDshState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
+        b.tvDshState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
     }
 
     // ---------------- 状态渲染 ----------------
@@ -502,11 +508,7 @@ class MainActivity : AppCompatActivity() {
                 action(getString(R.string.act_start), "start")
             }
         }
-        b.ring.spin(false)
-        b.ring.glow(s.service)
-        b.ring.animateTo(if (s.service) 300f else 110f, 850)
-        b.tvState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)
-        b.tvState.setTextColor(ContextCompat.getColor(this, if (s.service) R.color.fg else R.color.dim))
+        b.ivDshIcon.alpha = if (s.service) 1f else 0.5f
 
         rollText(b.tvPortValue, s.portCode)
         b.tvPortValue.setTextColor(
@@ -523,12 +525,6 @@ class MainActivity : AppCompatActivity() {
 
         if (s.url.isNotEmpty()) { lastUrl = s.url; hostLabel() }
 
-        // 服务卡头部：版本 · 地址 + 状态徽标
-        val hostTxt = lastUrl.substringAfter("://").substringBefore("/").ifEmpty { "--" }
-        b.tvDshSub.text = getString(R.string.dsh_card_sub_fmt, s.dshVersion.ifEmpty { "?" }, hostTxt)
-        b.tvDshState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)
-        b.tvDshState.setTextColor(
-            ContextCompat.getColor(this, if (s.service) R.color.ok else R.color.dim))
 
         if (s.installing != installPolling) {
             installPolling = s.installing
@@ -682,6 +678,28 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             return null to (e.message?.take(48) ?: "网络异常")
         }
+    }
+
+    /** 服务卡右上角 ⋮：与网盘卡一致的「更多」入口 */
+    private fun dshMoreDialog() {
+        val items = arrayOf(
+            getString(R.string.act_settings),
+            getString(R.string.menu_copy),
+            getString(R.string.logfiles_title),
+            getString(R.string.menu_about)
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.app_name)
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> showSheet()
+                    1 -> copyUrl()
+                    2 -> logFileDialog()
+                    3 -> about()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     // ---------------- 应用内更新 ----------------
@@ -877,15 +895,14 @@ class MainActivity : AppCompatActivity() {
 
     /** 启动/停止中：弧变短并绕圈转 + 中心圆盘脉冲 */
     private fun ringBusy() {
-        b.ring.spin(true)
-        b.ring.animateTo(90f, 260)
+        b.ivDshIcon.animate().rotationBy(360f).setDuration(650).start()
         pulse()
     }
 
     private fun pulse() {
-        b.centerPanel.animate().scaleX(1.07f).scaleY(1.07f).setDuration(140)
+        b.ivDshIcon.animate().scaleX(1.25f).scaleY(1.25f).setDuration(140)
             .withEndAction {
-                b.centerPanel.animate().scaleX(1f).scaleY(1f).setDuration(220).start()
+                b.ivDshIcon.animate().scaleX(1f).scaleY(1f).setDuration(220).start()
             }.start()
     }
 
@@ -921,11 +938,11 @@ class MainActivity : AppCompatActivity() {
         b.tvModelValue.text = "—"
         b.tvProcValue.text = "—"
         b.tvUptimeValue.text = "--:--:--"
-        b.tvState.text = getString(R.string.state_loading)
+        b.tvDshState.text = getString(R.string.state_loading)
         b.tvLog.text = getString(R.string.log_empty)
         ui.postDelayed({
             if (skeleton) {
-                skeletonAnim = ObjectAnimator.ofFloat(b.centerPanel, "alpha", 1f, 0.35f).apply {
+                skeletonAnim = ObjectAnimator.ofFloat(b.ivDshIcon, "alpha", 1f, 0.35f).apply {
                     duration = 900
                     repeatMode = ValueAnimator.REVERSE
                     repeatCount = ValueAnimator.INFINITE
@@ -940,7 +957,7 @@ class MainActivity : AppCompatActivity() {
         skeleton = false
         skeletonAnim?.cancel()
         skeletonAnim = null
-        b.centerPanel.alpha = 1f
+        b.ivDshIcon.alpha = 1f
     }
 
     /** 数字平滑滚动；非数字则直接替换 */

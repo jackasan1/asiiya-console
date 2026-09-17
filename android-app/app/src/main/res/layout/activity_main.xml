@@ -80,7 +80,7 @@
             </FrameLayout>
         </LinearLayout>
 
-        <!-- ============ 服务卡（状态 + 操作，与网盘/费用卡同款）============ -->
+        <!-- ============ 服务卡（DeepSeek Harness，与网盘/费用卡同款）============ -->
         <LinearLayout
             android:id="@+id/serviceCard"
             android:layout_width="match_parent"
@@ -92,11 +92,16 @@
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
             android:paddingTop="14dp"
-            android:paddingBottom="6dp">
+            android:paddingBottom="12dp">
 
+            <!-- 头部行：点标题/图标打开控制台，⋮ 收更多 -->
             <LinearLayout
+                android:id="@+id/dshHead"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -106,6 +111,7 @@
                     android:background="@drawable/bg_circle_blue">
 
                     <ImageView
+                        android:id="@+id/ivDshIcon"
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
@@ -144,7 +150,6 @@
                     android:id="@+id/tvDshState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip"
                     android:paddingStart="9dp"
                     android:paddingTop="4dp"
@@ -153,402 +158,221 @@
                     android:text="@string/state_loading"
                     android:textColor="@color/dim"
                     android:textSize="11sp" />
-            </LinearLayout>
-
-        <!-- ============ 圆环区 ============ -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_marginTop="6dp">
-
-            <com.dsh.console.RingView
-                android:id="@+id/ring"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
-                android:layout_gravity="center" />
-
-            <LinearLayout
-                android:id="@+id/centerPanel"
-                android:layout_width="132dp"
-                android:layout_height="132dp"
-                android:layout_gravity="center"
-                android:background="@drawable/bg_center_circle"
-                android:clickable="true"
-                android:elevation="2dp"
-                android:focusable="true"
-                android:gravity="center"
-                android:orientation="vertical">
 
                 <ImageView
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_process"
-                    android:tint="@color/accent2" />
-
-                <TextView
-                    android:id="@+id/tvState"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/state_stopped"
-                    android:textColor="@color/fg"
-                    android:textSize="19sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvHost"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="127.0.0.1:3080"
-                    android:textColor="@color/dim"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <!-- 左上：端口 -->
-            <LinearLayout
-                android:layout_width="66dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|start"
-                android:layout_marginTop="18dp"
-                android:background="@drawable/bg_chip"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="9dp"
-                android:paddingBottom="9dp">
-
-                <ImageView
-                    android:layout_width="17dp"
-                    android:layout_height="17dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_port"
+                    android:id="@+id/btnDshMore"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:layout_marginStart="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/ol_more"
+                    android:focusable="true"
+                    android:padding="7dp"
+                    android:src="@drawable/ic_more"
                     android:tint="@color/dim" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/card_port"
-                    android:textColor="@color/dim"
-                    android:textSize="9sp" />
-
-                <TextView
-                    android:id="@+id/tvPortValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="3080"
-                    android:textColor="@color/fg"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- 右上：模型 -->
             <LinearLayout
-                android:layout_width="66dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="18dp"
-                android:background="@drawable/bg_chip"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="9dp"
-                android:paddingBottom="9dp">
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
 
-                <ImageView
-                    android:layout_width="17dp"
-                    android:layout_height="17dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_model"
-                    android:tint="@color/dim" />
-
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/card_model"
-                    android:textColor="@color/dim"
-                    android:textSize="9sp" />
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chip"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp">
 
-                <TextView
-                    android:id="@+id/tvModelValue"
-                    android:layout_width="wrap_content"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/card_port"
+                        android:textColor="@color/dim"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/tvPortValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="@string/ol_dash"
+                        android:textColor="@color/fg"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/model_missing"
-                    android:textColor="@color/fg"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chip"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp"
+                    android:layout_marginStart="6dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/card_model"
+                        android:textColor="@color/dim"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/tvModelValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="@string/ol_dash"
+                        android:textColor="@color/fg"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chip"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp"
+                    android:layout_marginStart="6dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/card_proc"
+                        android:textColor="@color/dim"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/tvProcValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="@string/ol_dash"
+                        android:textColor="@color/fg"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chip"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp"
+                    android:layout_marginStart="6dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/card_uptime"
+                        android:textColor="@color/dim"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/tvUptimeValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="@string/ol_dash"
+                        android:textColor="@color/fg"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
 
-            <!-- 左下：进程 -->
             <LinearLayout
-                android:layout_width="66dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="bottom|start"
-                android:layout_marginBottom="18dp"
-                android:background="@drawable/bg_chip"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="9dp"
-                android:paddingBottom="9dp">
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
 
-                <ImageView
-                    android:layout_width="17dp"
-                    android:layout_height="17dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_process"
-                    android:tint="@color/dim" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/actOpen"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/act_open"
+                    android:textColor="@color/accent"
+                    android:textSize="12sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/card_proc"
-                    android:textColor="@color/dim"
-                    android:textSize="9sp" />
-
-                <TextView
-                    android:id="@+id/tvProcValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="@color/fg"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <!-- 右下：运行时长 -->
-            <LinearLayout
-                android:layout_width="66dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_marginBottom="18dp"
-                android:background="@drawable/bg_chip"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="9dp"
-                android:paddingBottom="9dp">
-
-                <ImageView
-                    android:layout_width="17dp"
-                    android:layout_height="17dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_uptime"
-                    android:tint="@color/dim" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/card_uptime"
-                    android:textColor="@color/dim"
-                    android:textSize="8sp" />
-
-                <TextView
-                    android:id="@+id/tvUptimeValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="--:--:--"
-                    android:textColor="@color/fg"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
-
-        <!-- ============ 操作行 ============ -->
-        <LinearLayout
-            android:id="@+id/actionCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp">
-
-            <LinearLayout
-                android:id="@+id/actStart"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
-
-                <FrameLayout
-                    android:id="@+id/circleStart"
-                    android:layout_width="58dp"
-                    android:layout_height="58dp"
-                    android:background="@drawable/bg_circle_blue"
-                    android:foreground="?attr/selectableItemBackgroundBorderless">
-
-                    <ImageView
-                        android:layout_width="25dp"
-                        android:layout_height="25dp"
-                        android:layout_gravity="center"
-                        android:contentDescription="@string/act_start"
-                        android:src="@drawable/ic_home"
-                        android:tint="@color/accent" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="9dp"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/actStart"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
                     android:text="@string/act_start"
-                    android:textColor="@color/fg"
-                    android:textSize="12sp" />
-            </LinearLayout>
+                    android:textColor="@color/ok"
+                    android:textSize="12sp"
+                    android:layout_marginStart="8dp" />
 
-<LinearLayout
-                android:id="@+id/actStop"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
-
-                <FrameLayout
-                    android:id="@+id/circleStop"
-                    android:layout_width="58dp"
-                    android:layout_height="58dp"
-                    android:background="@drawable/bg_circle_red"
-                    android:foreground="?attr/selectableItemBackgroundBorderless">
-
-                    <ImageView
-                        android:layout_width="25dp"
-                        android:layout_height="25dp"
-                        android:layout_gravity="center"
-                        android:contentDescription="@string/act_stop"
-                        android:src="@drawable/ic_stop"
-                        android:tint="@color/bad" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="9dp"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/actStop"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
                     android:text="@string/act_stop"
+                    android:textColor="@color/bad"
+                    android:textSize="12sp"
+                    android:layout_marginStart="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/actRestart"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/act_restart"
                     android:textColor="@color/fg"
-                    android:textSize="12sp" />
-            </LinearLayout>
+                    android:textSize="12sp"
+                    android:layout_marginStart="8dp" />
 
-<LinearLayout
-    android:id="@+id/actRestart"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:clickable="true"
-    android:focusable="true"
-    android:gravity="center_horizontal"
-    android:orientation="vertical">
-
-    <FrameLayout
-        android:id="@+id/circleRestart"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:background="@drawable/bg_circle_blue"
-        android:foreground="?attr/selectableItemBackgroundBorderless">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="center"
-            android:contentDescription="@string/act_restart"
-            android:src="@drawable/ic_restart"
-            android:tint="@color/cyan" />
-    </FrameLayout>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="9dp"
-        android:text="@string/act_restart"
-        android:textColor="@color/fg"
-        android:textSize="12sp" />
-</LinearLayout>
-
-<LinearLayout
-                android:id="@+id/actLog"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
-
-                <FrameLayout
-                    android:id="@+id/circleLog"
-                    android:layout_width="58dp"
-                    android:layout_height="58dp"
-                    android:background="@drawable/bg_circle_amber"
-                    android:foreground="?attr/selectableItemBackgroundBorderless">
-
-                    <ImageView
-                        android:layout_width="25dp"
-                        android:layout_height="25dp"
-                        android:layout_gravity="center"
-                        android:contentDescription="@string/act_log"
-                        android:src="@drawable/ic_log"
-                        android:tint="@color/warn" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="9dp"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/actLog"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
                     android:text="@string/act_log"
                     android:textColor="@color/fg"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:layout_marginStart="8dp" />
             </LinearLayout>
-
-<LinearLayout
-                android:id="@+id/actSettings"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
-
-                <FrameLayout
-                    android:id="@+id/circleSettings"
-                    android:layout_width="58dp"
-                    android:layout_height="58dp"
-                    android:background="@drawable/bg_circle_gray"
-                    android:foreground="?attr/selectableItemBackgroundBorderless">
-
-                    <ImageView
-                        android:layout_width="25dp"
-                        android:layout_height="25dp"
-                        android:layout_gravity="center"
-                        android:contentDescription="@string/act_settings"
-                        android:src="@drawable/ic_settings"
-                        android:tint="@color/dim" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="9dp"
-                    android:text="@string/act_settings"
-                    android:textColor="@color/fg"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-        </LinearLayout>
 
         </LinearLayout>
 
