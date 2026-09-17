@@ -1,13 +1,13 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # dsh-ctl.sh — DSH 控制脚本（供「DSH 控制台」App 调用）
-# 用法: bash ~/dsh/dsh-ctl.sh {status|start|stop|open|install|log|preflight}
+# 用法: bash ~/dsh/dsh-ctl.sh {status|start|stop|open|install|log|preflight|cost|openlist-*}
 BASE="$HOME/dsh"
 URLFILE="$BASE/dsh-web-url.txt"
 WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
 [ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
 PORT="${DSH_PORT:-3080}"
-CTL_VER=6
+CTL_VER=7
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 port_code() { local c; c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null)"; printf '%s' "${c:-000}"; }
@@ -538,8 +538,13 @@ openlist-log)
   fi
   ;;
 
+cost)
+  if [ -x "$BASE/dsh-cost.sh" ]; then exec bash "$BASE/dsh-cost.sh" "${@:2}"
+  else echo "✗ 未找到 ~/dsh/dsh-cost.sh（先在 App 里刷新一次状态即可落盘）"; exit 1; fi
+  ;;
+
 *)
-  echo "用法: dsh-ctl.sh {status|start|stop|open|install|log|preflight|openlist-*}"
+  echo "用法: dsh-ctl.sh {status|start|stop|open|install|log|preflight|cost|openlist-*}"
   exit 1
   ;;
 esac

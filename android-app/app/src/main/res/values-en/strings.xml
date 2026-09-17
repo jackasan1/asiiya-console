@@ -155,4 +155,21 @@
     <string name="ol_flag_off">OFF</string>
     <string name="ol_starting">Storage is not running, starting…</string>
     <string name="ol_wait_status">Reading status, please wait</string>
+    <!-- Cost card (DeepSeek API) -->
+    <string name="cost_title">DeepSeek Cost</string>
+    <string name="cost_sub_init">Reading…</string>
+    <string name="cost_sub_fmt">%1$s · %2$d sessions</string>
+    <string name="cost_card_balance">Balance</string>
+    <string name="cost_card_today">Today</string>
+    <string name="cost_card_month">This month</string>
+    <string name="cost_card_total">All time</string>
+    <string name="cost_dash">—</string>
+    <string name="cost_state_ok">OK</string>
+    <string name="cost_state_err">Error</string>
+    <string name="cost_hint">Tap for details (official peak/off-peak rates)</string>
+    <string name="cost_hint_fmt">%1$d turns this month · %2$.0f%% cache hit · tap for details</string>
+    <string name="cost_loading">Loading cost details…</string>
+    <string name="cost_report_title">API cost details</string>
+    <string name="cost_report_ok">Copy</string>
+    <string name="cost_report_copied">Copied to clipboard</string>
 </resources>

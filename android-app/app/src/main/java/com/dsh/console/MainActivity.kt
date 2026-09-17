@@ -70,6 +70,14 @@ class MainActivity : AppCompatActivity() {
     private var logEmpty = true
     /** 网盘未运行时点了「打开」→ 启动就绪后自动打开 */
     private var pendingOpenOl = false
+    /** 费用卡：最近一次数据 */
+    private var lastCost: Cost? = null
+    private var costLoaded = false
+    /** 点费用卡后请求的明细报告：拿到输出就弹窗 */
+    private var pendingCostReport = false
+    private var pendingCostReportAt = 0L
+    /** 每 6 次 5s 轮询（=30s）刷一次费用 */
+    private var costTick = 0
 
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
@@ -204,6 +212,8 @@ class MainActivity : AppCompatActivity() {
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
         b.drawerLogs.setOnClickListener { closeDrawer(); logFileDialog() }
         b.tvHost.setOnClickListener { copyUrl() }
+        b.costCard.setOnClickListener { showCostDetail() }
+        pressable(b.costCard)
 
         b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
         log(getString(R.string.msg_ready))
@@ -228,9 +238,18 @@ class MainActivity : AppCompatActivity() {
     private val tick = object : Runnable {
         override fun run() {
             if (!auto) return
+            // 明细请求超时兜底：Termux 不回来时别把后续输出吞进弹窗
+            if (pendingCostReport && System.currentTimeMillis() - pendingCostReportAt > 20_000L) {
+                pendingCostReport = false
+            }
             if (busy == 0) {
-                if (installPolling) ctl("", "log", "4000", silent = true)
-                else ctl("", "status", silent = true)
+                if (installPolling) {
+                    ctl("", "log", "4000", silent = true)
+                } else {
+                    ctl("", "status", silent = true)
+                    // 费用卡：每 30 秒刷一次（余额走官方接口，用量的本地扫描不到 1 秒）
+                    if (costTick++ % 6 == 0) ctlCost(true, "json")
+                }
             }
             ui.postDelayed(this, 5000)
         }
@@ -259,6 +278,93 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** 费用查询调用：命令与状态轮询不同，走 DshApi.costCmd */
+    private fun ctlCost(silent: Boolean, vararg args: String) {
+        if (busy > 0 && !silent) { toast(getString(R.string.msg_busy, busy)); return }
+        busy++
+        try {
+            startService(
+                TermuxRunner.intent(
+                    DshApi.costCmd(this, *args),
+                    "cost",
+                    null,
+                    TermuxRunner.resultPendingIntent(this, ++seq)
+                )
+            )
+        } catch (e: Exception) {
+            busy = (busy - 1).coerceAtLeast(0)
+            pendingCostReport = false
+            log(getString(R.string.msg_call_failed, e.message ?: ""))
+        }
+    }
+
+    // ---------------- 费用卡 ----------------
+
+    private fun money(v: Double): String =
+        if (v < 1.0) String.format(Locale.US, "¥%.4f", v)
+        else String.format(Locale.US, "¥%.2f", v)
+
+    private fun applyCost(c: Cost) {
+        lastCost = c
+        costLoaded = true
+
+        if (c.error.isNotEmpty()) {
+            b.tvCostBal.text = getString(R.string.cost_dash)
+            b.tvCostState.text = getString(R.string.cost_state_err)
+            b.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.bad))
+            b.tvCostSub.text = c.error
+        } else {
+            b.tvCostBal.text = money(c.balance)
+            b.tvCostState.text = getString(R.string.cost_state_ok)
+            b.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.ok))
+            b.tvCostSub.text = getString(R.string.cost_sub_fmt, c.updatedAt, c.sessions)
+        }
+
+        b.tvCostToday.text = money(c.todayCost)
+        b.tvCostMonth.text = money(c.monthCost)
+        b.tvCostTotal.text = money(c.totalCost)
+
+        val input = (c.monthHit + c.monthMiss).toDouble()
+        b.tvCostHint.text =
+            if (input > 0) getString(R.string.cost_hint_fmt, c.monthTurns, 100.0 * c.monthHit / input)
+            else getString(R.string.cost_hint)
+    }
+
+    /** 点卡片：拉一份明细（余额 + 今日/昨日/近7天/本月/累计 + 分模型 + 对账）弹窗显示 */
+    private fun showCostDetail() {
+        if (busy > 0) { toast(getString(R.string.msg_busy, busy)); return }
+        pendingCostReport = true
+        pendingCostReportAt = System.currentTimeMillis()
+        toast(getString(R.string.cost_loading))
+        ctlCost(true, "report")
+    }
+
+    private fun costReportDialog(text: String) {
+        val tv = TextView(this)
+        tv.text = text.trim()
+        tv.typeface = Typeface.MONOSPACE
+        tv.setTextColor(ContextCompat.getColor(this, R.color.fg))
+        tv.textSize = 11.5f
+        val pad = (14 * resources.displayMetrics.density).toInt()
+        tv.setPadding(pad, pad, pad, pad)
+        val sv = android.widget.ScrollView(this)
+        sv.addView(tv)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.cost_report_title)
+            .setView(sv)
+            .setPositiveButton(R.string.cost_report_ok) { _, _ ->
+                toast(getString(R.string.cost_report_copied))
+                copyText(text.trim())
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun copyText(s: String) {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("dsh-cost", s))
+    }
+
     private fun onResult(intent: Intent?) {
         val bundle = intent?.getBundleExtra(TermuxRunner.BUNDLE_KEY)
             ?: intent?.getBundleExtra(TermuxRunner.BUNDLE_KEY_LEGACY)
@@ -273,8 +379,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onStdout(out: String) {
+        // 明细报告优先（点卡片触发的）
+        if (pendingCostReport) {
+            pendingCostReport = false
+            costReportDialog(out)
+            return
+        }
         val st = DshApi.parseStatus(out)
         if (st != null) { applyStatus(st); return }
+
+        // 费用 JSON（含 balance/today 键，和 status 不冲突）
+        DshApi.parseCost(out)?.let { applyCost(it); return }
 
         if (parseConf(out)) return
 
