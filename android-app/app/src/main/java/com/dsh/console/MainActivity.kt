@@ -523,6 +523,13 @@ class MainActivity : AppCompatActivity() {
 
         if (s.url.isNotEmpty()) { lastUrl = s.url; hostLabel() }
 
+        // 服务卡头部：版本 · 地址 + 状态徽标
+        val hostTxt = lastUrl.substringAfter("://").substringBefore("/").ifEmpty { "--" }
+        b.tvDshSub.text = getString(R.string.dsh_card_sub_fmt, s.dshVersion.ifEmpty { "?" }, hostTxt)
+        b.tvDshState.text = getString(if (s.service) R.string.state_running else R.string.state_stopped)
+        b.tvDshState.setTextColor(
+            ContextCompat.getColor(this, if (s.service) R.color.ok else R.color.dim))
+
         if (s.installing != installPolling) {
             installPolling = s.installing
             b.installCard.visibility = if (s.installing) View.VISIBLE else View.GONE

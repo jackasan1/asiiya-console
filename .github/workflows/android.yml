@@ -70,6 +70,6 @@ jobs:
         run: |
           gh release delete latest --yes --cleanup-tag 2>/dev/null || true
           gh release create latest android-app/app/build/outputs/apk/release/app-release.apk \
-            --title "DSH 控制台 ${GITHUB_SHA:0:7}" \
+            --title "Asiiya 工作台 ${GITHUB_SHA:0:7}" \
             --notes "自动构建 ${GITHUB_SHA}" --latest
           echo "APK: https://github.com/${{ github.repository }}/releases/latest/download/app-release.apk"

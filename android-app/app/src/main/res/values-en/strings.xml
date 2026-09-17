@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">DSH Console</string>
-    <string name="console_title">DSH UI</string>
+    <string name="app_name">Asiiya Workbench</string>
+    <string name="console_title">Asiiya UI</string>
     <string name="console_reload">Reload</string>
     <string name="console_external">Open externally</string>
 
@@ -24,7 +24,7 @@
     <string name="label_log">Log</string>
     <string name="label_install_out">Install output (live)</string>
 
-    <string name="msg_ready">Console ready</string>
+    <string name="msg_ready">Workbench ready</string>
     <string name="msg_busy">Previous command still running (%1$d in flight)</string>
     <string name="msg_call_failed">Failed to call Termux: %1$s</string>
     <string name="msg_no_bundle">No result payload (Termux version mismatch?)</string>
@@ -71,7 +71,9 @@
     <string name="install_title">Install / repair dsh</string>
     <string name="install_key_hint">DeepSeek API Key (optional)</string>
     <string name="about_title">About</string>
-    <string name="about_body">DSH Console — control DeepSeek Harness from your phone.\n\nWorks via Termux RUN_COMMAND, no root needed.</string>
+    <string name="about_body">Asiiya Workbench — control DeepSeek Harness from your phone.
+
+Works via Termux RUN_COMMAND, no root needed.</string>
     <string name="theme_toggle">Toggle theme</string>
     <string name="theme_dark">Dark theme</string>
     <string name="theme_light">Light theme</string>
@@ -198,4 +200,7 @@
     <string name="cost_budget_fmt">Budget today %1$s / %2$s</string>
     <string name="cost_budget_none">No budget set (~/dsh/cost-config.sh)</string>
     <string name="cost_spark_fmt">Last %1$d days %2$s ｜ avg %3$s</string>
+    <string name="dsh_card_title">DeepSeek Harness</string>
+    <string name="dsh_card_sub_init">Reading…</string>
+    <string name="dsh_card_sub_fmt">%1$s · %2$s</string>
 </resources>
