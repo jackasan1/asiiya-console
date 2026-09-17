@@ -30,30 +30,39 @@ data class Status(
     val olInstalled: Boolean
 )
 
-/** dsh-cost.sh json 的输出：余额 + 各时段估算费用 */
+/** 官方接口的单个时间区间（金额 + 请求数 + tokens） */
+data class CostPeriod(
+    val cost: Double,
+    val req: Int,
+    val hit: Long,
+    val miss: Long,
+    val resp: Long
+) {
+    val tokens: Long get() = hit + miss + resp
+    val cacheRate: Double get() = if (hit + miss == 0L) 0.0 else 100.0 * hit / (hit + miss)
+}
+
+/**
+ * dsh-cost.sh json 的输出。
+ *
+ * 全部来自 platform.deepseek.com 官方接口（余额 / 消费 / 请求数 / tokens），
+ * 与「DeepSeek 开放平台」网页一致，不再依赖本地会话扫描或余额差分估算。
+ */
 data class Cost(
+    val source: String,
+    val at: String,
+    val error: String,
     val currency: String,
     val balance: Double,
     val granted: Double,
-    val toppedUp: Double,
-    val updatedAt: String,
-    val error: String,
-    val sessions: Int,
-    val todayCost: Double,
-    val todayTurns: Int,
-    val weekCost: Double,
-    val monthCost: Double,
-    val monthTurns: Int,
-    val monthHit: Long,
-    val monthMiss: Long,
-    val monthOut: Long,
     val totalCost: Double,
-    val totalTurns: Int,
-    /** 账号级实际扣费（余额流水，含所有客户端） */
-    val todayActual: Double,
-    val dayActual: Double,
-    val todayPartial: Boolean,
-    val samples: Int
+    val today: CostPeriod,
+    val yesterday: CostPeriod,
+    val month: CostPeriod,
+    val d30: CostPeriod,
+    val d7: CostPeriod,
+    val models: Map<String, Double>,
+    val keys: Map<String, Double>
 )
 
 object DshApi {
@@ -62,7 +71,7 @@ object DshApi {
     const val CTL_VERSION = "7"
 
     /** 与 assets/dsh-cost.sh 的版本对应：改脚本就让旧标记失效，重新落盘一次 */
-    private const val COST_VER = "3"
+    private const val COST_VER = "5"
 
     /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 4KB） */
     private fun bootstrap(ctx: Context): String {
@@ -110,49 +119,44 @@ object DshApi {
     fun parseCost(raw: String): Cost? {
         val i = raw.indexOf('{')
         if (i < 0) return null
-        // 只认费用 JSON：缺这两个键就不是（status 由 parseStatus 处理）
-        if (!raw.contains("\"balance\"") || !raw.contains("\"today\"")) return null
+        // 官方费用 JSON 的特征键：source + periods（status JSON 没有）
+        if (!raw.contains("\"periods\"") || !raw.contains("\"source\"")) return null
         return try {
             val o = org.json.JSONObject(raw.substring(i, raw.lastIndexOf('}') + 1))
-            val bal = o.optJSONObject("balance") ?: org.json.JSONObject()
-            val today = o.optJSONObject("today") ?: org.json.JSONObject()
-            val week = o.optJSONObject("week") ?: org.json.JSONObject()
-            val month = o.optJSONObject("month") ?: org.json.JSONObject()
-            val total = o.optJSONObject("total") ?: org.json.JSONObject()
-            val act = o.optJSONObject("actual") ?: org.json.JSONObject()
-            val actToday = act.optJSONObject("today") ?: org.json.JSONObject()
-            val actDay = act.optJSONObject("day") ?: org.json.JSONObject()
+            val ps = o.optJSONObject("periods") ?: org.json.JSONObject()
+            fun per(k: String): CostPeriod {
+                val p = ps.optJSONObject(k) ?: org.json.JSONObject()
+                return CostPeriod(
+                    cost = p.optDouble("cost", 0.0),
+                    req = p.optInt("req", 0),
+                    hit = p.optLong("hit", 0),
+                    miss = p.optLong("miss", 0),
+                    resp = p.optLong("resp", 0)
+                )
+            }
+            fun flat(k: String): Map<String, Double> {
+                val j = o.optJSONObject(k) ?: return emptyMap()
+                val m = LinkedHashMap<String, Double>()
+                val it = j.keys()
+                while (it.hasNext()) { val key = it.next(); m[key] = j.optDouble(key, 0.0) }
+                return m
+            }
             Cost(
-                currency = bal.optString("currency", "CNY"),
-                balance = bal.optDouble("total", 0.0),
-                granted = bal.optDouble("granted", 0.0),
-                toppedUp = bal.optDouble("topped_up", 0.0),
-                updatedAt = bal.optString("at", ""),
-                error = bal.optString("error", ""),
-                sessions = o.optInt("sessions", 0),
-                todayCost = today.optDouble("cost", 0.0),
-                todayTurns = today.optInt("turns", 0),
-                weekCost = week.optDouble("cost", 0.0),
-                monthCost = month.optDouble("cost", 0.0),
-                monthTurns = month.optInt("turns", 0),
-                monthHit = month.optLong("hit", 0),
-                monthMiss = month.optLong("miss", 0),
-                monthOut = month.optLong("out", 0),
-                totalCost = total.optDouble("cost", 0.0),
-                totalTurns = total.optInt("turns", 0),
-                todayActual = actToday.optDouble("spent", 0.0),
-                dayActual = actDay.optDouble("spent", 0.0),
-                todayPartial = actToday.optBoolean("partial", false),
-                samples = act.optInt("samples", 0)
+                source = o.optString("source", ""),
+                at = o.optString("at", ""),
+                error = if (o.isNull("err")) "" else o.optString("err", ""),
+                currency = o.optString("currency", "CNY"),
+                balance = o.optDouble("balance", 0.0),
+                granted = o.optDouble("granted", 0.0),
+                totalCost = o.optDouble("totalCost", 0.0),
+                today = per("today"), yesterday = per("yesterday"),
+                month = per("month"), d30 = per("d30"), d7 = per("d7"),
+                models = flat("models"), keys = flat("keys")
             )
         } catch (e: Exception) {
             null
         }
     }
-
-    /** 安装命令：额外确保 dsh-oneclick.sh 已就位 */
-    fun installCmd(ctx: Context): String =
-        bootstrap(ctx) + bootstrapInstallScript(ctx) + "bash ~/dsh/dsh-ctl.sh install"
 
     fun parseStatus(raw: String): Status? {
         val i = raw.indexOf('{')

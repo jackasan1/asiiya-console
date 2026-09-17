@@ -304,6 +304,13 @@ class MainActivity : AppCompatActivity() {
         if (v < 1.0) String.format(Locale.US, "¥%.4f", v)
         else String.format(Locale.US, "¥%.2f", v)
 
+    private fun tokens(n: Long): String = when {
+        n >= 1_000_000_000L -> String.format(Locale.US, "%.2fB", n / 1e9)
+        n >= 1_000_000L -> String.format(Locale.US, "%.2fM", n / 1e6)
+        n >= 1_000L -> String.format(Locale.US, "%.1fK", n / 1e3)
+        else -> n.toString()
+    }
+
     private fun applyCost(c: Cost) {
         lastCost = c
         costLoaded = true
@@ -312,24 +319,23 @@ class MainActivity : AppCompatActivity() {
             b.tvCostBal.text = getString(R.string.cost_dash)
             b.tvCostState.text = getString(R.string.cost_state_err)
             b.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.bad))
-            b.tvCostSub.text = c.error
+            b.tvCostSub.text =
+                if (c.error == "NO_TOKEN" || c.error.contains("invalid token", true))
+                    getString(R.string.cost_need_login)
+                else c.error
         } else {
+            // 官方数据（与「DeepSeek 开放平台」网页同源）
             b.tvCostBal.text = money(c.balance)
-            b.tvCostState.text = getString(R.string.cost_state_ok)
+            b.tvCostState.text = getString(R.string.cost_state_official)
             b.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.ok))
-            b.tvCostSub.text = getString(R.string.cost_sub_fmt, c.updatedAt, c.samples) +
-                if (c.todayPartial) " · " + getString(R.string.cost_partial) else ""
+            b.tvCostSub.text = getString(R.string.cost_sub_official, c.at, money(c.totalCost))
         }
 
-        // 三格：今日实际 / 近24h实际（余额流水，含所有客户端）｜本月 dsh 侧估算
-        b.tvCostToday.text = money(c.todayActual)
-        b.tvCostMonth.text = money(c.dayActual)
-        b.tvCostTotal.text = money(c.monthCost)
-
-        val input = (c.monthHit + c.monthMiss).toDouble()
-        b.tvCostHint.text =
-            if (input > 0) getString(R.string.cost_hint_fmt, c.monthTurns, 100.0 * c.monthHit / input)
-            else getString(R.string.cost_hint)
+        b.tvCostToday.text = money(c.today.cost)
+        b.tvCostYesterday.text = money(c.yesterday.cost)
+        b.tvCostMonth.text = money(c.month.cost)
+        b.tvCostD30.text = money(c.d30.cost)
+        b.tvCostHint.text = getString(R.string.cost_hint_usage, c.today.req, tokens(c.today.tokens))
     }
 
     /** 点卡片：拉一份明细（余额 + 今日/昨日/近7天/本月/累计 + 分模型 + 对账）弹窗显示 */

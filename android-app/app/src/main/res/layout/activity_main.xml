@@ -707,7 +707,7 @@
 
         </LinearLayout>
 
-        <!-- ============ 费用卡（DeepSeek API 余额 + 估算费用）============ -->
+        <!-- ============ 费用卡（DeepSeek 官方数据）============ -->
         <LinearLayout
             android:id="@+id/costCard"
             android:layout_width="match_parent"
@@ -760,9 +760,10 @@
 
                     <TextView
                         android:id="@+id/tvCostSub"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
+                        android:singleLine="true"
                         android:text="@string/cost_sub_init"
                         android:textColor="@color/dim"
                         android:textSize="11sp" />
@@ -772,6 +773,7 @@
                     android:id="@+id/tvCostState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip"
                     android:paddingStart="9dp"
                     android:paddingTop="4dp"
@@ -812,7 +814,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="end"
-                    android:maxWidth="150dp"
+                    android:maxWidth="170dp"
                     android:text="@string/cost_hint"
                     android:textColor="@color/dim"
                     android:textSize="10sp" />
@@ -846,12 +848,41 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
+                        android:singleLine="true"
                         android:text="@string/cost_dash"
                         android:textColor="@color/fg"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chip"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="7dp"
+                    android:layout_marginStart="6dp">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/cost_card_yesterday"
+                        android:textColor="@color/dim"
+                        android:textSize="10sp" />
+
+                    <TextView
+                        android:id="@+id/tvCostYesterday"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:singleLine="true"
+                        android:text="@string/cost_dash"
+                        android:textColor="@color/fg"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -875,12 +906,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
+                        android:singleLine="true"
                         android:text="@string/cost_dash"
                         android:textColor="@color/fg"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
-
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -895,18 +926,19 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/cost_card_total"
+                        android:text="@string/cost_card_d30"
                         android:textColor="@color/dim"
                         android:textSize="10sp" />
 
                     <TextView
-                        android:id="@+id/tvCostTotal"
+                        android:id="@+id/tvCostD30"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
+                        android:singleLine="true"
                         android:text="@string/cost_dash"
                         android:textColor="@color/fg"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
