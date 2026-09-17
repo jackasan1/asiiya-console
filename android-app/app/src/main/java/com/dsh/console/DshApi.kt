@@ -116,6 +116,10 @@ object DshApi {
     fun costCmd(ctx: Context, vararg args: String): String =
         bootstrap(ctx) + bootstrapCost(ctx) + "bash ~/dsh/dsh-ctl.sh cost " + args.joinToString(" ")
 
+    /** 安装命令：额外确保 dsh-oneclick.sh 已就位 */
+    fun installCmd(ctx: Context): String =
+        bootstrap(ctx) + bootstrapInstallScript(ctx) + "bash ~/dsh/dsh-ctl.sh install"
+
     fun parseCost(raw: String): Cost? {
         val i = raw.indexOf('{')
         if (i < 0) return null
