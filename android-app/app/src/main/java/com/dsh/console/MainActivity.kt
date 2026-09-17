@@ -514,7 +514,8 @@ class MainActivity : AppCompatActivity() {
             .putFloat("cy", loc[1] + v.height / 2f)
             .putInt("night", next)
             .apply()
-        v.animate().rotationBy(180f).scaleX(0.80f).scaleY(0.80f).setDuration(340)
+        v.animate().rotationBy(180f).scaleX(0.70f).scaleY(0.70f).setDuration(420)
+            .setInterpolator(android.view.animation.OvershootInterpolator(1.5f))
             .withEndAction { AppCompatDelegate.setDefaultNightMode(next) }
             .start()
         toast(getString(if (next == AppCompatDelegate.MODE_NIGHT_YES) R.string.theme_dark else R.string.theme_light))
@@ -533,9 +534,9 @@ class MainActivity : AppCompatActivity() {
             if (w <= 0 || h <= 0) return@post
             val r = hypot(max(cx, w - cx).toDouble(), max(cy, h - cy).toDouble()).toFloat()
             try {
-                val anim = ViewAnimationUtils.createCircularReveal(root, cx, cy, 0f, r)
-                anim.duration = 760L
-                anim.interpolator = android.view.animation.PathInterpolator(0.22f, 0.61f, 0.36f, 1f)
+                val anim = ViewAnimationUtils.createCircularReveal(root, cx, cy, 12f, r)
+                anim.duration = 980L
+                anim.interpolator = android.view.animation.PathInterpolator(0.04f, 0.72f, 0.10f, 1f)
                 anim.start()
             } catch (_: Exception) {
             }
