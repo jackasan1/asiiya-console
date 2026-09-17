@@ -7,7 +7,7 @@ WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
 [ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
 PORT="${DSH_PORT:-3080}"
-CTL_VER=5
+CTL_VER=6
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 port_code() { local c; c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null)"; printf '%s' "${c:-000}"; }
@@ -26,6 +26,101 @@ ensure_url() {
 wait_ready() {
   local i; for i in $(seq 1 45); do ready && return 0; sleep 2; done; return 1
 }
+
+
+# ================= OpenList（原 AList）辅助 =================
+: "${PREFIX:=/data/data/com.termux/files/usr}"
+OL_PORT=5244
+OL_SVDIR="$PREFIX/var/service/openlist"
+OL_DATA="$HOME/.local/share/openlist"
+OL_BOOTF="$HOME/.termux/boot/start-openlist.sh"
+OL_VERF="$BASE/.olversion"
+
+ol_bin()  { command -v openlist 2>/dev/null || command -v alist 2>/dev/null; }
+ol_inst() { [ -n "$(ol_bin)" ]; }
+ol_code() { curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$OL_PORT/" 2>/dev/null; }
+ol_ready(){ local c; c="$(ol_code)"; [ "$c" = "200" ] || [ "$c" = "401" ]; }
+ol_run()  { sv status "$OL_SVDIR" 2>/dev/null | grep -q '^run:'; }
+ol_pid()  {
+  local x p d; x="$(ol_bin)"; [ -n "$x" ] || return 0
+  if command -v pidof >/dev/null 2>&1; then
+    p="$(pidof "$x" 2>/dev/null | tr ' ' '\n' | head -1)"
+    [ -n "$p" ] && { printf '%s' "$p"; return 0; }
+  fi
+  for d in /proc/[0-9]*; do
+    [ -r "$d/comm" ] || continue
+    [ "$(cat "$d/comm" 2>/dev/null)" = "$x" ] && { printf '%s' "${d#/proc/}"; return 0; }
+  done
+  return 0
+}
+ol_boot() { [ -f "$OL_BOOTF" ] && printf 'ON' || printf 'OFF'; }
+ol_ver()  {
+  if [ -s "$OL_VERF" ]; then cat "$OL_VERF"; return; fi
+  local v; v="$(dpkg-query -W -f='${Version}' openlist 2>/dev/null)"
+  [ -n "$v" ] && [ "$v" != "(none)" ] && printf '%s' "$v" > "$OL_VERF"
+  printf '%s' "$v"
+}
+ol_rt()   {
+  local p es h m s; p="$(ol_pid)"; [ -n "$p" ] || return 0
+  es="$(ps -o etimes= -p "$p" 2>/dev/null | tr -d ' ')"
+  case "$es" in ''|*[!0-9]*) return 0;; esac
+  h=$((es / 3600)); m=$((es % 3600 / 60)); s=$((es % 60))
+  printf '%02d:%02d:%02d' "$h" "$m" "$s"
+}
+ensure_sv() {
+  local pf="$PREFIX/var/run/service-daemon.pid"
+  if [ -f "$pf" ] && kill -0 "$(cat "$pf" 2>/dev/null)" 2>/dev/null; then return 0; fi
+  rm -f "$pf"
+  command -v service-daemon >/dev/null 2>&1 || return 1
+  service-daemon start >/dev/null 2>&1
+  local i; for i in $(seq 1 15); do [ -d "$OL_SVDIR/supervise" ] && return 0; sleep 1; done
+  return 1
+}
+ol_wait() { local i; for i in $(seq 1 30); do ol_ready && return 0; sleep 1; done; return 1; }
+ol_write_run() {
+  mkdir -p "$OL_SVDIR"
+  cat > "$OL_SVDIR/run" <<'OLRUN'
+#!/data/data/com.termux/files/usr/bin/sh
+cd /data/data/com.termux/files/home/.local/share/openlist || exit 1
+exec openlist server --data /data/data/com.termux/files/home/.local/share/openlist 2>&1
+OLRUN
+  chmod +x "$OL_SVDIR/run"
+}
+ol_fix_conf() {
+  mkdir -p "$OL_DATA/temp" "$OL_DATA/log"
+  [ -f "$OL_DATA/config.json" ] || return 0
+  python3 - "$OL_DATA" <<'OLPY'
+import json, os, sys
+d = sys.argv[1]
+f = os.path.join(d, "config.json")
+c = json.load(open(f))
+c.setdefault("database", {})["db_file"] = os.path.join(d, "data.db")
+c["temp_dir"]  = os.path.join(d, "temp")
+c["bleve_dir"] = os.path.join(d, "bleve")
+c.setdefault("log", {})["name"] = os.path.join(d, "log", "log.log")
+json.dump(c, open(f, "w"), indent=2)
+OLPY
+}
+ol_write_boot() {
+  mkdir -p "$HOME/.termux/boot"
+  cat > "$OL_BOOTF" <<'OLBOOT'
+#!/data/data/com.termux/files/usr/bin/sh
+# OpenList（原 AList）开机自启 — 由 Termux:Boot 触发
+PREFIX=/data/data/com.termux/files/usr
+export SVDIR=$PREFIX/var/service
+export PATH=$PREFIX/bin:$PATH
+termux-wake-lock 2>/dev/null
+PIDFILE=$PREFIX/var/run/service-daemon.pid
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then :; else
+  rm -f "$PIDFILE"; service-daemon start
+fi
+sleep 3
+sv up openlist 2>/dev/null
+exit 0
+OLBOOT
+  chmod +x "$OL_BOOTF"
+}
+# =============== OpenList 辅助结束 ===============
 
 case "${1:-status}" in
 
@@ -48,8 +143,15 @@ status)
   MN="$(grep -A4 '^agent-default-model:' "$HOME/.dsh/settings.yaml" 2>/dev/null | grep -m1 -E '^[[:space:]]+model:' | sed 's/.*model:[[:space:]]*//')"
   MD=MISSING
   if [ -s "$HOME/.dsh/.credentials.yaml" ] && grep -q "DEEPSEEK_API_KEY" "$HOME/.dsh/.credentials.yaml" 2>/dev/null; then MD=OK; fi
-  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s","modelName":"%s"}\n' \
-    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(ensure_url)")" "$PID" "$NP" "$RT" "$MD" "$(jesc "$MN")"
+  OLST=DOWN; ol_run && OLST=UP
+  OLCODE="$(ol_code)"
+  OLPID="$(ol_pid)"
+  OLRT="$(ol_rt)"
+  OLV="$(ol_ver)"
+  OLBOOT="$(ol_boot)"
+  OLINST=0; ol_inst && OLINST=1
+  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s","modelName":"%s","olState":"%s","olPortCode":"%s","olPort":"%s","olUrl":"%s","olPid":"%s","olRuntime":"%s","olVersion":"%s","olBoot":"%s","olInstalled":"%s"}\n' \
+    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(ensure_url)")" "$PID" "$NP" "$RT" "$MD" "$(jesc "$MN")" "$OLST" "$OLCODE" "$OL_PORT" "$(jesc "http://127.0.0.1:$OL_PORT")" "$OLPID" "$OLRT" "$(jesc "$OLV")" "$OLBOOT" "$OLINST"
   ;;
 
 start)
@@ -304,11 +406,140 @@ preflight)
   command -v termux-battery-status >/dev/null && echo "termux-api 脚本: OK" || echo "termux-api 脚本: 缺失"
   [ -f "$BASE/dsh-watchdog.sh" ] && echo "看门狗脚本: OK" || echo "看门狗脚本: 缺失"
   [ -f "$HOME/.termux/boot/start-dsh.sh" ] && echo "开机自启: OK" || echo "开机自启: 缺失"
+  if ol_inst; then echo "OpenList: 已装 ($(ol_ver)) 自启 $(ol_boot)"; else echo "OpenList: 未安装"; fi
+  if ol_run; then echo "OpenList 服务: 运行中"; else echo "OpenList 服务: 已停止"; fi
   echo "ctl 版本: $CTL_VER"
   ;;
 
+
+openlist-status)
+  if ! ol_inst; then echo "✗ OpenList 未安装（可点「安装 OpenList」）"; exit 0; fi
+  echo "服务: $(ol_run && echo UP || echo DOWN)    HTTP: $(ol_code)"
+  echo "地址: http://127.0.0.1:$OL_PORT"
+  echo "PID: $(ol_pid)    运行时长: $(ol_rt)"
+  echo "版本: $(ol_ver)    开机自启: $(ol_boot)"
+  echo "数据目录: $OL_DATA"
+  ;;
+
+openlist-install)
+  if ! ol_inst; then
+    echo "==> 安装 openlist + termux-services"
+    pkg install -y openlist termux-services 2>&1 | tail -10
+  else
+    echo "==> openlist 已安装（$(ol_ver)），跳过 pkg install"
+  fi
+  ol_inst || { echo "✗ 安装失败，请检查网络/镜像源"; exit 1; }
+  rm -f "$OL_VERF"
+  mkdir -p "$OL_DATA"
+  ol_fix_conf
+  ol_write_run
+  if [ ! -s "$OL_DATA/data.db" ]; then
+    echo "==> 初始化数据库"
+    OLNEW="$(openlist admin random --data "$OL_DATA" 2>/dev/null | sed -n 's/^password: *//p' | tail -1)"
+    [ -n "$OLNEW" ] || OLNEW="$(openlist admin --data "$OL_DATA" 2>/dev/null | sed -n 's/.*initial password is: *//p' | tail -1)"
+    if [ -n "$OLNEW" ]; then
+      echo "──────── 请立刻保存 ────────"
+      echo "  用户名: admin"
+      echo "  密  码: $OLNEW"
+      echo "───────────────────────────"
+    else
+      echo "⚠ 未取得初始密码，可用「更多 → 重置管理员密码」重新生成"
+    fi
+  else
+    echo "==> 已有数据库，保留现有账号密码"
+  fi
+  ensure_sv || echo "⚠ 服务监管（runsvdir）未启动"
+  sv up "$OL_SVDIR" 2>/dev/null
+  if ol_wait; then
+    echo "✅ OpenList 已就绪 (HTTP $(ol_code))"
+    echo "   地址: http://127.0.0.1:$OL_PORT"
+  else
+    echo "⚠ 启动超时，请查看日志"
+  fi
+  ;;
+
+openlist-start)
+  ol_inst || { echo "✗ 未安装 OpenList，请先点「安装 OpenList」"; exit 1; }
+  ensure_sv || { echo "✗ 服务监管进程启动失败"; exit 1; }
+  ol_write_run
+  sv up "$OL_SVDIR" 2>/dev/null
+  if ol_wait; then
+    echo "✅ OpenList 已启动 (HTTP $(ol_code))"
+    echo "   地址: http://127.0.0.1:$OL_PORT"
+  else
+    echo "⚠ 等待超时，请查看日志"
+  fi
+  ;;
+
+openlist-stop)
+  if sv down "$OL_SVDIR" 2>/dev/null; then echo "✅ OpenList 已停止"; else echo "OpenList 未在运行"; fi
+  ;;
+
+openlist-restart)
+  ol_inst || { echo "✗ 未安装 OpenList"; exit 1; }
+  ensure_sv >/dev/null 2>&1
+  sv down "$OL_SVDIR" 2>/dev/null
+  sleep 2
+  ol_write_run
+  sv up "$OL_SVDIR" 2>/dev/null
+  if ol_wait; then echo "✅ OpenList 已重启 (HTTP $(ol_code))"; else echo "⚠ 重启超时"; fi
+  ;;
+
+openlist-passwd)
+  ol_inst || { echo "✗ 未安装 OpenList"; exit 1; }
+  OLPW="$(cat | tr -d '\r\n')"
+  [ -n "$OLPW" ] || { echo "✗ 未收到新密码"; exit 1; }
+  OLOUT="$(openlist admin set "$OLPW" --data "$OL_DATA" 2>&1)"
+  if printf '%s' "$OLOUT" | grep -qi 'updated'; then
+    echo "✅ 管理员密码已更新（用户名 admin）"
+  else
+    echo "✗ 修改失败：$(printf '%s' "$OLOUT" | tail -2)"
+    exit 1
+  fi
+  ;;
+
+openlist-passwd-random)
+  ol_inst || { echo "✗ 未安装 OpenList"; exit 1; }
+  OLOUT="$(openlist admin random --data "$OL_DATA" 2>&1)"
+  OLPW="$(printf '%s' "$OLOUT" | sed -n 's/^password: *//p' | tail -1)"
+  if [ -n "$OLPW" ]; then
+    echo "✅ 已重置为随机密码"
+    echo "──────── 请立刻保存 ────────"
+    echo "  用户名: admin"
+    echo "  密  码: $OLPW"
+    echo "───────────────────────────"
+  else
+    echo "✗ 重置失败：$(printf '%s' "$OLOUT" | tail -2)"; exit 1
+  fi
+  ;;
+
+openlist-boot)
+  case "${2:-}" in
+    on)
+      ol_write_boot
+      echo "✅ OpenList 开机自启已开启"
+      echo "   ⚠ 需已安装 Termux:Boot 且手动打开过它一次"
+      ;;
+    off)
+      rm -f "$OL_BOOTF"
+      echo "✅ OpenList 开机自启已关闭"
+      ;;
+    *) echo "用法: openlist-boot {on|off}"; exit 1;;
+  esac
+  ;;
+
+openlist-log)
+  OLN="${2:-3000}"
+  OLF="$OL_DATA/log/log.log"
+  if [ -f "$OLF" ]; then
+    tail -c "$OLN" "$OLF" | sed 's/\x1b\[[0-9;]*m//g'
+  else
+    echo "（暂无日志：$OLF）"
+  fi
+  ;;
+
 *)
-  echo "用法: dsh-ctl.sh {status|start|stop|open|install|log|preflight}"
+  echo "用法: dsh-ctl.sh {status|start|stop|open|install|log|preflight|openlist-*}"
   exit 1
   ;;
 esac

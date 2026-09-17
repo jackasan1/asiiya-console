@@ -123,4 +123,36 @@
     <string name="grp_maint">Maintenance</string>
     <string name="grp_info">Info</string>
     <string name="menu_buildtime">Build usage</string>
+
+    <!-- ===== OpenList ===== -->
+    <string name="ol_title">OpenList Storage</string>
+    <string name="ol_dash">—</string>
+    <string name="ol_sub_init">Loading…</string>
+    <string name="ol_sub_fmt">v%1$s · formerly AList</string>
+    <string name="ol_sub_not_installed">Not installed</string>
+    <string name="ol_not_installed">Not installed</string>
+    <string name="ol_install">Install OpenList</string>
+    <string name="ol_install_confirm">Install the openlist package (~33MB) and set up boot autostart. Continue?</string>
+    <string name="ol_more">More</string>
+    <string name="act_ol_open">Open</string>
+    <string name="ol_restart">Restart storage</string>
+    <string name="ol_open_browser">Open in system browser</string>
+    <string name="ol_set_passwd">Change admin password</string>
+    <string name="ol_set_passwd_msg">You will need the new password to sign in (username: admin).</string>
+    <string name="ol_reset_passwd">Reset to random password</string>
+    <string name="ol_reset_confirm">Reset the admin password to a random string? The new password appears in the log.</string>
+    <string name="ol_passwd_hint">New password (min 6 chars)</string>
+    <string name="ol_passwd_short">Password too short (min 6)</string>
+    <string name="ol_boot_on">Enable boot autostart</string>
+    <string name="ol_boot_off">Disable boot autostart</string>
+    <string name="ol_boot_setting">Boot autostart</string>
+    <string name="ol_view_log">View storage log</string>
+    <string name="ol_copy_url">Copy storage address</string>
+    <string name="ol_card_port">Port</string>
+    <string name="ol_card_uptime">Uptime</string>
+    <string name="ol_card_boot">Boot</string>
+    <string name="ol_flag_on">ON</string>
+    <string name="ol_flag_off">OFF</string>
+    <string name="ol_starting">Storage is not running, starting…</string>
+    <string name="ol_wait_status">Reading status, please wait</string>
 </resources>

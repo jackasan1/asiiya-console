@@ -123,4 +123,36 @@
     <string name="grp_maint">维护</string>
     <string name="grp_info">信息</string>
     <string name="menu_buildtime">构建用量</string>
+
+    <!-- ===== OpenList 网盘 ===== -->
+    <string name="ol_title">OpenList 网盘</string>
+    <string name="ol_dash">—</string>
+    <string name="ol_sub_init">读取中…</string>
+    <string name="ol_sub_fmt">v%1$s · 原 AList</string>
+    <string name="ol_sub_not_installed">尚未安装</string>
+    <string name="ol_not_installed">未安装</string>
+    <string name="ol_install">安装 OpenList</string>
+    <string name="ol_install_confirm">将安装 openlist 包（约 33MB）并配置开机自启。继续？</string>
+    <string name="ol_more">更多</string>
+    <string name="act_ol_open">打开</string>
+    <string name="ol_restart">重启网盘</string>
+    <string name="ol_open_browser">用系统浏览器打开</string>
+    <string name="ol_set_passwd">修改管理员密码</string>
+    <string name="ol_set_passwd_msg">修改后需用新密码重新登录（用户名 admin）。</string>
+    <string name="ol_reset_passwd">重置为随机密码</string>
+    <string name="ol_reset_confirm">将把 admin 密码重置为随机字符串，新密码会显示在日志区。继续？</string>
+    <string name="ol_passwd_hint">新密码（至少 6 位）</string>
+    <string name="ol_passwd_short">密码太短（至少 6 位）</string>
+    <string name="ol_boot_on">开启开机自启</string>
+    <string name="ol_boot_off">关闭开机自启</string>
+    <string name="ol_boot_setting">开机自启</string>
+    <string name="ol_view_log">查看网盘日志</string>
+    <string name="ol_copy_url">复制网盘地址</string>
+    <string name="ol_card_port">端口</string>
+    <string name="ol_card_uptime">运行时长</string>
+    <string name="ol_card_boot">自启</string>
+    <string name="ol_flag_on">已开</string>
+    <string name="ol_flag_off">已关</string>
+    <string name="ol_starting">网盘未运行，正在启动…</string>
+    <string name="ol_wait_status">状态读取中，请稍候</string>
 </resources>

@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.net.Uri
 import android.graphics.Rect
 import android.view.ViewAnimationUtils
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -67,6 +68,8 @@ class MainActivity : AppCompatActivity() {
     private var skeleton = true
     private var skeletonAnim: ObjectAnimator? = null
     private var logEmpty = true
+    /** 网盘未运行时点了「打开」→ 启动就绪后自动打开 */
+    private var pendingOpenOl = false
 
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
@@ -170,6 +173,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.btnConsole.setOnClickListener { openConsole() }
+
+        // ---- OpenList 网盘卡 ----
+        b.btnOlStart.setOnClickListener { olPrimary() }
+        b.btnOlStop.setOnClickListener { action(getString(R.string.act_stop), "openlist-stop") }
+        b.btnOlOpen.setOnClickListener { openOpenList() }
+        b.btnOlMore.setOnClickListener { olMoreDialog() }
         b.swipeMain.setColorSchemeColors(
             ContextCompat.getColor(this, R.color.accent),
             ContextCompat.getColor(this, R.color.accent2)
@@ -344,6 +353,8 @@ class MainActivity : AppCompatActivity() {
             b.installCard.visibility = if (s.installing) View.VISIBLE else View.GONE
             if (!s.installing) b.tvInstall.text = ""
         }
+
+        applyOpenList(s)
     }
 
     // ---------------- 交互 ----------------
@@ -747,6 +758,174 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    // ---------------- OpenList 网盘 ----------------
+
+    private fun olUrl(s: Status): String =
+        s.olUrl.ifEmpty { "http://127.0.0.1:" + s.olPort.ifEmpty { "5244" } }
+
+    /** 主按钮：未安装则引导安装，已安装则启动 */
+    private fun olPrimary() {
+        val s = lastStatus
+        if (s != null && !s.olInstalled) {
+            confirm(getString(R.string.ol_install_confirm)) {
+                action(getString(R.string.ol_install), "openlist-install")
+            }
+        } else {
+            action(getString(R.string.act_start), "openlist-start")
+        }
+    }
+
+    /** 打开网盘：未运行先启动，就绪后自动拉起内嵌界面 */
+    private fun openOpenList() {
+        val s = lastStatus ?: run { toast(getString(R.string.ol_wait_status)); return }
+        if (!s.olInstalled) { olPrimary(); return }
+        if (!s.olService) {
+            pendingOpenOl = true
+            toast(getString(R.string.ol_starting))
+            action(getString(R.string.act_start), "openlist-start")
+            return
+        }
+        launchConsole(olUrl(s))
+    }
+
+    private fun openOpenListExternal() {
+        val s = lastStatus ?: return
+        if (!s.olService) { openOpenList(); return }
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(olUrl(s))))
+    }
+
+    private fun copyOlUrl() {
+        val s = lastStatus ?: return
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
+            .setPrimaryClip(ClipData.newPlainText("openlist", olUrl(s)))
+        toast(getString(R.string.copied))
+    }
+
+    private fun olMoreDialog() {
+        val s = lastStatus
+        val installed = s?.olInstalled == true
+        val running = s?.olService == true
+        val boot = s?.olBoot == true
+        val labels = ArrayList<String>()
+        val acts = ArrayList<() -> Unit>()
+
+        if (!installed) {
+            labels.add(getString(R.string.ol_install))
+            acts.add { olPrimary() }
+        } else {
+            labels.add(getString(R.string.ol_restart))
+            acts.add { action(getString(R.string.ol_restart), "openlist-restart") }
+
+            labels.add(getString(if (running) R.string.act_stop else R.string.act_start))
+            acts.add {
+                val lbl = getString(if (running) R.string.act_stop else R.string.act_start)
+                action(lbl, if (running) "openlist-stop" else "openlist-start")
+            }
+
+            labels.add(getString(R.string.ol_open_browser))
+            acts.add { openOpenListExternal() }
+
+            labels.add(getString(R.string.ol_set_passwd))
+            acts.add { olPasswdDialog(false) }
+
+            labels.add(getString(R.string.ol_reset_passwd))
+            acts.add { olPasswdDialog(true) }
+
+            labels.add(getString(if (boot) R.string.ol_boot_off else R.string.ol_boot_on))
+            acts.add {
+                action(
+                    getString(R.string.ol_boot_setting),
+                    "openlist-boot",
+                    if (boot) "off" else "on"
+                )
+            }
+
+            labels.add(getString(R.string.ol_copy_url))
+            acts.add { copyOlUrl() }
+        }
+        labels.add(getString(R.string.ol_view_log))
+        acts.add { action(getString(R.string.ol_view_log), "openlist-log") }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.ol_title)
+            .setItems(labels.toTypedArray()) { _, w -> acts[w]() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /** random=true 走随机重置，否则弹出输入框改密码 */
+    private fun olPasswdDialog(random: Boolean) {
+        if (random) {
+            confirm(getString(R.string.ol_reset_confirm)) {
+                action(getString(R.string.ol_reset_passwd), "openlist-passwd-random")
+            }
+            return
+        }
+        val pad = (resources.displayMetrics.density * 20).toInt()
+        val et = EditText(this).apply {
+            hint = getString(R.string.ol_passwd_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.fg))
+            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.dim))
+        }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad / 2, pad, 0)
+            addView(et)
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.ol_set_passwd)
+            .setMessage(R.string.ol_set_passwd_msg)
+            .setView(box)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val p = et.text.toString().trim()
+                if (p.length < 6) {
+                    toast(getString(R.string.ol_passwd_short))
+                    return@setPositiveButton
+                }
+                action(getString(R.string.ol_set_passwd), "openlist-passwd", stdin = p + "\n")
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun applyOpenList(s: Status) {
+        if (!s.olInstalled) {
+            b.btnOlStart.text = getString(R.string.ol_install)
+            b.tvOlState.text = getString(R.string.ol_not_installed)
+            b.tvOlState.setTextColor(ContextCompat.getColor(this, R.color.dim))
+            b.tvOlSub.text = getString(R.string.ol_sub_not_installed)
+            b.tvOlPortValue.text = getString(R.string.ol_dash)
+            b.tvOlUptimeValue.text = getString(R.string.ol_dash)
+            b.tvOlBootValue.text =
+                getString(if (s.olBoot) R.string.ol_flag_on else R.string.ol_flag_off)
+            return
+        }
+        b.btnOlStart.text = getString(R.string.act_start)
+
+        val up = s.olService
+        b.tvOlState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
+        b.tvOlState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+        b.tvOlSub.text = getString(R.string.ol_sub_fmt, s.olVersion.ifEmpty { "?" })
+
+        b.tvOlPortValue.text = s.olPort.ifEmpty { "5244" }
+        val httpOk = s.olPortCode == "200" || s.olPortCode == "401"
+        b.tvOlPortValue.setTextColor(
+            ContextCompat.getColor(this, if (httpOk) R.color.fg else R.color.bad)
+        )
+
+        b.tvOlUptimeValue.text = s.olRuntime.ifEmpty { getString(R.string.ol_dash) }
+        b.tvOlBootValue.text = getString(if (s.olBoot) R.string.ol_flag_on else R.string.ol_flag_off)
+        b.tvOlBootValue.setTextColor(
+            ContextCompat.getColor(this, if (s.olBoot) R.color.fg else R.color.dim)
+        )
+
+        if (pendingOpenOl && up) {
+            pendingOpenOl = false
+            launchConsole(olUrl(s))
+        }
     }
 
     /** 选择要查看的 Termux 侧日志文件 */

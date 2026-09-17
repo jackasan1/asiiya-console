@@ -17,13 +17,23 @@ data class Status(
     val procs: String,
     val runtime: String,
     val model: String,
-    val modelName: String
+    val modelName: String,
+    // ---- OpenList（原 AList）----
+    val olService: Boolean,
+    val olPortCode: String,
+    val olPort: String,
+    val olUrl: String,
+    val olPid: String,
+    val olRuntime: String,
+    val olVersion: String,
+    val olBoot: Boolean,
+    val olInstalled: Boolean
 )
 
 object DshApi {
 
     /** 与 assets/dsh-ctl.sh 里的 CTL_VER 保持一致 */
-    const val CTL_VERSION = "5"
+    const val CTL_VERSION = "6"
 
     /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 4KB） */
     private fun bootstrap(ctx: Context): String {
@@ -73,7 +83,16 @@ object DshApi {
                 procs = o.optString("procs", "0"),
                 runtime = o.optString("runtime", ""),
                 model = o.optString("model", "MISSING"),
-                modelName = o.optString("modelName", "")
+                modelName = o.optString("modelName", ""),
+                olService = o.optString("olState") == "UP",
+                olPortCode = o.optString("olPortCode", "000"),
+                olPort = o.optString("olPort", "5244"),
+                olUrl = o.optString("olUrl", ""),
+                olPid = o.optString("olPid", ""),
+                olRuntime = o.optString("olRuntime", ""),
+                olVersion = o.optString("olVersion", ""),
+                olBoot = o.optString("olBoot") == "ON",
+                olInstalled = o.optString("olInstalled") == "1"
             )
         } catch (e: Exception) {
             null
