@@ -56,6 +56,8 @@ object DshApi {
     fun parseStatus(raw: String): Status? {
         val i = raw.indexOf('{')
         if (i < 0) return null
+        // 必须真的是状态 JSON：没有 service 字段就不是（避免 getconf 等被误判）
+        if (!raw.contains("\"service\"")) return null
         return try {
             val o = org.json.JSONObject(raw.substring(i, raw.lastIndexOf('}') + 1))
             Status(

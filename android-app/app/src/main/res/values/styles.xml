@@ -1,18 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Row">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginTop">6dp</item>
-        <item name="android:orientation">horizontal</item>
+    <!-- 所有弹窗统一走这套：圆角卡片 + 主题配色 -->
+    <style name="ThemeOverlay.DshConsole.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/fg</item>
+        <item name="colorOnSurfaceVariant">@color/dim</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorError">@color/bad</item>
+        <item name="android:textColorPrimary">@color/fg</item>
+        <item name="android:textColorSecondary">@color/dim</item>
+        <item name="android:textColorHint">@color/dim</item>
+        <item name="textColorAlertDialogListItem">@color/fg</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/DshDialogTitle</item>
     </style>
-    <style name="Btn">
-        <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_weight">1</item>
-        <item name="android:layout_marginStart">4dp</item>
-        <item name="android:layout_marginEnd">4dp</item>
-        <item name="android:insetTop">0dp</item>
-        <item name="android:insetBottom">0dp</item>
-        <item name="android:textSize">13sp</item>
+
+    <style name="DshDialogTitle" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/fg</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
     </style>
 </resources>

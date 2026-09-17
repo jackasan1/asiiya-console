@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.Rect
 import android.view.ViewAnimationUtils
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
@@ -35,7 +36,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
@@ -97,6 +98,28 @@ class MainActivity : AppCompatActivity() {
             confirm(getString(R.string.act_restart) + "？") { ringBusy(); action(getString(R.string.act_restart), "restart") }
         }
         b.drawerPatch.setOnClickListener { closeDrawer(); action(getString(R.string.menu_checkpatch), "checkpatch") }
+
+        // 手风琴分组（默认展开第一组）
+        setupGroup(b.grpService, b.grpServiceItems, b.grpServiceArrow, true)
+        setupGroup(b.grpMaint, b.grpMaintItems, b.grpMaintArrow, false)
+        setupGroup(b.grpInfo, b.grpInfoItems, b.grpInfoArrow, false)
+
+        // 分组里的快捷项
+        b.drawerStart.setOnClickListener { closeDrawer(); userStopped = false; ringBusy(); action(getString(R.string.act_start), "start") }
+        b.drawerStop.setOnClickListener { closeDrawer(); userStopped = true; ringBusy(); action(getString(R.string.act_stop), "stop") }
+        b.drawerRestart.setOnClickListener {
+            closeDrawer()
+            confirm(getString(R.string.act_restart) + "？") { ringBusy(); action(getString(R.string.act_restart), "restart") }
+        }
+
+        // 全面屏手势：把左侧边缘排除出系统返回手势，让抽屉侧滑可用
+        if (Build.VERSION.SDK_INT >= 29) {
+            b.drawer.post {
+                val w = (30 * resources.displayMetrics.density).toInt()
+                b.drawer.systemGestureExclusionRects =
+                    listOf(Rect(0, 0, w, b.drawer.height))
+            }
+        }
         b.drawerUpdate.setOnClickListener { closeDrawer(); checkUpdate(false) }
         listOf(b.circleStart, b.circleStop, b.circleRestart, b.circleLog, b.circleSettings,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
@@ -127,6 +150,14 @@ class MainActivity : AppCompatActivity() {
         b.tvCfgWd.setOnClickListener { numConfDialog("wdInterval", getString(R.string.cfg_wd), 15, 3600) }
         b.tvCfgBoot.setOnClickListener { bootConfDialog() }
         b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
+        b.btnLogCopy.setOnClickListener {
+            val t = b.tvLog.text?.toString().orEmpty()
+            if (t.isNotEmpty()) {
+                (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
+                    .setPrimaryClip(ClipData.newPlainText("dsh-log", t))
+                toast(getString(R.string.log_copied))
+            }
+        }
         b.btnConsole.setOnClickListener { openConsole() }
         b.swipeMain.setColorSchemeColors(
             ContextCompat.getColor(this, R.color.accent),
@@ -310,7 +341,7 @@ class MainActivity : AppCompatActivity() {
     private fun maybeFirstRun() {
         if (prefs.getBoolean("seen", false)) return
         prefs.edit().putBoolean("seen", true).apply()
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.firstrun_title)
             .setMessage(R.string.firstrun_body)
             .setPositiveButton(R.string.firstrun_go) { _, _ ->
@@ -343,13 +374,15 @@ class MainActivity : AppCompatActivity() {
         val et = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
             hint = "$min ~ $max"
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.fg))
+            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.dim))
         }
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad / 2, pad, 0)
             addView(et)
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(title)
             .setView(box)
             .setPositiveButton(R.string.ok) { _, _ ->
@@ -364,7 +397,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bootConfDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.cfg_boot)
             .setItems(arrayOf(getString(R.string.model_ok), getString(R.string.model_missing))) { _, which ->
                 action(getString(R.string.cfg_boot), "setconf", "boot", if (which == 0) "on" else "off")
@@ -393,7 +426,7 @@ class MainActivity : AppCompatActivity() {
                 c.setRequestProperty("Accept", "application/vnd.github+json")
                 val body = c.inputStream.bufferedReader().readText()
                 c.disconnect()
-                Regex("\"sha\\s*\\*:\\s*\"([0-9a-f]{40})\"").find(body)?.groupValues?.get(1)?.take(7)
+                Regex("\"sha\"\\s*:\\s*\"([0-9a-f]{40})\"").find(body)?.groupValues?.get(1)?.take(7)
             } catch (e: Exception) { null }
 
             runOnUiThread {
@@ -534,6 +567,26 @@ class MainActivity : AppCompatActivity() {
         ctl(label, *args, stdin = stdin)
     }
 
+    /** 手风琴分组：点击标题展开/收起，箭头旋转 */
+    private fun setupGroup(header: View, items: View, arrow: TextView, expanded: Boolean) {
+        items.visibility = if (expanded) View.VISIBLE else View.GONE
+        arrow.rotation = if (expanded) 0f else -90f
+        header.setOnClickListener {
+            val show = items.visibility != View.VISIBLE
+            items.visibility = if (show) View.VISIBLE else View.GONE
+            arrow.animate().rotation(if (show) 0f else -90f).setDuration(180).start()
+        }
+    }
+
+    /** 只有当前已在底部时才自动跟随；用户上滑查看历史时不打断 */
+    private fun autoScrollIfAtBottom() {
+        val sv = b.svLog
+        val child = sv.getChildAt(0) ?: return
+        val threshold = (resources.displayMetrics.density * 32).toInt()
+        val atBottom = sv.scrollY + sv.height >= child.height - threshold
+        if (atBottom) sv.post { sv.fullScroll(View.FOCUS_DOWN) }
+    }
+
     /** 首次状态到达前的骨架态：占位 + 呼吸闪烁 */
     private fun startSkeleton() {
         b.tvPortValue.text = "—"
@@ -581,7 +634,7 @@ class MainActivity : AppCompatActivity() {
     /** 选择默认模型 */
     private fun modelDialog() {
         val models = arrayOf("deepseek-flash", "deepseek-v4-pro")
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.model_pick)
             .setItems(models) { _, which ->
                 action(getString(R.string.settings_model), "setmodel", models[which])
@@ -594,7 +647,7 @@ class MainActivity : AppCompatActivity() {
     // ---------------- API Key 管理 ----------------
 
     private fun keyDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.key_title)
             .setPositiveButton(R.string.key_change) { _, _ -> keyInputDialog() }
             .setNeutralButton(R.string.key_clear) { _, _ ->
@@ -611,13 +664,15 @@ class MainActivity : AppCompatActivity() {
         val et = EditText(this).apply {
             hint = getString(R.string.key_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.fg))
+            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.dim))
         }
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad / 2, pad, 0)
             addView(et)
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.key_set)
             .setView(box)
             .setPositiveButton(R.string.ok) { _, _ ->
@@ -631,7 +686,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun uninstallDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.uninstall_title)
             .setMessage(R.string.uninstall_msg)
             .setPositiveButton(R.string.uninstall_all) { _, _ ->
@@ -647,7 +702,7 @@ class MainActivity : AppCompatActivity() {
     /** 选择要查看的 Termux 侧日志文件 */
     private fun logFileDialog() {
         val files = arrayOf("dsh-web.log", "dsh-watchdog.log", "install.log", "dsh-boot.log")
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.logfiles_title)
             .setItems(files) { _, which ->
                 action(files[which], "tail", files[which], "4000")
@@ -657,7 +712,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun about() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.about_title)
             .setMessage(R.string.about_body)
             .setPositiveButton(R.string.ok, null)
@@ -674,10 +729,12 @@ class MainActivity : AppCompatActivity() {
             hint = getString(R.string.install_key_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             gravity = Gravity.START
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.fg))
+            setHintTextColor(ContextCompat.getColor(this@MainActivity, R.color.dim))
         }
         box.addView(et)
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.install_title)
             .setView(box)
             .setPositiveButton(R.string.ok) { _, _ ->
@@ -699,7 +756,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirm(msg: String, action: () -> Unit) {
-        AlertDialog.Builder(this).setMessage(msg)
+        MaterialAlertDialogBuilder(this).setMessage(msg)
             .setPositiveButton(R.string.ok) { _, _ -> action() }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -802,7 +859,7 @@ class MainActivity : AppCompatActivity() {
                 if (cut > 0) logBuf.delete(0, cut + 1)
             }
             b.tvLog.text = logBuf
-            b.svLog.post { b.svLog.fullScroll(View.FOCUS_DOWN) }
+            autoScrollIfAtBottom()
             ui.postDelayed(this, if (q.size > 20) 6L else 40L)
         }
     }

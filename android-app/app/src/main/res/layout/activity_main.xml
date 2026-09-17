@@ -508,6 +508,16 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/btnLogCopy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="6dp"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/log_copy"
+                    android:textColor="@color/accent"
+                    android:textSize="12sp" />
+
+                <TextView
                     android:id="@+id/btnLogClear"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -529,7 +539,6 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
                     android:textColor="@color/dim"
-                    android:textIsSelectable="true"
                     android:textSize="11sp" />
             </ScrollView>
         </LinearLayout>
@@ -564,7 +573,6 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
                     android:textColor="@color/dim"
-                    android:textIsSelectable="true"
                     android:textSize="11sp" />
             </ScrollView>
         </LinearLayout>
@@ -794,7 +802,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/card_model"
+                        android:text="@string/key_title"
                         android:textColor="@color/dim"
                         android:textSize="13sp" />
 
@@ -959,190 +967,182 @@
         android:elevation="12dp"
         android:orientation="vertical">
 
-        <LinearLayout
-            android:id="@+id/drawerRoot"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="18dp"
-            android:paddingTop="22dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="18dp">
-
-            <FrameLayout
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:background="@drawable/bg_circle">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_port"
-                    android:tint="@color/accent" />
-            </FrameLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                <LinearLayout
+                android:id="@+id/drawerRoot"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:orientation="vertical">
 
-                <TextView
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="18dp"
+                android:paddingTop="22dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="16dp">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_circle">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@mipmap/ic_launcher"
+                        android:tint="@color/accent" />
+                </FrameLayout>
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/app_name"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/app_name"
+                        android:textColor="@color/fg"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvDrawerVer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/dim"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/stroke" />
+
+
+
+            <LinearLayout
+                android:id="@+id/grpService"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_home"
+                    android:tint="@color/accent" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/grp_service"
                     android:textColor="@color/fg"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvDrawerVer"
+                    android:id="@+id/grpServiceArrow"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="▾"
                     android:textColor="@color/dim"
-                    android:textSize="11sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
-        </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/stroke" />
             <LinearLayout
-                android:id="@+id/drawerPreflight"
+                android:id="@+id/grpServiceItems"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/drawerStart"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="14dp"
+                android:paddingStart="26dp"
                 android:paddingEnd="14dp">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_process"
-                    android:tint="@color/ok" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/menu_preflight"
-                    android:textColor="@color/fg"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/drawerInstall"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_uptime"
+                    android:src="@drawable/ic_home"
                     android:tint="@color/accent" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="14dp"
-                    android:text="@string/menu_install"
+                    android:text="@string/act_start"
                     android:textColor="@color/fg"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/drawerConsole"
+                android:id="@+id/drawerStop"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="46dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="14dp"
+                android:paddingStart="26dp"
                 android:paddingEnd="14dp">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_log"
-                    android:tint="@color/cyan" />
+                    android:src="@drawable/ic_stop"
+                    android:tint="@color/bad" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="14dp"
-                    android:text="@string/menu_console"
+                    android:text="@string/act_stop"
                     android:textColor="@color/fg"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-                        <LinearLayout
-                android:id="@+id/drawerPatch"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_uptime"
-                    android:tint="@color/ok" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/menu_checkpatch"
-                    android:textColor="@color/fg"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/drawerUpdate"
+                android:id="@+id/drawerRestart"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="46dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="14dp"
+                android:paddingStart="26dp"
                 android:paddingEnd="14dp">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_restart"
                     android:tint="@color/cyan" />
@@ -1151,54 +1151,26 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="14dp"
-                    android:text="@string/menu_update"
+                    android:text="@string/act_restart"
                     android:textColor="@color/fg"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-<LinearLayout
-                android:id="@+id/drawerCopy"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_port"
-                    android:tint="@color/warn" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/menu_copy"
-                    android:textColor="@color/fg"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/drawerLogs"
+                android:id="@+id/drawerConsole"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="46dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="14dp"
+                android:paddingStart="26dp"
                 android:paddingEnd="14dp">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_log"
                     android:tint="@color/violet" />
@@ -1207,15 +1179,176 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="14dp"
-                    android:text="@string/menu_logfiles"
+                    android:text="@string/menu_console"
                     android:textColor="@color/fg"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
+            </LinearLayout>
+
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/drawerAbout"
+                android:id="@+id/grpMaint"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="52dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_uptime"
+                    android:tint="@color/warn" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/grp_maint"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/grpMaintArrow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▾"
+                    android:textColor="@color/dim"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/grpMaintItems"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/drawerInstall"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="26dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_uptime"
+                    android:tint="@color/accent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/act_install_only"
+                    android:textColor="@color/fg"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/drawerPatch"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="26dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_process"
+                    android:tint="@color/ok" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/menu_checkpatch"
+                    android:textColor="@color/fg"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/drawerPreflight"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="26dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_process"
+                    android:tint="@color/cyan" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/menu_preflight"
+                    android:textColor="@color/fg"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/drawerLogs"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="26dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_log"
+                    android:tint="@color/warn" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/menu_logfiles"
+                    android:textColor="@color/fg"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/grpInfo"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
@@ -1232,17 +1365,120 @@
                     android:tint="@color/dim" />
 
                 <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/grp_info"
+                    android:textColor="@color/fg"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/grpInfoArrow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▾"
+                    android:textColor="@color/dim"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/grpInfoItems"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/drawerUpdate"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="26dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_restart"
+                    android:tint="@color/cyan" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/menu_update"
+                    android:textColor="@color/fg"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/drawerCopy"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="26dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_port"
+                    android:tint="@color/warn" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="@string/menu_copy"
+                    android:textColor="@color/fg"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/drawerAbout"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="26dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_settings"
+                    android:tint="@color/dim" />
+
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="14dp"
                     android:text="@string/menu_about"
                     android:textColor="@color/fg"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
-        </LinearLayout>
+            </LinearLayout>
 
-        <LinearLayout
+            </LinearLayout>
+
+<LinearLayout
             android:id="@+id/drawerInstallPage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

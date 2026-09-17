@@ -117,4 +117,9 @@
     <string name="firstrun_title">Getting started</string>
     <string name="firstrun_body">Before first use, check these:\n\n① Termux installed (GitHub / F-Droid)\n② Run once in Termux then restart it:\n    mkdir -p ~/.termux &amp;&amp; echo \'allow-external-apps=true\' &gt;&gt; ~/.termux/termux.properties\n③ Grant this app the RUN_COMMAND permission\n④ Allow notifications\n⑤ Set Termux battery to Unrestricted\n\nTap below to run a preflight check.</string>
     <string name="firstrun_go">Run preflight</string>
+    <string name="log_copy">Copy</string>
+    <string name="log_copied">Logs copied</string>
+    <string name="grp_service">Service</string>
+    <string name="grp_maint">Maintenance</string>
+    <string name="grp_info">Info</string>
 </resources>

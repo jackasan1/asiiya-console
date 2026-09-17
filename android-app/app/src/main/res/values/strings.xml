@@ -117,4 +117,9 @@
     <string name="firstrun_title">首次使用引导</string>
     <string name="firstrun_body">首次使用建议先确认这几项：\n\n① Termux 已安装（GitHub / F-Droid 版）\n② Termux 里执行过一次并重启：\n    mkdir -p ~/.termux &amp;&amp; echo \'allow-external-apps=true\' &gt;&gt; ~/.termux/termux.properties\n③ 授予本 App「运行 Termux 命令」权限\n④ 允许通知（安装进度可见）\n⑤ Termux 电池优化设为「无限制」\n\n点下面的按钮可以直接跑一次体检。</string>
     <string name="firstrun_go">运行环境体检</string>
+    <string name="log_copy">复制</string>
+    <string name="log_copied">日志已复制</string>
+    <string name="grp_service">服务控制</string>
+    <string name="grp_maint">维护</string>
+    <string name="grp_info">信息</string>
 </resources>
