@@ -122,4 +122,5 @@
     <string name="grp_service">Service</string>
     <string name="grp_maint">Maintenance</string>
     <string name="grp_info">Info</string>
+    <string name="menu_buildtime">Build usage</string>
 </resources>

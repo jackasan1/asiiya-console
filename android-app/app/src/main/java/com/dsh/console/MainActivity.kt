@@ -121,6 +121,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.drawerUpdate.setOnClickListener { closeDrawer(); checkUpdate(false) }
+        b.drawerBuild.setOnClickListener { closeDrawer(); action(getString(R.string.menu_buildtime), "buildtime", "6") }
         listOf(b.circleStart, b.circleStop, b.circleRestart, b.circleLog, b.circleSettings,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
@@ -428,25 +429,63 @@ class MainActivity : AppCompatActivity() {
         }
         if (!silent) log(getString(R.string.update_checking))
         Thread {
-            val res = try {
-                val c = java.net.URL("https://api.github.com/repos/jackasan1/deepseek-harness-android/commits/main")
-                    .openConnection() as java.net.HttpURLConnection
-                c.connectTimeout = 10000
-                c.readTimeout = 10000
-                c.setRequestProperty("Accept", "application/vnd.github+json")
-                val body = c.inputStream.bufferedReader().readText()
-                c.disconnect()
-                Regex("\"sha\"\\s*:\\s*\"([0-9a-f]{40})\"").find(body)?.groupValues?.get(1)?.take(7)
-            } catch (e: Exception) { null }
-
+            val (sha, err) = fetchLatestSha()
             runOnUiThread {
                 when {
-                    res == null -> if (!silent) log(getString(R.string.update_failed))
-                    res == mine -> if (!silent) log(getString(R.string.update_uptodate))
-                    else -> log(getString(R.string.update_available) + "  （本机 $mine → 最新 $res）")
+                    sha == null ->
+                        if (!silent) log(getString(R.string.update_failed) + (err?.let { "（$it）" } ?: ""))
+                    sha == mine ->
+                        if (!silent) log(getString(R.string.update_uptodate) + "  ($mine)")
+                    else ->
+                        log(getString(R.string.update_available) + "  （本机 $mine → 最新 $sha）")
                 }
             }
         }.start()
+    }
+
+    /**
+     * 取远端最新 commit 短 sha。
+     * 优先用 commits/main.atom —— 它是普通页面，**不受匿名 API 60次/小时限流**；
+     * 失败再退回 API（会带上具体 HTTP 码便于排查）。
+     */
+    private fun fetchLatestSha(): Pair<String?, String?> {
+        try {
+            val c = java.net.URL("https://github.com/jackasan1/deepseek-harness-android/commits/main.atom")
+                .openConnection() as java.net.HttpURLConnection
+            c.connectTimeout = 12000
+            c.readTimeout = 12000
+            c.setRequestProperty("User-Agent", "DSHConsole")
+            val code = c.responseCode
+            if (code == 200) {
+                val body = c.inputStream.bufferedReader().readText()
+                c.disconnect()
+                Regex("Grit::Commit/([0-9a-f]{40})")
+                    .find(body)?.groupValues?.get(1)?.take(7)?.let { return it to null }
+                return null to "feed 解析失败"
+            }
+            c.disconnect()
+        } catch (e: Exception) { /* 落到 API 重试 */ }
+
+        try {
+            val c = java.net.URL("https://api.github.com/repos/jackasan1/deepseek-harness-android/commits/main")
+                .openConnection() as java.net.HttpURLConnection
+            c.connectTimeout = 12000
+            c.readTimeout = 12000
+            c.setRequestProperty("Accept", "application/vnd.github+json")
+            c.setRequestProperty("User-Agent", "DSHConsole")
+            val code = c.responseCode
+            if (code != 200) {
+                c.disconnect()
+                return null to if (code == 403) "HTTP 403 匿名限流" else "HTTP $code"
+            }
+            val body = c.inputStream.bufferedReader().readText()
+            c.disconnect()
+            Regex("\"sha\"\\s*:\\s*\"([0-9a-f]{40})\"")
+                .find(body)?.groupValues?.get(1)?.take(7)?.let { return it to null }
+            return null to "解析失败"
+        } catch (e: Exception) {
+            return null to (e.message?.take(48) ?: "网络异常")
+        }
     }
 
     // ---------------- 主题 ----------------

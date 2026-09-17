@@ -122,4 +122,5 @@
     <string name="grp_service">服务控制</string>
     <string name="grp_maint">维护</string>
     <string name="grp_info">信息</string>
+    <string name="menu_buildtime">构建用量</string>
 </resources>

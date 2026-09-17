@@ -266,6 +266,17 @@ setconf)
   echo "✅ 已设置 $key = $val"
   ;;
 
+buildtime)
+  N="${2:-6}"
+  if [ -x "$BASE/build-time.sh" ]; then
+    bash "$BASE/build-time.sh" "$N" 2>&1
+  else
+    echo "✗ 未找到 ~/dsh/build-time.sh"
+    echo "  请先运行一次完整安装"
+    exit 1
+  fi
+  ;;
+
 tail)
   F="${2:-dsh-web.log}"; N="${3:-3000}"
   case "$F" in
