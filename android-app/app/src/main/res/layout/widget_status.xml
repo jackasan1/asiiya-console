@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_card"
+    android:background="@drawable/bg_widget"
     android:gravity="center_vertical"
     android:orientation="vertical"
     android:padding="12dp">
@@ -18,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="●"
-            android:textColor="@color/dim"
+            android:textColor="@color/widget_dim"
             android:textSize="16sp" />
 
         <TextView
@@ -28,10 +29,29 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/state_stopped"
-            android:textColor="@color/fg"
+            android:textColor="@color/widget_fg"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/wCost"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_cost_init"
+            android:textColor="@color/widget_warn"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/wSub"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:singleLine="true"
+        android:text="@string/widget_sub_init"
+        android:textColor="@color/widget_dim"
+        android:textSize="10sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -45,6 +65,8 @@
             android:layout_height="38dp"
             android:layout_weight="1"
             android:text="@string/act_start"
+            android:background="@drawable/bg_widget_btn"
+            android:textColor="@color/widget_fg"
             android:textSize="12sp" />
 
         <Button
@@ -54,6 +76,8 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/act_stop"
+            android:background="@drawable/bg_widget_btn"
+            android:textColor="@color/widget_fg"
             android:textSize="12sp" />
 
         <Button
@@ -63,6 +87,8 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:text="@string/menu_console"
+            android:background="@drawable/bg_widget_btn"
+            android:textColor="@color/widget_fg"
             android:textSize="12sp" />
     </LinearLayout>
 </LinearLayout>

@@ -16,6 +16,7 @@ class SparkView @JvmOverloads constructor(
 ) : View(context, attrs, defStyle) {
 
     private var values: FloatArray = FloatArray(0)
+    private var hl: Int = -1
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var accent = 0
     private var normal = 0
@@ -25,8 +26,10 @@ class SparkView @JvmOverloads constructor(
         normal = ContextCompat.getColor(context, R.color.ring_track)
     }
 
-    fun setData(v: FloatArray) {
+    /** highlight < 0 时高亮最后一根（14 天视图 = 今天）；否则高亮指定下标（逐小时视图 = 当前小时） */
+    fun setData(v: FloatArray, highlight: Int = -1) {
         values = v
+        hl = if (highlight in v.indices) highlight else v.size - 1
         invalidate()
     }
 
@@ -45,7 +48,7 @@ class SparkView @JvmOverloads constructor(
             if (bh < 1.5f) bh = 1.5f          // 零值也给个小底座，视觉连续
             val left = i * (bw + gap)
             val top = h - bh
-            paint.color = if (i == n - 1) accent else normal
+            paint.color = if (i == hl) accent else normal
             canvas.drawRoundRect(RectF(left, top, left + bw, h), bw * 0.3f, bw * 0.3f, paint)
         }
     }

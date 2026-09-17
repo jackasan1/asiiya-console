@@ -168,7 +168,7 @@ Works via Termux RUN_COMMAND, no root needed.</string>
     <string name="cost_dash">—</string>
     <string name="cost_state_ok">OK</string>
     <string name="cost_state_err">Error</string>
-    <string name="cost_hint">Actual = balance flow (all clients · 5-min sampling)</string>
+    <string name="cost_hint">Official · loading…</string>
     <string name="cost_hint_fmt">%1$d turns this month · %2$.0f%% cache hit · tap for details</string>
     <string name="cost_loading">Loading cost details…</string>
     <string name="cost_report_title">API cost details</string>
@@ -223,4 +223,39 @@ Works via Termux RUN_COMMAND, no root needed.</string>
     <string name="sec_maint">Maintenance</string>
     <string name="sec_overview">Overview</string>
     <string name="sec_action">Actions</string>
+    <string name="widget_cost_init">Today —</string>
+    <string name="widget_sub_init">Balance — · total —</string>
+    <string name="widget_today_fmt">Today %1$s</string>
+    <string name="widget_sub_fmt">Balance %1$s · total %2$s</string>
+    <string name="menu_pin_widget">Add home-screen widget</string>
+    <string name="pin_widget_unsupported">Launcher doesn\'t support pinning — long-press home → Widgets → Asiiya Workbench</string>
+    <string name="pin_widget_howto">This launcher does not support one-tap pinning.\n\nLong-press the home screen, choose Widgets, then find Asiiya Workbench and drag it out.</string>
+    <string name="pin_widget_go_home">Go to home</string>
+    <string name="pin_widget_log_sent">Pin requested - tap Add in the system prompt</string>
+    <string name="pin_widget_log_unsupported">Launcher cannot pin widgets; showing manual instructions</string>
+    <string name="widget_refreshing">Refreshing status and cost...</string>
+    <string name="cost_spark_14d">Last 14 days - tap for today by hour</string>
+    <string name="cost_spark_today">Today by hour - tap to switch back</string>
+    <string name="cost_hour_peak_fmt">Peak %1$02d:00 %2$s - today total %3$s</string>
+    <string name="cost_hour_none">No hourly data yet today</string>
+    <string name="aria_title">Aria2 Downloads</string>
+    <string name="aria_sub_init">reading...</string>
+    <string name="aria_sub_fmt">%1$s · port %2$s</string>
+    <string name="aria_card_tasks">Active</string>
+    <string name="aria_card_speed">Speed</string>
+    <string name="aria_copy_rpc">Copy RPC</string>
+    <string name="aria_copied">RPC URL and secret copied</string>
+    <string name="aria_copy_failed">Failed to read RPC info</string>
+    <string name="aria_restart">Restart Aria2</string>
+    <string name="aria_log">View Aria2 log</string>
+    <string name="proj_aria_sub">Downloads · RPC</string>
+    <string name="aria_copy_rpc_full">Copy RPC URL and secret</string>
+    <string name="aria_open_web">Open AriaNg web UI</string>
+    <string name="aria_open_web_toast">AriaNg opened in browser (RPC pre-filled)</string>
+    <string name="aria_new_download">New download...</string>
+    <string name="aria_add_task">Add</string>
+    <string name="aria_adding">Adding %1$d task(s)...</string>
+    <string name="aria_no_link">No downloadable link found</string>
+    <string name="aria_link_hint">http(s):// or magnet: (clipboard prefilled)</string>
+    <string name="aria_name_hint">File name (blank = infer from URL)</string>
 </resources>

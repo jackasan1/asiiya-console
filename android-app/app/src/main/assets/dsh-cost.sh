@@ -323,6 +323,15 @@ def cmd_report():
                 "  ⚠ 超预算" if pct >= 100 else ("  ⚠ 接近" if pct >= 80 else "")))
     else:
         print("🎯 预算未设置 → 在 ~/dsh/cost-config.sh 里填 DAILY_BUDGET / MONTH_BUDGET")
+    # 今日逐小时（24 个桶，本地小时）
+    hr = [0.0] * 24
+    if not t.get("err"):
+        for k, v in (t.get("hourly") or {}).items():
+            hr[datetime.datetime.fromtimestamp(int(k) * 3600).hour] += v
+    out["hourly"] = [round(x, 4) for x in hr]
+    pk_h = max(range(24), key=lambda i: hr[i]) if any(hr) else -1
+    out["hourlyPeak"] = {"hour": pk_h, "cost": round(hr[pk_h], 4)} if pk_h >= 0 else None
+
     dd = daily_map(14)
     if dd:
         tot = sum(dd.values())

@@ -27,7 +27,14 @@ data class Status(
     val olRuntime: String,
     val olVersion: String,
     val olBoot: Boolean,
-    val olInstalled: Boolean
+    val olInstalled: Boolean,
+    // ---- Aria2 离线下载 ----
+    val ariaState: Boolean,
+    val ariaPort: String,
+    val ariaPid: String,
+    val ariaTasks: String,
+    val ariaSpeed: String,
+    val ariaVersion: String
 )
 
 /** 官方接口的单个时间区间（金额 + 请求数 + tokens） */
@@ -77,13 +84,17 @@ data class Cost(
     // ---- 近 14 天（官方天桶）----
     val daily: List<Double>,
     val dailyTotal: Double,
-    val dailyAvg: Double
+    val dailyAvg: Double,
+    // ---- 今日逐小时（24 桶，本地小时）----
+    val hourly: List<Double>,
+    val hourlyPeakHour: Int,
+    val hourlyPeakCost: Double
 )
 
 object DshApi {
 
     /** 与 assets/dsh-ctl.sh 里的 CTL_VER 保持一致 */
-    const val CTL_VERSION = "7"
+    const val CTL_VERSION = "8"
 
     /** 与 assets/dsh-cost.sh 的版本对应：改脚本就让旧标记失效，重新落盘一次 */
     private const val COST_VER = "5"
@@ -147,6 +158,11 @@ object DshApi {
             val bg = o.optJSONObject("budget") ?: org.json.JSONObject()
             val dl = o.optJSONObject("daily") ?: org.json.JSONObject()
             val dArr = dl.optJSONArray("days") ?: org.json.JSONArray()
+            val hArr = o.optJSONArray("hourly") ?: org.json.JSONArray()
+            val hours = ArrayList<Double>()
+            var hi = 0
+            while (hi < hArr.length()) { hours.add(hArr.optDouble(hi, 0.0)); hi++ }
+            val hPeak = o.optJSONObject("hourlyPeak") ?: org.json.JSONObject()
             val dayCosts = ArrayList<Double>()
             var di = 0
             while (di < dArr.length()) {
@@ -192,7 +208,10 @@ object DshApi {
                 monthPct = bg.optDouble("monthPct", 0.0),
                 daily = dayCosts,
                 dailyTotal = dl.optDouble("total", 0.0),
-                dailyAvg = dl.optDouble("avg", 0.0)
+                dailyAvg = dl.optDouble("avg", 0.0),
+                hourly = hours,
+                hourlyPeakHour = hPeak.optInt("hour", -1),
+                hourlyPeakCost = hPeak.optDouble("cost", 0.0)
             )
         } catch (e: Exception) {
             null
@@ -228,7 +247,13 @@ object DshApi {
                 olRuntime = o.optString("olRuntime", ""),
                 olVersion = o.optString("olVersion", ""),
                 olBoot = o.optString("olBoot") == "ON",
-                olInstalled = o.optString("olInstalled") == "1"
+                olInstalled = o.optString("olInstalled") == "1",
+                ariaState = o.optString("ariaState") == "UP",
+                ariaPort = o.optString("ariaPort", "6800"),
+                ariaPid = o.optString("ariaPid", ""),
+                ariaTasks = o.optString("ariaTasks", "0"),
+                ariaSpeed = o.optString("ariaSpeed", "0"),
+                ariaVersion = o.optString("ariaVersion", "")
             )
         } catch (e: Exception) {
             null

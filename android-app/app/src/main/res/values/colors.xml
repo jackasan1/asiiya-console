@@ -22,4 +22,12 @@
     <color name="tint_gray">#14000000</color>
     <color name="violet">#FF8B5CF6</color>
     <color name="cyan">#FF06B6D4</color>
+    <!-- 桌面小组件专用（RemoteViews 在启动器进程渲染，不跟随 App 内主题，固定深色） -->
+    <color name="widget_bg">#FF161B23</color>
+    <color name="widget_fg">#FFEDF0F5</color>
+    <color name="widget_dim">#FF8A9099</color>
+    <color name="widget_ok">#FF35E08A</color>
+    <color name="widget_bad">#FFFF7B7B</color>
+    <color name="widget_warn">#FFFFB74D</color>
+    <color name="widget_chip">#FF1E242E</color>
 </resources>

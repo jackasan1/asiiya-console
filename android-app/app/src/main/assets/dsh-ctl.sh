@@ -7,7 +7,7 @@ WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
 [ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
 PORT="${DSH_PORT:-3080}"
-CTL_VER=7
+CTL_VER=8
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 port_code() { local c; c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null)"; printf '%s' "${c:-000}"; }
@@ -150,8 +150,10 @@ status)
   OLV="$(ol_ver)"
   OLBOOT="$(ol_boot)"
   OLINST=0; ol_inst && OLINST=1
-  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s","modelName":"%s","olState":"%s","olPortCode":"%s","olPort":"%s","olUrl":"%s","olPid":"%s","olRuntime":"%s","olVersion":"%s","olBoot":"%s","olInstalled":"%s"}\n' \
-    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(ensure_url)")" "$PID" "$NP" "$RT" "$MD" "$(jesc "$MN")" "$OLST" "$OLCODE" "$OL_PORT" "$(jesc "http://127.0.0.1:$OL_PORT")" "$OLPID" "$OLRT" "$(jesc "$OLV")" "$OLBOOT" "$OLINST"
+  ARIA="$(bash "$BASE/aria2-ctl.sh" json 2>/dev/null)"
+  [ -n "$ARIA" ] || ARIA='"ariaState":"DOWN","ariaPort":"6800","ariaPid":"","ariaTasks":"0","ariaSpeed":"0","ariaVersion":""'
+  printf '{"service":"%s","watchdog":"%s","port":"%s","portCode":"%s","dshVersion":"%s","install":"%s","ctlVersion":"%s","url":"%s","pid":"%s","procs":"%s","runtime":"%s","model":"%s","modelName":"%s","olState":"%s","olPortCode":"%s","olPort":"%s","olUrl":"%s","olPid":"%s","olRuntime":"%s","olVersion":"%s","olBoot":"%s","olInstalled":"%s",%s}\n' \
+    "$S" "$W" "$P" "$(port_code)" "$(jesc "$V")" "$I" "$CTL_VER" "$(jesc "$(ensure_url)")" "$PID" "$NP" "$RT" "$MD" "$(jesc "$MN")" "$OLST" "$OLCODE" "$OL_PORT" "$(jesc "http://127.0.0.1:$OL_PORT")" "$OLPID" "$OLRT" "$(jesc "$OLV")" "$OLBOOT" "$OLINST" "$ARIA"
   ;;
 
 start)
@@ -536,6 +538,39 @@ openlist-log)
   else
     echo "（暂无日志：$OLF）"
   fi
+  ;;
+
+aria2-add)
+  shift
+  exec bash "$BASE/aria2-ctl.sh" add "$@"
+  ;;
+
+aria2-add2)
+  exec bash "$BASE/aria2-ctl.sh" add-ext "${2:-}" "${3:-}"
+  ;;
+
+aria2-add-b64)
+  exec bash "$BASE/aria2-ctl.sh" add-b64 "${2:-}"
+  ;;
+
+aria2-start)
+  exec bash "$BASE/aria2-ctl.sh" start
+  ;;
+
+aria2-stop)
+  exec bash "$BASE/aria2-ctl.sh" stop
+  ;;
+
+aria2-restart)
+  exec bash "$BASE/aria2-ctl.sh" restart
+  ;;
+
+aria2-log)
+  exec bash "$BASE/aria2-ctl.sh" log "${2:-3000}"
+  ;;
+
+aria2-info)
+  exec bash "$BASE/aria2-ctl.sh" info
   ;;
 
 cost)

@@ -4,6 +4,8 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -20,6 +22,7 @@ import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.app.AppCompatDelegate
 import kotlin.math.hypot
 import kotlin.math.max
+import android.graphics.Color
 import android.graphics.Typeface
 import android.text.SpannableString
 import android.text.SpannableStringBuilder
@@ -81,6 +84,13 @@ class MainActivity : AppCompatActivity() {
     /** 费用卡：最近一次数据 */
     private var lastCost: Cost? = null
     private var costLoaded = false
+    /** 点「复制 RPC」后等 aria2-info 的输出 */
+    private var pendingAriaInfo = false
+    private var pendingAriaInfoAt = 0L
+
+    /** 0 = 复制 RPC 地址与密钥，1 = 打开 AriaNg 网页（已预填 RPC） */
+    private var pendingAriaMode = 0
+
     /** 点费用卡后请求的明细报告：拿到输出就弹窗 */
     private var pendingCostReport = false
     private var pendingCostReportAt = 0L
@@ -91,6 +101,9 @@ class MainActivity : AppCompatActivity() {
     private var subProject: String? = null
     private var pageBusy = false
     private var subDragX = 0f
+
+    /** 费用卡的迷你图模式：0=近14天 1=今日逐小时（点图切换） */
+    private var sparkMode = 0
 
     private val RUN_PERM = "com.termux.permission.RUN_COMMAND"
     private val REQ_RUN = 1
@@ -247,8 +260,19 @@ class MainActivity : AppCompatActivity() {
         }
         b.navUninstall.setOnClickListener { showInstallPage(false); closeDrawer(); uninstallDialog() }
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
+        b.drawerPinWidget.setOnClickListener { closeDrawer(); pinWidget() }
 
         b.costCard.setOnClickListener { showCostDetail() }
+        // ---- Aria2 卡 ----
+        b.btnAriaStart.setOnClickListener { action(getString(R.string.act_start), "aria2-start") }
+        b.btnAriaStop.setOnClickListener { action(getString(R.string.act_stop), "aria2-stop") }
+        b.btnAriaCopy.setOnClickListener { copyRpcInfo() }
+        b.btnAriaMore.setOnClickListener { ariaMoreDialog() }
+        b.projAria.setOnClickListener { openSubPage("aria") }
+
+        b.sparkCost.setOnClickListener {
+            lastCost?.let { c -> sparkMode = 1 - sparkMode; renderSpark(c) }
+        }
         pressable(b.costCard)
 
         b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
@@ -257,13 +281,143 @@ class MainActivity : AppCompatActivity() {
         maybeRevealTheme()
         checkUpdate(true)
         startSkeleton()
+        // 冷启动先用上次的官方数据渲染费用卡（首次拉取要 1–5 秒，别让卡片空着）
+        prefs.getString(KEY_COST_CACHE, null)?.let { cached ->
+            DshApi.parseCost(cached)?.let { applyCost(it) }
+        }
         maybeFirstRun()
 
         // 桌面小组件触发的动作
+        if (!handleShareIntent(intent)) handleWidgetAction(intent)
+    }
+
+    /** 小组件二次点击也要能响应（MainActivity 复用时走 onNewIntent） */
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (!handleShareIntent(intent)) handleWidgetAction(intent)
+    }
+
+    /**
+     * 从别的 App「分享」过来的链接：直接丢给 Aria2。
+     * URL 里常带 & ? # 等字符，直接拼进 shell 会炸，所以 base64 传。
+     */
+    private fun handleShareIntent(intent: Intent?): Boolean {
+        if (intent == null || intent.action != Intent.ACTION_SEND) return false
+        val text = (intent.getStringExtra(Intent.EXTRA_TEXT)
+            ?: intent.getStringExtra(Intent.EXTRA_SUBJECT) ?: "").trim()
+        if (text.isEmpty()) {
+            toast(getString(R.string.aria_no_link)); return true
+        }
+        val found = Regex("(magnet:\\?[^\\s\"']+)|(https?://[^\\s\"']+)")
+            .findAll(text).map { it.value }.toList()
+        val urls = if (found.isNotEmpty()) found else listOf(text)
+        // 网盘直链常把真名放在查询参数里（Aria2 不认），所以显式带上 out 文件名
+        val jobs = urls.map { u -> u to guessFileName(u, text) }
+        addAriaJobs(jobs)
+        return true
+    }
+
+    /** 推断原始文件名：URL 的 filename/name 参数 > 分享文本里的标题行 > URL 末段 */
+    private fun guessFileName(url: String, shareText: String): String {
+        // 1) 查询参数
+        for (k in listOf("filename", "file_name", "name", "title")) {
+            val m = Regex("[?&]" + k + "=([^&\\s]+)").find(url)
+            if (m != null) {
+                val v = try { java.net.URLDecoder.decode(m.groupValues[1], "UTF-8") } catch (e: Exception) { m.groupValues[1] }
+                if (v.isNotBlank() && v.length <= 200) return sanitizeName(v)
+            }
+        }
+        // 2) 分享文本里不像链接的那些行，取最长的一行当标题
+        if (shareText.isNotEmpty()) {
+            val lines = shareText.lines().map { it.trim() }
+                .filter { it.isNotEmpty() && !it.startsWith("http") && !it.startsWith("magnet:") }
+                .sortedByDescending { it.length }
+            val cand = lines.firstOrNull { it.length in 3..200 && it.contains('.') }
+            if (cand != null) return sanitizeName(cand)
+        }
+        // 3) URL 末段（去掉查询串）
+        val last = url.substringBefore('?').trimEnd('/').substringAfterLast('/')
+        val dec = try { java.net.URLDecoder.decode(last, "UTF-8") } catch (e: Exception) { last }
+        return if (dec.contains('.') && dec.length <= 200) sanitizeName(dec) else ""
+    }
+
+    private fun sanitizeName(raw: String): String =
+        raw.replace('/', '_').replace('\\', '_')
+            .replace(Regex("[\\r\\n\\t]"), " ")
+            .replace(Regex("^[【【\\[\"']+|[】】\\]\"']+$"), "")
+            .trim()
+            .take(200)
+
+    /** 把链接（含推断出的文件名）加入 Aria2 */
+    private fun addAriaJobs(jobs: List<Pair<String, String>>) {
+        val clean = jobs.map { it.first.trim() to sanitizeName(it.second) }
+            .filter { it.first.isNotEmpty() }
+        if (clean.isEmpty()) { toast(getString(R.string.aria_no_link)); return }
+        toast(getString(R.string.aria_adding, clean.size))
+        clean.forEach { (u, n) ->
+            val u64 = android.util.Base64.encodeToString(u.toByteArray(), android.util.Base64.NO_WRAP)
+            val n64 = android.util.Base64.encodeToString(n.toByteArray(), android.util.Base64.NO_WRAP)
+            ctl("", "aria2-add2", u64, n64, silent = true)
+        }
+    }
+
+    /** 把链接加入 Aria2（可多个；自动从链接推断文件名） */
+    private fun addAriaTasks(urls: List<String>) {
+        addAriaJobs(urls.map { it to guessFileName(it, "") })
+    }
+
+    /** ⋮ → 新建下载：自动读剪贴板预填，省去"复制完还得找地方粘贴" */
+    private fun newDownloadDialog() {
+        val clip = readClipboard()
+        val etUrl = EditText(this).apply {
+            hint = getString(R.string.aria_link_hint)
+            setText(clip)
+            setSelection(text?.length ?: 0)
+            inputType = InputType.TYPE_TEXT_VARIATION_URI
+        }
+        val etName = EditText(this).apply {
+            hint = getString(R.string.aria_name_hint)
+            setText(guessFileName(clip, clip))     // 自动推断，可手改
+            inputType = InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (16 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(etUrl)
+            addView(etName)
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.aria_new_download)
+            .setView(box)
+            .setPositiveButton(R.string.aria_add_task) { _, _ ->
+                addAriaJobs(listOf(etUrl.text.toString() to etName.text.toString()))
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun readClipboard(): String {
+        return try {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.primaryClip?.getItemAt(0)?.text?.toString()?.trim().orEmpty()
+        } catch (e: Exception) { "" }
+    }
+
+    private fun handleWidgetAction(intent: Intent?) {
         when (intent?.getStringExtra("widget_action")) {
             "start" -> { userStopped = false; ringBusy(); action(getString(R.string.act_start), "start") }
             "stop" -> { userStopped = true; ringBusy(); action(getString(R.string.act_stop), "stop") }
             "open" -> openConsole()
+            // 点整块：立刻拉一次状态与官方费用（顺带把桌面数字刷成最新）
+            "refresh" -> {
+                ctl(getString(R.string.act_refresh), "status")
+                costCommandDialog("json")   // 静默拉数并刷新卡片；桌面小组件也会跟着更新
+                toast(getString(R.string.widget_refreshing))
+            }
+            // 点「今日 ¥x」：直接看费用明细
+            "cost" -> showCostDetail()
         }
     }
 
@@ -277,6 +431,9 @@ class MainActivity : AppCompatActivity() {
             // 明细请求超时兜底：Termux 不回来时别把后续输出吞进弹窗
             if (pendingCostReport && System.currentTimeMillis() - pendingCostReportAt > 20_000L) {
                 pendingCostReport = false
+            }
+            if (pendingAriaInfo && System.currentTimeMillis() - pendingAriaInfoAt > 20_000L) {
+                pendingAriaInfo = false
             }
             if (busy == 0) {
                 if (installPolling) {
@@ -415,15 +572,13 @@ class MainActivity : AppCompatActivity() {
             b.pbCostBudget.progress = 0
         }
 
+        refreshWidgets()          // 小组件只读缓存，推一次几乎零成本
+
         // 抽屉一级：费用行的今日金额徽标
         b.tvProjCostState.text = costStateText(c)
         if (subProject == "cost") refreshSubChip()
 
-        // 近 14 天柱状
-        b.sparkCost.setData(FloatArray(c.daily.size) { c.daily[it].toFloat() })
-        b.tvCostSpark.text = if (c.daily.isNotEmpty())
-            getString(R.string.cost_spark_fmt, c.daily.size, money(c.dailyTotal), money(c.dailyAvg))
-        else getString(R.string.cost_spark_init)
+        renderSpark(c)
     }
 
     /** 点卡片：拉一份明细（余额 + 今日/昨日/近7天/本月/累计 + 分模型 + 对账）弹窗显示 */
@@ -432,6 +587,8 @@ class MainActivity : AppCompatActivity() {
     /** 抽屉里点费用项：跑对应子命令，输出照样走明细弹窗 */
     private fun costCommandDialog(vararg args: String) {
         if (busy > 0) { toast(getString(R.string.msg_busy, busy)); return }
+        // json 是给卡片/小组件用的数据，不该弹明细窗
+        if (args.isNotEmpty() && args[0] == "json") { ctlCost(true, *args); return }
         pendingCostReport = true
         pendingCostReportAt = System.currentTimeMillis()
         toast(getString(R.string.cost_loading))
@@ -478,6 +635,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onStdout(out: String) {
+        // 复制 RPC 信息（点 Aria2 卡「复制 RPC」触发的）
+        if (pendingAriaInfo) {
+            pendingAriaInfo = false
+            val url = out.lineSequence().firstOrNull { it.startsWith("ARIA_RPC=") }
+                ?.removePrefix("ARIA_RPC=")?.trim()
+            val sec = out.lineSequence().firstOrNull { it.startsWith("ARIA_SECRET=") }
+                ?.removePrefix("ARIA_SECRET=")?.trim()
+            if (!url.isNullOrEmpty() && !sec.isNullOrEmpty()) {
+                if (pendingAriaMode == 1) {
+                    // AriaNg 支持把 RPC 配置写进 URL 的 hash（密钥 base64 编码）→ 打开即连上
+                    val b64 = android.util.Base64.encodeToString(
+                        sec.toByteArray(), android.util.Base64.NO_WRAP)
+                    openExternal("http://127.0.0.1:8090/#!/settings/rpc/set/http/127.0.0.1/6800/jsonrpc/$b64")
+                    toast(getString(R.string.aria_open_web_toast))
+                } else {
+                    copyText("$url\n$sec")
+                    toast(getString(R.string.aria_copied))
+                }
+            } else {
+                toast(getString(R.string.aria_copy_failed))
+            }
+            return
+        }
+
         // 明细报告优先（点卡片触发的）
         if (pendingCostReport) {
             pendingCostReport = false
@@ -488,7 +669,11 @@ class MainActivity : AppCompatActivity() {
         if (st != null) { applyStatus(st); return }
 
         // 费用 JSON（含 balance/today 键，和 status 不冲突）
-        DshApi.parseCost(out)?.let { applyCost(it); return }
+        DshApi.parseCost(out)?.let {
+            prefs.edit().putString(KEY_COST_CACHE, out).apply()   // 缓存：下次冷启动秒显
+            applyCost(it)
+            return
+        }
 
         if (parseConf(out)) return
 
@@ -548,26 +733,41 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.ivDshIcon.alpha = if (s.service) 1f else 0.5f
+        styleActionButtons(s.service)
+        if (prev != null && prev.service != s.service) {
+            // 刚变成"停止"：给主按钮一个脉冲，提示可以启动
+            if (!s.service) {
+                b.actStart.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140)
+                    .withEndAction {
+                        b.actStart.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
+                    }.start()
+            }
+        }
 
         // 抽屉一级：三个项目行的状态徽标（实时）
         b.tvProjDshState.text = stateText(s.service)
         b.tvProjDshState.setTextColor(ContextCompat.getColor(this, if (s.service) R.color.ok else R.color.dim))
         b.tvProjOlState.text = olStateText(s)
         b.tvProjOlState.setTextColor(ContextCompat.getColor(this, if (s.olService) R.color.ok else R.color.dim))
+        b.tvProjAriaState.text = stateText(s.ariaState)
+        b.tvProjAriaState.setTextColor(ContextCompat.getColor(this, if (s.ariaState) R.color.ok else R.color.dim))
+        applyAria(s)
         if (subProject != null) refreshSubChip()
 
-        rollText(b.tvPortValue, s.portCode)
-        b.tvPortValue.setTextColor(
-            ContextCompat.getColor(this, if (s.port) R.color.fg else R.color.bad)
-        )
+        // 服务停止时端口/进程/时长显示「—」，不再是 000 / --:--:--
+        rollText(b.tvPortValue, if (s.service) s.portCode else "—")
+        b.tvPortValue.setTextColor(ContextCompat.getColor(this, when {
+            !s.service -> R.color.dim
+            s.port -> R.color.fg
+            else -> R.color.bad
+        }))
 
         b.tvModelValue.text = getString(if (s.model == "OK") R.string.model_ok else R.string.model_missing)
-        b.tvModelValue.setTextColor(
-            ContextCompat.getColor(this, if (s.model == "OK") R.color.ok else R.color.dim)
-        )
+        b.tvModelValue.setTextColor(ContextCompat.getColor(
+            this, if (s.model == "OK" && s.service) R.color.ok else R.color.dim))
 
-        rollText(b.tvProcValue, s.procs.ifEmpty { "0" })
-        b.tvUptimeValue.text = if (s.runtime.isNotEmpty()) s.runtime else "--:--:--"
+        rollText(b.tvProcValue, if (s.service) s.procs.ifEmpty { "0" } else "—")
+        b.tvUptimeValue.text = if (s.service && s.runtime.isNotEmpty()) s.runtime else "—"
 
         if (s.url.isNotEmpty()) { lastUrl = s.url; hostLabel() }
 
@@ -726,6 +926,139 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Aria2 卡的渲染 */
+    private fun applyAria(s: Status) {
+        b.tvAriaState.text = stateText(s.ariaState)
+        b.tvAriaState.setTextColor(ContextCompat.getColor(this, if (s.ariaState) R.color.ok else R.color.dim))
+        b.tvAriaSub.text = getString(R.string.aria_sub_fmt,
+            s.ariaVersion.ifEmpty { "Aria2" }, s.ariaPort.ifEmpty { "6800" })
+        b.tvAriaPortValue.text = if (s.ariaState) s.ariaPort.ifEmpty { "6800" } else "—"
+        b.tvAriaTasksValue.text = if (s.ariaState) s.ariaTasks.ifEmpty { "0" } else "—"
+        val sp = speedText(s.ariaSpeed)
+        b.tvAriaSpeedValue.text = if (s.ariaState) sp else "—"
+        b.tvAriaSpeedValue.setTextColor(ContextCompat.getColor(
+            this, if (s.ariaState && sp != "0") R.color.cyan else R.color.fg))
+        // 按钮主次和 dsh 卡一致：停了就突出「启动」
+        b.btnAriaStart.isEnabled = !s.ariaState
+        b.btnAriaStart.alpha = if (s.ariaState) 0.45f else 1f
+        b.btnAriaStop.isEnabled = s.ariaState
+        b.btnAriaStop.alpha = if (s.ariaState) 1f else 0.45f
+    }
+
+    /** 下载速度：字节/秒 → 人看的单位 */
+    private fun speedText(bytes: String): String {
+        val v = bytes.toDoubleOrNull() ?: 0.0
+        return when {
+            v <= 0 -> "0"
+            v >= 1048576 -> String.format(Locale.US, "%.2fM", v / 1048576)
+            v >= 1024 -> String.format(Locale.US, "%.0fK", v / 1024)
+            else -> String.format(Locale.US, "%.0fB", v)
+        }
+    }
+
+    /** 复制 RPC 地址 + 密钥（直接粘到网盘网页的「Aria2 RPC」两个框） */
+    private fun copyRpcInfo() {
+        if (busy > 0) { toast(getString(R.string.msg_busy, busy)); return }
+        pendingAriaMode = 0
+        pendingAriaInfo = true
+        pendingAriaInfoAt = System.currentTimeMillis()
+        ctl("", "aria2-info", silent = true)
+    }
+
+    /** 在系统浏览器里打开 AriaNg（会自动带上 RPC 地址与密钥） */
+    private fun openAriang() {
+        if (busy > 0) { toast(getString(R.string.msg_busy, busy)); return }
+        pendingAriaMode = 1
+        pendingAriaInfo = true
+        pendingAriaInfoAt = System.currentTimeMillis()
+        ctl("", "aria2-info", silent = true)
+    }
+
+    /** 用外部浏览器打开链接 */
+    private fun openExternal(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) {
+            copyText(url)
+            toast(getString(R.string.aria_copied))
+        }
+    }
+
+    private fun ariaMoreDialog() {
+        val items = arrayOf(
+            getString(R.string.aria_new_download),
+            getString(R.string.aria_open_web),
+            getString(R.string.aria_restart),
+            getString(R.string.aria_log),
+            getString(R.string.aria_copy_rpc_full)
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.aria_title)
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> newDownloadDialog()
+                    1 -> openAriang()
+                    2 -> action(getString(R.string.aria_restart), "aria2-restart")
+                    3 -> action(getString(R.string.aria_log), "aria2-log", "4000")
+                    4 -> copyRpcInfo()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /**
+     * 费用刷新后同步重绘桌面小组件。
+     *
+     * 不用广播 + 异步探测那条路（在部分国产 ROM 上会被静默丢弃），
+     * 而是直接用 App 已知的状态与费用渲染 RemoteViews 再 updateAppWidget —— 一步到位。
+     */
+    private fun refreshWidgets() {
+        val mgr = AppWidgetManager.getInstance(this)
+        val ids = mgr.getAppWidgetIds(ComponentName(this, WidgetProvider::class.java))
+        if (ids.isEmpty()) return
+        val v = WidgetProvider.build(this, lastStatus?.service, lastCost)
+        ids.forEach { mgr.updateAppWidget(it, v) }
+    }
+
+    /**
+     * 一键把桌面小组件加出来。
+     *
+     * 走 Android 8+ 的 requestPinAppWidget；部分厂商启动器（ColorOS 的 com.android.launcher）
+     * 并不支持 pin —— 这种情况不能只弹 toast，要给可操作指引，否则用户只会觉得点了没反应。
+     */
+    private fun pinWidget() {
+        val cn = ComponentName(this, WidgetProvider::class.java)
+        val mgr = AppWidgetManager.getInstance(this)
+        val supported = Build.VERSION.SDK_INT >= 26 && mgr.isRequestPinAppWidgetSupported
+        val sent = if (supported) {
+            try { mgr.requestPinAppWidget(cn, null, null) } catch (e: Exception) { false }
+        } else false
+        if (sent) {
+            log(getString(R.string.pin_widget_log_sent))
+            toast(getString(R.string.pin_widget_log_sent))
+            return
+        }
+        log(getString(R.string.pin_widget_log_unsupported))
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.menu_pin_widget)
+            .setMessage(R.string.pin_widget_howto)
+            .setPositiveButton(R.string.pin_widget_go_home) { _, _ -> goHome() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /** 回桌面，让用户能立刻长按添加小组件 */
+    private fun goHome() {
+        try {
+            startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) {
+            toast(getString(R.string.pin_widget_unsupported))
+        }
+    }
+
     /** 服务卡右上角 ⋮：与网盘卡一致的「更多」入口 */
     private fun dshMoreDialog() {
         // 只放本卡片（dsh 服务）相关的事；「关于 App」在抽屉的「应用」组里
@@ -832,6 +1165,9 @@ class MainActivity : AppCompatActivity() {
     // ---------------- 主题 ----------------
 
     private val prefs by lazy { getSharedPreferences("ui", MODE_PRIVATE) }
+
+    /** 上次成功拉到的官方费用 JSON，冷启动先拿它渲染 */
+    private val KEY_COST_CACHE = "cost_json_cache"
 
     private fun isNightNow(): Boolean = when (AppCompatDelegate.getDefaultNightMode()) {
         AppCompatDelegate.MODE_NIGHT_YES -> true
@@ -1006,6 +1342,13 @@ class MainActivity : AppCompatActivity() {
                     this, if (s?.olService == true) R.color.ok else R.color.dim))
                 sections = olSections()
             }
+            "aria" -> {
+                b.tvSubTitle.text = getString(R.string.aria_title)
+                val up = s?.ariaState == true
+                b.tvSubState.text = stateText(up)
+                b.tvSubState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+                sections = ariaSections()
+            }
             else -> {
                 b.tvSubTitle.text = getString(R.string.proj_cost_title)
                 b.tvSubState.text = costStateText(c)
@@ -1037,7 +1380,51 @@ class MainActivity : AppCompatActivity() {
         when (subProject) {
             "dsh" -> b.tvSubState.text = stateText(lastStatus?.service == true)
             "ol" -> b.tvSubState.text = olStateText(lastStatus)
+            "aria" -> b.tvSubState.text = stateText(lastStatus?.ariaState == true)
             "cost" -> b.tvSubState.text = costStateText(lastCost)
+        }
+    }
+
+    /**
+     * 服务状态 → 操作按钮的主次关系：
+     *   停止时：「启动」填充成主按钮（accent 实心 + 白字），「停止/重启」变灰禁用
+     *   运行时：「启动」变灰禁用，「停止/重启」恢复
+     */
+    private fun styleActionButtons(running: Boolean) {
+        val accent = ContextCompat.getColor(this, R.color.accent)
+        if (running) {
+            b.actStart.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+            b.actStart.setTextColor(accent)
+            b.actStart.alpha = 0.45f
+            b.actStart.isEnabled = false
+        } else {
+            b.actStart.backgroundTintList = ColorStateList.valueOf(accent)
+            b.actStart.setTextColor(Color.WHITE)
+            b.actStart.alpha = 1f
+            b.actStart.isEnabled = true
+        }
+        b.actStop.isEnabled = running
+        b.actStop.alpha = if (running) 1f else 0.45f
+        b.actRestart.isEnabled = running
+        b.actRestart.alpha = if (running) 1f else 0.45f
+    }
+
+    /** 迷你图渲染：近 14 天 / 今日逐小时 两种视图共用一块图（点按切换，卡片不增高） */
+    private fun renderSpark(c: Cost) {
+        if (sparkMode == 0) {
+            b.tvCostSparkLabel.text = getString(R.string.cost_spark_14d)
+            b.sparkCost.setData(FloatArray(c.daily.size) { c.daily[it].toFloat() })
+            b.tvCostSpark.text = if (c.daily.isNotEmpty())
+                getString(R.string.cost_spark_fmt, c.daily.size, money(c.dailyTotal), money(c.dailyAvg))
+            else getString(R.string.cost_spark_init)
+        } else {
+            b.tvCostSparkLabel.text = getString(R.string.cost_spark_today)
+            val nowHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            b.sparkCost.setData(FloatArray(c.hourly.size) { c.hourly[it].toFloat() }, nowHour)
+            b.tvCostSpark.text = if (c.hourly.any { it > 0.0 } && c.hourlyPeakHour >= 0)
+                getString(R.string.cost_hour_peak_fmt, c.hourlyPeakHour, money(c.hourlyPeakCost),
+                    money(c.today.cost))
+            else getString(R.string.cost_hour_none)
         }
     }
 
@@ -1133,6 +1520,31 @@ class MainActivity : AppCompatActivity() {
         )
     )
 
+    private fun ariaSections(): List<Pair<String, List<Act>>> = listOf(
+        getString(R.string.sec_control) to listOf(
+            Act(R.drawable.ic_home, R.color.accent, R.string.act_start) {
+                closeDrawer(); action(getString(R.string.act_start), "aria2-start")
+            },
+            Act(R.drawable.ic_stop, R.color.bad, R.string.act_stop) {
+                closeDrawer(); action(getString(R.string.act_stop), "aria2-stop")
+            },
+            Act(R.drawable.ic_restart, R.color.accent, R.string.aria_restart) {
+                closeDrawer(); action(getString(R.string.aria_restart), "aria2-restart")
+            }
+        ),
+        getString(R.string.sec_maint) to listOf(
+            Act(R.drawable.ic_cloud, R.color.ok, R.string.aria_open_web) {
+                closeDrawer(); openAriang()
+            },
+            Act(R.drawable.ic_ariang, R.color.ok, R.string.aria_copy_rpc_full) {
+                closeDrawer(); copyRpcInfo()
+            },
+            Act(R.drawable.ic_log, R.color.dim, R.string.aria_log) {
+                closeDrawer(); action(getString(R.string.aria_log), "aria2-log", "4000")
+            }
+        )
+    )
+
     private fun costSections(): List<Pair<String, List<Act>>> = listOf(
         getString(R.string.sec_overview) to listOf(
             Act(R.drawable.ic_coin, R.color.warn, R.string.menu_cost_report) {
@@ -1220,7 +1632,7 @@ class MainActivity : AppCompatActivity() {
         b.tvPortValue.text = "—"
         b.tvModelValue.text = "—"
         b.tvProcValue.text = "—"
-        b.tvUptimeValue.text = "--:--:--"
+        b.tvUptimeValue.text = "—"
         b.tvDshState.text = getString(R.string.state_loading)
         b.tvLog.text = getString(R.string.log_empty)
         ui.postDelayed({
