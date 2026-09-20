@@ -67,9 +67,9 @@
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_pill"
                     android:paddingStart="9dp"
-                    android:paddingTop="4dp"
+                    android:paddingTop="5dp"
                     android:paddingEnd="9dp"
-                    android:paddingBottom="4dp"
+                    android:paddingBottom="5dp"
                     android:text="@string/state_loading"
                     android:textColor="@color/dim"
                     android:textSize="11sp" />
@@ -221,7 +221,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:orientation="horizontal">
 
                                 <TextView
