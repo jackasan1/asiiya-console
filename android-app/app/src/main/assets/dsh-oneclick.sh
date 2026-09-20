@@ -3,13 +3,17 @@
 #  dsh-oneclick.sh — DeepSeek Harness (dsh) 在 Android/Termux 一键部署
 #
 #  流程：环境预检 → 依赖/编译链 → dsh 安装 → Termux 兼容补丁
-#        → 手机端 UI 适配 → 看门狗 → 开机自启 → 密钥/模型 → 系统优化 → 自检
+#        → 手机端 UI 适配 → 密钥/模型 → 系统优化 → 自检
+#
+#  默认「手动模式」：不装看门狗、不设开机自启（省电，按需启停在 App 里点）
 #
 #  用法：
 #    bash dsh-oneclick.sh                     全自动部署
 #    bash dsh-oneclick.sh --api-key sk-xxxx   顺带写入 API Key
 #    bash dsh-oneclick.sh --verify            只体检，不改动
 #    bash dsh-oneclick.sh --skip-npm          跳过 npm 安装（只重打补丁）
+#    bash dsh-oneclick.sh --with-watchdog     额外安装进程守护（常驻，较耗电）
+#    bash dsh-oneclick.sh --with-boot         额外设置开机自启
 #
 #  环境变量：DSH_PIN / DSH_MODEL / DSH_SKIP_UPGRADE
 # ================================================================
@@ -21,7 +25,10 @@ D="$PREFIX/lib/node_modules/@deepseek-ai/dsh"
 PIN="${DSH_PIN:-0.1.5-rc.1}"
 MODEL="${DSH_MODEL:-deepseek-flash}"
 API_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0%2Bgithub.debug.apk"
-API_KEY="${DSH_API_KEY:-}" ; MODE=deploy ; SKIP_NPM=0 ; NO_BOOT=0 ; NO_CSS=0 ; NO_WD=0
+API_KEY="${DSH_API_KEY:-}" ; MODE=deploy ; SKIP_NPM=0 ; NO_BOOT=1 ; NO_CSS=0 ; NO_WD=1
+# 默认「手动模式」：不装看门狗、不设开机自启 ——
+# 看门狗常驻且持有 termux-wake-lock，持续耗电；按需启停更省电也更好预期。
+# 需要旧行为可显式加 --with-watchdog / --with-boot。
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -31,8 +38,10 @@ while [ $# -gt 0 ]; do
     --model) shift; MODEL="${1:-}" ;;
     --pin) shift; PIN="${1:-}" ;;
     --no-boot) NO_BOOT=1 ;;
+    --with-boot) NO_BOOT=0 ;;
     --no-css) NO_CSS=1 ;;
     --no-watchdog) NO_WD=1 ;;
+    --with-watchdog) NO_WD=0 ;;
     -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "未知参数: $1"; exit 1 ;;
   esac; shift

@@ -87,7 +87,6 @@ class MainActivity : AppCompatActivity() {
     private var userStopped = false
     /** 连续几次探测到服务未运行 */
     private var downTicks = 0
-    private var lastAutoStart = 0L
     /** 首次状态到达前显示骨架态 */
     private var skeleton = true
     private var skeletonAnim: ObjectAnimator? = null
@@ -874,20 +873,9 @@ class MainActivity : AppCompatActivity() {
         stopSkeleton()
         if (prev == null || prev.service != s.service) pulse(b.cardHarness.ivDshIcon)
 
-        // ---- 保活：前台检测到服务挂了就自动拉起（用户主动停止的除外）----
-        if (s.service) {
-            downTicks = 0
-        } else if (!userStopped && auto && busy == 0) {
-            downTicks++
-            if (downTicks == 2) log(getString(R.string.msg_service_down))
-            val now = System.currentTimeMillis()
-            if (downTicks >= 3 && now - lastAutoStart > 120_000L) {
-                lastAutoStart = now
-                downTicks = 0
-                log(getString(R.string.msg_auto_start))
-                action(getString(R.string.act_start), "start")
-            }
-        }
+        // 不再自动保活：按需启动、按需停止。
+        // 既省电（看门狗常驻 + 持有 wake-lock），也避免「你没开它却一直在跑」。
+        if (s.service) downTicks = 0
         b.cardHarness.ivDshIcon.alpha = if (s.service) 1f else 0.5f
         if (pend("dsh") == null) styleActionButtons(s.service)
         if (prev != null && prev.service != s.service) {

@@ -7,7 +7,7 @@ WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
 [ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
 PORT="${DSH_PORT:-3080}"
-CTL_VER=9
+CTL_VER=10
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 port_code() { local c; c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null)"; printf '%s' "${c:-000}"; }
@@ -157,9 +157,22 @@ status)
   ;;
 
 start)
-  if wd_up; then echo "看门狗已在运行"; else
-    setsid bash "$BASE/dsh-watchdog.sh" >/dev/null 2>&1 < /dev/null &
-    echo "看门狗已拉起"
+  # 不再使用后台看门狗：它常驻循环并持有 termux-wake-lock，持续耗电。
+  # 改为「按需启动」——点启动才拉起 dsh web，点停止就彻底停掉。
+  # 若检测到旧版残留的看门狗，先停掉它，避免它又自动把服务拉起来。
+  if wd_up; then
+    kill "$(cat "$WDPID" 2>/dev/null)" 2>/dev/null
+    rm -f "$WDPID"
+    echo "已停用后台看门狗（不再常驻耗电）"
+    for i in $(seq 1 30); do wd_up || break; sleep 0.1; done
+  fi
+  if svc_up; then
+    echo "服务已在运行"
+  else
+    rm -f "$URLFILE"
+    cd "$HOME" || exit 1
+    setsid dsh web --port "$PORT" > "$BASE/dsh-web.log" 2>&1 < /dev/null &
+    echo "dsh web 已启动"
   fi
   if wait_ready; then echo "服务就绪（HTTP $(port_code)）"; else echo "等待超时，请查看日志"; fi
   for i in $(seq 1 300); do [ -n "$(ensure_url)" ] && break; sleep 0.2; done
@@ -179,7 +192,12 @@ stop)
 
 open)
   if ! ready; then
-    wd_up || setsid bash "$BASE/dsh-watchdog.sh" >/dev/null 2>&1 < /dev/null &
+    # 原来看门狗负责拉起，现在直接启动
+    if ! svc_up; then
+      rm -f "$URLFILE"
+      cd "$HOME" || exit 1
+      setsid dsh web --port "$PORT" > "$BASE/dsh-web.log" 2>&1 < /dev/null &
+    fi
     wait_ready || { echo "服务未就绪，无法打开"; exit 1; }
   fi
   for i in $(seq 1 150); do [ -n "$(ensure_url)" ] && break; sleep 0.2; done

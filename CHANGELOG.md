@@ -2,6 +2,66 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.4] — 2026-09-21
+
+**移除后台看门狗 —— 改为纯手动按需启停**
+
+用户反馈：不需要看门狗，要用的时候打开、不用的时候关掉就好，也能省点电。
+
+### Root Cause
+
+看门狗（`dsh-watchdog.sh`）不只是「看」——**它才是真正启动 dsh web 的那个进程**：
+
+| 行为 | 代价 |
+|---|---|
+| 常驻 `while true` 循环，每 **60 秒**轮询一次 | 永不退出 |
+| 启动时调用 **`termux-wake-lock`** | **阻止 CPU 休眠，持续耗电**（实测确实持有 wake-lock）|
+| 顺手保活 Aria2 / AriaNg | 用户无法真正「关掉」 |
+| `~/.termux/boot/start-dsh.sh` 开机拉起它 | **你没开它却一直在跑** |
+
+### Changed — 脚本（`assets/dsh-ctl.sh`，`CTL_VER` 9 → 10）
+
+- `start` **不再依赖看门狗**：直接 `setsid dsh web --port $PORT` 启动，服务可独立存活
+- `start` 会**主动停掉旧版残留的看门狗**（迁移友好）
+- `open` 同理：服务没跑就直接启动，不再借道看门狗
+- `stop` / 卸载仍会清理看门狗（向后兼容）
+
+### Changed — App（去掉自动保活）
+
+- 删除「前台检测到服务挂了就自动拉起」逻辑（`downTicks` / `lastAutoStart` / 自动 `action("start")`）
+- **现在服务状态完全由你决定**：点启动才起，点停止就一直停着
+
+### Changed — 安装脚本（`assets/dsh-oneclick.sh`）
+
+- **默认改为「手动模式」**：`NO_WD=1` / `NO_BOOT=1`（不装看门狗、不设开机自启）
+- 需要旧行为可显式加 `--with-watchdog` / `--with-boot`
+
+### 实测（真机）
+
+```
+改造前：dsh web=[7688]   看门狗=[7614]  ← 常驻 + 持有 wake-lock
+改造后：dsh web=[20021]  看门狗=[]      ← 干净
+
+stop  → 看门狗未在运行 / dsh web 已停 / 已全部停止
+start → dsh web 已启动 → 服务就绪（HTTP 401）→ URL 取到（9.84s，即服务真实启动耗时）
+等 15 秒 → 服务持续存活 ✅  看门狗未复活 ✅  wake-lock 为空 ✅
+最终   → service=UP  port=401  watchdog=DOWN  ctlVersion=10
+```
+
+- 已移除设备上的 `~/.termux/boot/start-dsh.sh`（备份为 `~/dsh/start-dsh.sh.boot-disabled`）
+- 已释放 `termux-wake-lock`
+
+### 说明
+
+其余开机自启脚本（`start-aria2.sh` / `start-ariang.sh` / `start-openlist.sh`）**本次未改动** ——
+它们同样各自持有 `termux-wake-lock`，如需一并改为手动，另行处理。
+
+### 验证
+- [x] 脚本 `bash -n` 通过；真机 stop/start 循环实测通过
+- [x] 单测 / lint / assembleRelease 全绿
+
+---
+
 ## [0.6.3] — 2026-09-21
 
 **三张卡片交互统一**
