@@ -75,14 +75,14 @@ class MainActivity : AppCompatActivity() {
     /** 上次拉取费用的时间戳（费用改为按时间而非按 tick 计数触发） */
     private var lastCostAt = 0L
     /**
-     * 正在执行的动作（"start" / "stop"）。
+     * 三张卡统一的动作挂起态：key = "dsh" / "ol" / "aria"，value = "start" / "stop"。
      *
-     * dsh 是 Node 应用，真实启动要 ~10 秒；停止也要等进程退出。
+     * dsh 是 Node 应用真实启动要 ~10 秒，OpenList / Aria2 也要等进程就绪或退出。
      * 期间界面必须**立刻**给出反馈，否则用户会以为按钮没响应。
      */
-    private var pendingAction: String? = null
-    /** 挂起开始时间，用于超时兜底（防止状态一直不收敛）*/
-    private var pendingSince = 0L
+    private val pending = HashMap<String, String>()
+    /** 各卡挂起开始时间，用于超时兜底（防止状态一直不收敛）*/
+    private val pendingAt = HashMap<String, Long>()
     /** 用户主动点过「停止」后，不再自动拉起 */
     private var userStopped = false
     /** 连续几次探测到服务未运行 */
@@ -146,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         b.btnMenu.setOnClickListener { b.drawer.openDrawer(GravityCompat.START) }
         b.cardHarness.actRestart.setOnClickListener {
             confirm(getString(R.string.act_restart) + "？") {
-                ringBusy(); beginPending("start")
+                ringBusy(); beginPending("dsh", "start")
                 action(getString(R.string.act_restart), "restart")
             }
         }
@@ -215,13 +215,13 @@ class MainActivity : AppCompatActivity() {
         b.cardHarness.btnDshMore.setOnClickListener { dshMoreDialog() }
         b.cardHarness.actStart.setOnClickListener {
             userStopped = false; downTicks = 0
-            ringBusy(); beginPending("start")
+            ringBusy(); beginPending("dsh", "start")
             action(getString(R.string.act_start), "start")
         }
         b.cardHarness.actStop.setOnClickListener {
             confirm(getString(R.string.confirm_stop)) {
                 userStopped = true; downTicks = 0
-                ringBusy(); beginPending("stop")
+                ringBusy(); beginPending("dsh", "stop")
                 action(getString(R.string.act_stop), "stop")
             }
         }
@@ -259,8 +259,17 @@ class MainActivity : AppCompatActivity() {
         b.btnConsole.setOnClickListener { openConsole() }
 
         // ---- OpenList 网盘卡 ----
-        b.cardOpenlist.btnOlStart.setOnClickListener { olPrimary() }
-        b.cardOpenlist.btnOlStop.setOnClickListener { action(getString(R.string.act_stop), "openlist-stop") }
+        b.cardOpenlist.btnOlStart.setOnClickListener {
+            // 未安装时这个按钮是「安装」，不算启动动作，不给挂起态
+            if (lastStatus?.olInstalled == true) {
+                iconBusy(b.cardOpenlist.ivOlIcon); beginPending("ol", "start")
+            }
+            olPrimary()
+        }
+        b.cardOpenlist.btnOlStop.setOnClickListener {
+            iconBusy(b.cardOpenlist.ivOlIcon); beginPending("ol", "stop")
+            action(getString(R.string.act_stop), "openlist-stop")
+        }
         b.cardOpenlist.btnOlOpen.setOnClickListener { openOpenList() }
         b.cardOpenlist.btnOlMore.setOnClickListener { olMoreDialog() }
         b.swipeMain.setColorSchemeColors(
@@ -286,8 +295,14 @@ class MainActivity : AppCompatActivity() {
 
         b.cardCost.costCard.setOnClickListener { showCostDetail() }
         // ---- Aria2 卡 ----
-        b.cardAria.btnAriaStart.setOnClickListener { action(getString(R.string.act_start), "aria2-start") }
-        b.cardAria.btnAriaStop.setOnClickListener { action(getString(R.string.act_stop), "aria2-stop") }
+        b.cardAria.btnAriaStart.setOnClickListener {
+            iconBusy(b.cardAria.ivAriaIcon); beginPending("aria", "start")
+            action(getString(R.string.act_start), "aria2-start")
+        }
+        b.cardAria.btnAriaStop.setOnClickListener {
+            iconBusy(b.cardAria.ivAriaIcon); beginPending("aria", "stop")
+            action(getString(R.string.act_stop), "aria2-stop")
+        }
         b.cardAria.btnAriaCopy.setOnClickListener { copyRpcInfo() }
         b.cardAria.btnAriaMore.setOnClickListener { ariaMoreDialog() }
         b.projAria.setOnClickListener { openSubPage("aria") }
@@ -453,8 +468,8 @@ class MainActivity : AppCompatActivity() {
      * 任何变化（或用户操作，见 ctl()）立刻回到 5 秒。安装过程中保持 5 秒。
      */
     private fun nextPollDelay(): Long = when {
-        // 动作执行中：1 秒一探，服务一就绪立刻翻成「运行中」
-        pendingAction != null -> 1_000L
+        // 任一卡片动作执行中：1 秒一探，就绪后立刻翻成「运行中」
+        pending.isNotEmpty() -> 1_000L
         busy > 0 || installPolling -> 5_000L
         idleTicks <= 3  -> 5_000L
         idleTicks <= 8  -> 10_000L
@@ -667,7 +682,7 @@ class MainActivity : AppCompatActivity() {
         busy = (busy - 1).coerceAtLeast(0)
 
         // 动作回执到达 → 立刻拉一次状态，而不是干等下一个轮询周期
-        if (pendingAction != null) {
+        if (pending.isNotEmpty()) {
             ui.removeCallbacks(tick)
             ui.postDelayed(tick, 350)
         }
@@ -744,45 +759,92 @@ class MainActivity : AppCompatActivity() {
         b.cardHarness.tvDshSub.text = getString(
             R.string.dsh_card_sub_fmt, (st?.dshVersion ?: "").ifEmpty { "?" }, host.ifEmpty { "--" })
         // 挂起态优先：点了就立刻显示「启动中… / 停止中…」，不等 Termux 回执
-        when (pendingAction) {
-            "start" -> {
-                b.cardHarness.tvDshState.text = getString(R.string.state_starting)
-                b.cardHarness.tvDshState.setTextColor(ContextCompat.getColor(this, R.color.warn))
+        val up = st?.service == true
+        b.cardHarness.tvDshState.text = stateLabelText("dsh", up)
+        b.cardHarness.tvDshState.setTextColor(stateLabelColor("dsh", up))
+    }
+
+    private fun pend(card: String): String? = pending[card]
+
+    /**
+     * 卡片图标「忙」动效 —— 三张卡完全一致：
+     * 转一圈（650ms）+ 一次脉冲放大。
+     */
+    private fun iconBusy(v: View) {
+        v.animate().rotationBy(360f).setDuration(650).start()
+        pulse(v)
+    }
+
+    private fun pulse(v: View) {
+        v.animate().scaleX(1.25f).scaleY(1.25f).setDuration(140)
+            .withEndAction {
+                v.animate().scaleX(1f).scaleY(1f).setDuration(220).start()
+            }.start()
+    }
+
+    /**
+     * 进入挂起态：立刻把状态徽标切成进行中、暂时禁用该卡的动作按钮，
+     * 并把轮询提到 1 秒档，等实况收敛后自动恢复。
+     */
+    private fun beginPending(card: String, kind: String) {
+        pending[card] = kind
+        pendingAt[card] = System.currentTimeMillis()
+        idleTicks = 0
+        setCardBusy(card, true)
+        when (card) {
+            "dsh" -> hostLabel()
+            else -> lastStatus?.let { if (card == "ol") applyOpenList(it) else applyAria(it) }
+        }
+    }
+
+    /** 退出挂起态：按真实状态恢复该卡按钮的主次与可用性 */
+    private fun endPending(card: String) {
+        if (pending.remove(card) == null) return
+        val st = lastStatus
+        when (card) {
+            "dsh" -> {
+                setCardBusy("dsh", false)
+                styleActionButtons(st?.service == true)
+                hostLabel()
             }
-            "stop" -> {
-                b.cardHarness.tvDshState.text = getString(R.string.state_stopping)
-                b.cardHarness.tvDshState.setTextColor(ContextCompat.getColor(this, R.color.warn))
+            "ol" -> {
+                setCardBusy("ol", false)
+                st?.let { applyOpenList(it) }
             }
-            else -> {
-                val up = st?.service == true
-                b.cardHarness.tvDshState.text =
-                    getString(if (up) R.string.state_running else R.string.state_stopped)
-                b.cardHarness.tvDshState.setTextColor(
-                    ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+            "aria" -> st?.let { applyAria(it) } ?: setCardBusy("aria", false)
+        }
+    }
+
+    /** 挂起期间禁用该卡的动作按钮，避免重复点击 */
+    private fun setCardBusy(card: String, busy: Boolean) {
+        when (card) {
+            "dsh" -> {
+                b.cardHarness.actStart.isEnabled = !busy
+                b.cardHarness.actStop.isEnabled = !busy
+                b.cardHarness.actRestart.isEnabled = !busy
+            }
+            "ol" -> {
+                b.cardOpenlist.btnOlStart.isEnabled = !busy
+                b.cardOpenlist.btnOlStop.isEnabled = !busy
+            }
+            "aria" -> {
+                b.cardAria.btnAriaStart.isEnabled = !busy
+                b.cardAria.btnAriaStop.isEnabled = !busy
             }
         }
     }
 
-    /**
-     * 进入挂起态：立刻把状态徽标切成进行中、暂时禁用动作按钮，
-     * 并把轮询提到 1 秒档，等服务真正就绪/退出后自动收敛。
-     */
-    private fun beginPending(kind: String) {
-        pendingAction = kind
-        pendingSince = System.currentTimeMillis()
-        idleTicks = 0
-        hostLabel()
-        b.cardHarness.actStart.isEnabled = false
-        b.cardHarness.actStop.isEnabled = false
-        b.cardHarness.actRestart.isEnabled = false
+    /** 状态徽标文案：挂起态优先（三张卡统一）*/
+    private fun stateLabelText(card: String, up: Boolean): String = when (pend(card)) {
+        "start" -> getString(R.string.state_starting)
+        "stop" -> getString(R.string.state_stopping)
+        else -> getString(if (up) R.string.state_running else R.string.state_stopped)
     }
 
-    /** 退出挂起态：按真实状态恢复按钮的主次与可用性 */
-    private fun endPending() {
-        if (pendingAction == null) return
-        pendingAction = null
-        styleActionButtons(lastStatus?.service == true)
-        hostLabel()
+    /** 状态徽标颜色：挂起态用琥珀色提示「进行中」（三张卡统一）*/
+    private fun stateLabelColor(card: String, up: Boolean): Int = when (pend(card)) {
+        "start", "stop" -> ContextCompat.getColor(this, R.color.warn)
+        else -> ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim)
     }
 
     // ---------------- 状态渲染 ----------------
@@ -795,13 +857,22 @@ class MainActivity : AppCompatActivity() {
         if (prev == s) idleTicks++ else idleTicks = 0
 
         // 乐观 UI 收敛：实况与预期一致（或超时 25 秒）就结束挂起态
-        pendingAction?.let { kind ->
-            val done = if (kind == "start") s.service else !s.service
-            if (done || System.currentTimeMillis() - pendingSince > 25_000L) endPending()
+        if (pending.isNotEmpty()) {
+            val nowMs = System.currentTimeMillis()
+            pending.keys.toList().forEach { card ->
+                val kind = pending[card] ?: return@forEach
+                val done = when (card) {
+                    "dsh" -> if (kind == "start") s.service else !s.service
+                    "ol" -> if (kind == "start") s.olService else !s.olService
+                    "aria" -> if (kind == "start") s.ariaState else !s.ariaState
+                    else -> true
+                }
+                if (done || nowMs - (pendingAt[card] ?: nowMs) > 25_000L) endPending(card)
+            }
         }
 
         stopSkeleton()
-        if (prev == null || prev.service != s.service) pulse()
+        if (prev == null || prev.service != s.service) pulse(b.cardHarness.ivDshIcon)
 
         // ---- 保活：前台检测到服务挂了就自动拉起（用户主动停止的除外）----
         if (s.service) {
@@ -818,7 +889,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.cardHarness.ivDshIcon.alpha = if (s.service) 1f else 0.5f
-        if (pendingAction == null) styleActionButtons(s.service)
+        if (pend("dsh") == null) styleActionButtons(s.service)
         if (prev != null && prev.service != s.service) {
             // 刚变成"停止"：给主按钮一个脉冲，提示可以启动
             if (!s.service) {
@@ -1013,8 +1084,8 @@ class MainActivity : AppCompatActivity() {
 
     /** Aria2 卡的渲染 */
     private fun applyAria(s: Status) {
-        b.cardAria.tvAriaState.text = stateText(s.ariaState)
-        b.cardAria.tvAriaState.setTextColor(ContextCompat.getColor(this, if (s.ariaState) R.color.ok else R.color.dim))
+        b.cardAria.tvAriaState.text = stateLabelText("aria", s.ariaState)
+        b.cardAria.tvAriaState.setTextColor(stateLabelColor("aria", s.ariaState))
         b.cardAria.tvAriaSub.text = getString(R.string.aria_sub_fmt,
             s.ariaVersion.ifEmpty { "Aria2" }, s.ariaPort.ifEmpty { "6800" })
         b.cardAria.tvAriaPortValue.text = if (s.ariaState) s.ariaPort.ifEmpty { "6800" } else "—"
@@ -1024,10 +1095,12 @@ class MainActivity : AppCompatActivity() {
         b.cardAria.tvAriaSpeedValue.setTextColor(ContextCompat.getColor(
             this, if (s.ariaState && sp != "0") R.color.cyan else R.color.fg))
         // 按钮主次和 dsh 卡一致：停了就突出「启动」
-        b.cardAria.btnAriaStart.isEnabled = !s.ariaState
-        b.cardAria.btnAriaStart.alpha = if (s.ariaState) 0.45f else 1f
-        b.cardAria.btnAriaStop.isEnabled = s.ariaState
-        b.cardAria.btnAriaStop.alpha = if (s.ariaState) 1f else 0.45f
+        if (pend("aria") == null) {
+            b.cardAria.btnAriaStart.isEnabled = !s.ariaState
+            b.cardAria.btnAriaStart.alpha = if (s.ariaState) 0.45f else 1f
+            b.cardAria.btnAriaStop.isEnabled = s.ariaState
+            b.cardAria.btnAriaStop.alpha = if (s.ariaState) 1f else 0.45f
+        }
     }
 
     /** 下载速度：字节/秒 → 人看的单位 */
@@ -1685,17 +1758,7 @@ class MainActivity : AppCompatActivity() {
     // ---------------- 仪表盘动画 ----------------
 
     /** 启动/停止中：弧变短并绕圈转 + 中心圆盘脉冲 */
-    private fun ringBusy() {
-        b.cardHarness.ivDshIcon.animate().rotationBy(360f).setDuration(650).start()
-        pulse()
-    }
-
-    private fun pulse() {
-        b.cardHarness.ivDshIcon.animate().scaleX(1.25f).scaleY(1.25f).setDuration(140)
-            .withEndAction {
-                b.cardHarness.ivDshIcon.animate().scaleX(1f).scaleY(1f).setDuration(220).start()
-            }.start()
-    }
+    private fun ringBusy() = iconBusy(b.cardHarness.ivDshIcon)
 
     /** 统一的动作入口：自动展开日志卡，让输出可见 */
     private fun action(label: String, vararg args: String, stdin: String? = null) {
@@ -1970,8 +2033,8 @@ class MainActivity : AppCompatActivity() {
         b.cardOpenlist.btnOlStart.text = getString(R.string.act_start)
 
         val up = s.olService
-        b.cardOpenlist.tvOlState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
-        b.cardOpenlist.tvOlState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+        b.cardOpenlist.tvOlState.text = stateLabelText("ol", up)
+        b.cardOpenlist.tvOlState.setTextColor(stateLabelColor("ol", up))
         b.cardOpenlist.tvOlSub.text = getString(R.string.ol_sub_fmt, s.olVersion.ifEmpty { "?" })
 
         b.cardOpenlist.tvOlPortValue.text = s.olPort.ifEmpty { "5244" }

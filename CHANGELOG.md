@@ -2,6 +2,55 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.3] — 2026-09-21
+
+**三张卡片交互统一**
+
+用户反馈：dsh 卡的交互（状态字「启动中…」+ 图标转一圈）很好，但
+**OpenList 网盘**和 **Aria2 离线下载**两张卡没有 —— 点了按钮毫无反馈，像是没点上。
+
+### Root Cause
+
+- dsh 卡有 `ringBusy()`（图标转 360° + 脉冲）和 `pendingAction`（乐观状态）
+- OL / Aria2 卡的点击处理**只有一行 `action(...)`** —— 既无图标动效，也无挂起态
+- 两张卡的图标 `ImageView` 甚至连 `id` 都没有，动效无从施加
+
+### Changed
+
+- 🔧 把 dsh 卡那套交互**抽成三卡通用能力**，不再各写一套：
+
+| 能力 | 说明 |
+|---|---|
+| `pending: Map<String, String>` | 三张卡各自的动作挂起态（`dsh` / `ol` / `aria`） |
+| `iconBusy(view)` | 图标转一圈 650ms + 脉冲放大（原 `ringBusy` 泛化） |
+| `stateLabelText(card, up)` | 状态文案：挂起态优先显示「启动中… / 停止中…」（琥珀色） |
+| `stateLabelColor(card, up)` | 颜色：挂起中 = `warn`，运行时 = `ok`，停止 = `dim` |
+| `beginPending(card, kind)` / `endPending(card)` | 进入 / 退出挂起态，20 余处逻辑统一 |
+| `setCardBusy(card, busy)` | 挂起期间禁用该卡动作按钮，避免重复点击 |
+
+- 🖼 `card_openlist.xml` 图标补 `@+id/ivOlIcon`
+- 🖼 `card_aria.xml` 图标补 `@+id/ivAriaIcon`
+- 🎛 网盘「安装」（未安装时该按钮为安装）**不计入**启动挂起态，避免误导
+- 🛟 三张卡共用同一套收敛规则：实况与预期一致即恢复，25 秒超时兜底
+
+### 效果
+
+现在三张卡点击后行为**完全一致**：
+
+```
+点下 → 图标转一圈 + 脉冲
+     → 状态徽标立刻变「启动中…」/「停止中…」（琥珀色）
+     → 该卡动作按钮暂时禁用
+     → 就绪/退出后自动翻成「运行中」/「已停止」，按钮恢复
+```
+
+### 验证
+- [x] `assembleDebug` / `assembleRelease` 编译通过，无 error
+- [x] 单元测试 / lint 全绿
+- [x] 现有 dsh 卡行为保持不变（回归）
+
+---
+
 ## [0.6.2] — 2026-09-21
 
 **启动 / 停止的响应速度优化**

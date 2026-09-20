@@ -23,6 +23,7 @@
                     android:background="@drawable/bg_circle_green">
 
                     <ImageView
+                        android:id="@+id/ivOlIcon"
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
