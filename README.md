@@ -9,7 +9,7 @@
 
 `Kotlin` · `ViewBinding` · `minSdk 26` · 深色 / 浅色双模
 
-[![Release](https://img.shields.io/github/v/release/jackasan1/asiiya-console?label=release)](https://github.com/jackasan1/asiiya-console/releases/latest)
+[![Release](https://img.shields.io/github/v/release/jackasan1/asiiya-console?filter=v*&label=release)](https://github.com/jackasan1/asiiya-console/releases/latest)
 [![Build APK](https://github.com/jackasan1/asiiya-console/actions/workflows/android.yml/badge.svg)](https://github.com/jackasan1/asiiya-console/actions/workflows/android.yml)
 
 <img src="docs/screenshots/dashboard-dark.png" width="41%" alt="深色模式">&nbsp;&nbsp;<img src="docs/screenshots/dashboard-light.png" width="41%" alt="浅色模式">
