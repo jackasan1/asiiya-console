@@ -1393,12 +1393,12 @@ class MainActivity : AppCompatActivity() {
     private fun styleActionButtons(running: Boolean) {
         val accent = ContextCompat.getColor(this, R.color.accent)
         if (running) {
-            b.actStart.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+            b.actStart.setBackgroundResource(R.drawable.bg_btn_ghost)
             b.actStart.setTextColor(accent)
             b.actStart.alpha = 0.45f
             b.actStart.isEnabled = false
         } else {
-            b.actStart.backgroundTintList = ColorStateList.valueOf(accent)
+            b.actStart.setBackgroundResource(R.drawable.bg_btn_primary)
             b.actStart.setTextColor(Color.WHITE)
             b.actStart.alpha = 1f
             b.actStart.isEnabled = true

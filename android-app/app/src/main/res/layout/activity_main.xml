@@ -30,21 +30,21 @@
         <!-- ============ 顶部栏 ============ -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="@dimen/topbar_h"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <FrameLayout
                 android:id="@+id/btnMenu"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:background="@drawable/bg_circle"
+                android:layout_width="@dimen/topbar_h"
+                android:layout_height="@dimen/topbar_h"
+                android:background="@drawable/bg_topbar_btn"
                 android:clickable="true"
                 android:focusable="true">
 
                 <ImageView
-                    android:layout_width="21dp"
-                    android:layout_height="21dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:layout_gravity="center"
                     android:contentDescription="@string/menu_about"
                     android:src="@drawable/ic_menu"
@@ -63,15 +63,15 @@
 
             <FrameLayout
                 android:id="@+id/btnTopRight"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:background="@drawable/bg_circle"
+                android:layout_width="@dimen/topbar_h"
+                android:layout_height="@dimen/topbar_h"
+                android:background="@drawable/bg_topbar_btn_circle"
                 android:clickable="true"
                 android:focusable="true">
 
                 <ImageView
-                    android:layout_width="21dp"
-                    android:layout_height="21dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:layout_gravity="center"
                     android:id="@+id/ivTheme"
                     android:contentDescription="@string/theme_toggle"
@@ -81,27 +81,27 @@
         </LinearLayout>
 
         <!-- ============ 服务卡（DeepSeek Harness，与网盘/费用卡同款）============ -->
-                <include layout="@layout/card_harness" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
+                <include layout="@layout/card_harness" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ OpenList 网盘卡 ============ -->
-                <include layout="@layout/card_openlist" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
+                <include layout="@layout/card_openlist" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ Aria2 离线下载卡 ============ -->
-                <include layout="@layout/card_aria" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
+                <include layout="@layout/card_aria" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ 费用卡（DeepSeek 官方数据）============ -->
-                <include layout="@layout/card_cost" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
+                <include layout="@layout/card_cost" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ 日志卡（默认隐藏）============ -->
-                <include layout="@layout/card_log" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
+                <include layout="@layout/card_log" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ 安装进度（默认隐藏）============ -->
-                <include layout="@layout/card_install" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" />
+                <include layout="@layout/card_install" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <TextView
@@ -612,7 +612,7 @@
                     android:id="@+id/tvProjDshState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_chip"
+                    android:background="@drawable/bg_pill"
                     android:paddingStart="9dp"
                     android:paddingTop="4dp"
                     android:paddingEnd="9dp"
@@ -684,7 +684,7 @@
                     android:id="@+id/tvProjOlState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_chip"
+                    android:background="@drawable/bg_pill"
                     android:paddingStart="9dp"
                     android:paddingTop="4dp"
                     android:paddingEnd="9dp"
@@ -755,7 +755,7 @@
                     android:id="@+id/tvProjAriaState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_chip"
+                    android:background="@drawable/bg_pill"
                     android:paddingStart="9dp"
                     android:paddingTop="4dp"
                     android:paddingEnd="9dp"
@@ -827,7 +827,7 @@
                     android:id="@+id/tvProjCostState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_chip"
+                    android:background="@drawable/bg_pill"
                     android:paddingStart="9dp"
                     android:paddingTop="4dp"
                     android:paddingEnd="9dp"
@@ -1012,7 +1012,7 @@
                     android:id="@+id/tvSubState"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_chip"
+                    android:background="@drawable/bg_pill"
                     android:paddingStart="9dp"
                     android:paddingTop="4dp"
                     android:paddingEnd="9dp"
