@@ -7,8 +7,8 @@ Termux 重装后照着放回去即可恢复。
 |---|---|---|
 | `aria2-ctl.sh` | `~/dsh/` | Aria2 离线下载控制：start/stop/restart/status/json/ensure/log/info/secret/add/add-ext/add-b64 |
 | `ariang-ctl.sh` | `~/dsh/` | AriaNg 网页控制台（纯静态）：start/stop/status/ensure/url |
-| `boot-start-aria2.sh` | `~/.termux/boot/` | 开机自启 Aria2 |
-| `boot-start-ariang.sh` | `~/.termux/boot/` | 开机自启 AriaNg |
+| `boot-start-aria2.sh` | `~/.termux/boot/` | 开机自启 Aria2 —— **默认不装**（可选，见下方「关于开机自启」）|
+| `boot-start-ariang.sh` | `~/.termux/boot/` | 开机自启 AriaNg —— **默认不装**（可选）|
 
 ## 依赖与前置
 
@@ -37,6 +37,27 @@ file-allocation=none        # 手机别用预分配
   由 `DshApi.bootstrapTools()` 版本门控下发到 `~/dsh/` —— 改脚本 bump `TOOLS_VER` 即可送达
 - **不再有看门狗**：v0.6.4 起移除了常驻守护（它持有 `termux-wake-lock` 持续耗电）。
   现在 Aria2 / AriaNg / OpenList / dsh 全部**手动按需启停**，`ensure` 子命令仅保留给手动调用
+
+## 关于开机自启（重要）
+
+**默认全部关闭** —— 本项目的设计原则是「要用的时候打开，不用的时候关掉」。
+
+原因：每个开机自启脚本都会调用 `termux-wake-lock`，而 wake-lock 会**阻止 CPU 休眠**，
+常驻后台持续耗电。v0.6.4 起连 dsh 的看门狗也一并移除了。
+
+| 服务 | 开机自启 | 如何开启 |
+|---|---|---|
+| dsh | ❌ 默认关 | 部署时加 `--with-boot`（`dsh-oneclick.sh`）|
+| OpenList | ❌ 默认关 | App 抽屉 → OpenList → 「开机自启」开关 |
+| Aria2 | ❌ 默认关 | 手动把 `boot-start-aria2.sh` 拷到 `~/.termux/boot/` |
+| AriaNg | ❌ 默认关 | 手动把 `boot-start-ariang.sh` 拷到 `~/.termux/boot/` |
+
+> **副作用**：重启手机后所有服务**不会自动起来**，需要打开 App 手动点一下「启动」。
+> 这是刻意的取舍 —— 换来的是后台零常驻、零 wake-lock。
+
+开启开机自启的前置：安装 **Termux:Boot** 并手动打开它一次（完成开机广播注册）。
+
+已停用的脚本会集中存放在 `~/dsh/boot-disabled/`，随时可以拷回 `~/.termux/boot/` 恢复。
 
 ## 一个坑（原始文件名）
 

@@ -65,6 +65,10 @@ class MainActivity : AppCompatActivity() {
 
     private var seq = 100
     private var busy = 0
+    /** 最近一次向 Termux 发起请求的时刻 —— 用于「无响应」超时兜底 */
+    private var reqAt = 0L
+    /** 连续几次请求超时（Termux 被系统清理时用来触发提示）*/
+    private var termuxSilent = 0
     private var auto = true
     private var pendingOpen = false
     private var lastUrl = ""
@@ -487,6 +491,17 @@ class MainActivity : AppCompatActivity() {
             if (pendingAriaInfo && System.currentTimeMillis() - pendingAriaInfoAt > 20_000L) {
                 pendingAriaInfo = false
             }
+            // ---- Termux 无响应兜底（核心修复）----
+            // Termux 被系统清理 / 用户杀后台后，RUN_COMMAND 会石沉大海：
+            // busy 永远不减 → 下面 if (busy == 0) 永远不成立 → 界面永久卡在「连接中…」。
+            // 这里强制复位，让轮询能继续，并给用户明确提示。
+            if (busy > 0 && reqAt > 0 && System.currentTimeMillis() - reqAt > 8_000L) {
+                busy = 0
+                reqAt = 0L
+                termuxSilent++
+                if (termuxSilent == 3) log(getString(R.string.msg_termux_silent))
+                if (lastStatus == null) hostLabel()   // 状态徽标改成「Termux 未响应」
+            }
             if (busy == 0) {
                 if (installPolling) {
                     ctl("", "log", "4000", silent = true)
@@ -511,6 +526,7 @@ class MainActivity : AppCompatActivity() {
         idleTicks = 0   // 用户操作：立刻恢复最勤的轮询档位
         if (busy > 0 && !silent) { toast(getString(R.string.msg_busy, busy)); return }
         busy++
+        reqAt = System.currentTimeMillis()
         if (!silent && label.isNotEmpty()) log("▶ " + label, K.CMD)
 
         try {
@@ -533,6 +549,7 @@ class MainActivity : AppCompatActivity() {
     private fun ctlCost(silent: Boolean, vararg args: String) {
         if (busy > 0 && !silent) { toast(getString(R.string.msg_busy, busy)); return }
         busy++
+        reqAt = System.currentTimeMillis()
         try {
             startService(
                 TermuxRunner.intent(
@@ -679,6 +696,8 @@ class MainActivity : AppCompatActivity() {
         if (stderr.isNotEmpty()) log("[stderr] " + stderr)
 
         busy = (busy - 1).coerceAtLeast(0)
+        reqAt = 0L
+        termuxSilent = 0   // 收到回执 → Termux 是活的，静默计数清零
 
         // 动作回执到达 → 立刻拉一次状态，而不是干等下一个轮询周期
         if (pending.isNotEmpty()) {
@@ -757,6 +776,13 @@ class MainActivity : AppCompatActivity() {
         val st = lastStatus
         b.cardHarness.tvDshSub.text = getString(
             R.string.dsh_card_sub_fmt, (st?.dshVersion ?: "").ifEmpty { "?" }, host.ifEmpty { "--" })
+        // Termux 完全失联（被杀 / 系统清理）且从未拿到过状态：
+        // 明确告诉用户，而不是让它一直转圈
+        if (st == null && termuxSilent >= 3) {
+            b.cardHarness.tvDshState.text = getString(R.string.state_termux_down)
+            b.cardHarness.tvDshState.setTextColor(ContextCompat.getColor(this, R.color.bad))
+            return
+        }
         // 挂起态优先：点了就立刻显示「启动中… / 停止中…」，不等 Termux 回执
         val up = st?.service == true
         b.cardHarness.tvDshState.text = stateLabelText("dsh", up)

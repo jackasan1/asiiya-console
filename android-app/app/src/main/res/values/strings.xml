@@ -49,6 +49,8 @@
     <string name="state_running">运行中</string>
     <string name="state_stopped">已停止</string>
     <string name="state_stopping">停止中</string>
+    <string name="state_termux_down">Termux 未响应</string>
+    <string name="msg_termux_silent">⚠ Termux 无响应：可能被系统清理或杀后台了。打开一次 Termux 即可恢复</string>
     <string name="state_starting">启动中</string>
     <string name="model_ok">已连接</string>
     <string name="model_missing">未配置</string>

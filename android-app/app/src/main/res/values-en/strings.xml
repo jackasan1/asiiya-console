@@ -49,6 +49,8 @@
     <string name="state_running">Running</string>
     <string name="state_stopped">Stopped</string>
     <string name="state_stopping">Stopping</string>
+    <string name="state_termux_down">Termux not responding</string>
+    <string name="msg_termux_silent">⚠ Termux not responding — it may have been killed. Open Termux once to recover</string>
     <string name="state_starting">Starting</string>
     <string name="model_ok">Connected</string>
     <string name="model_missing">Not set</string>
