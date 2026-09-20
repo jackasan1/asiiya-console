@@ -2,6 +2,56 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.5] — 2026-09-21
+
+**Aria2 启停提速 ~15 倍 + 辅助脚本接入自动下发**
+
+### 实测数据（优化前）
+
+| 服务 | 启动 | 停止 |
+|---|---|---|
+| DSH Harness | 9.79 / 9.75 / 9.91 s | 1.33 / 1.45 s |
+| OpenList 网盘 | 1.28 / 1.26 s | 0.03 s |
+| **Aria2 离线下载** | **1.08 / 1.08 / 1.09 s** | **1.08 / 1.06 s** |
+
+Aria2 三次测量**几乎完全一致** —— 典型的「写死延时」特征。查证属实：
+
+```bash
+# termux/aria2-ctl.sh:23  启动轮询粒度 1 秒（Aria2 100ms 就绪也要等满 1 秒）
+for i in $(seq 1 15); do sleep 1; up && { ... }; done
+# termux/aria2-ctl.sh:26  停止无条件硬睡 1 秒
+pkill -f aria2c 2>/dev/null; sleep 1
+# termux/aria2-ctl.sh:28  重启又来一次
+restart) bash "$0" stop >/dev/null; sleep 1; bash "$0" start;;
+```
+
+### Changed — Aria2 脚本
+
+- `start`：轮询粒度 **1s → 0.15s**，并改为**先探测再睡**（原实现必定先睡满 1 秒）
+- `stop`：**去掉硬睡 1 秒**，改为等 RPC 真正不可达（通常 <150ms）
+- `restart`：去掉多余 `sleep 1`（`stop` 内部已等待）
+
+**实测：start 1.08s → 0.06~0.23s；stop 1.08s → 0.06~0.07s（约 15 倍）**
+
+### Changed — 辅助脚本接入自动下发（重要）
+
+`aria2-ctl.sh` / `ariang-ctl.sh` 原先只放在仓库 `termux/` 归档目录里、靠**手动拷贝**，
+导致「修了 bug 也送不到设备上」。现在：
+
+- 两者打包进 `assets/`，由 `DshApi.bootstrapTools()` **版本门控下发**到 `~/dsh/`
+- 改脚本只需 bump `TOOLS_VER`，设备端会自动重新落盘（与 `dsh-ctl.sh` 同一套机制）
+- `termux/README.md` 同步更新（移除已过时的看门狗保活说明）
+
+### 验证
+
+- [x] 显式验证启停**真实生效**（非命令空转）：
+      `stop → 进程=无 / RPC端口=000`；`start → 进程=15599 / RPC正常`；
+      独立 `curl` 直查返回 `{"version":"1.37.0"}`
+- [x] `bash -n` 语法通过；无残留固定 `sleep 1`
+- [x] 单测 / lint / assembleRelease 全绿
+
+---
+
 ## [0.6.4] — 2026-09-21
 
 **移除后台看门狗 —— 改为纯手动按需启停**

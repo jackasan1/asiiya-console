@@ -146,8 +146,30 @@ object DshApi {
                "chmod +x ~/dsh/dsh-cost.sh && touch ~/dsh/.cost-ver" + COST_VER + "; fi && "
     }
 
+    /** 与 assets/aria2-ctl.sh ｜ ariang-ctl.sh 的版本对应：改脚本就 bump，旧标记失效后重新落盘 */
+    private const val TOOLS_VER = "1"
+
+    /**
+     * 确保 Termux 侧辅助脚本（Aria2 / AriaNg 控制）已落盘。
+     *
+     * 这两个脚本原先只放在仓库的 termux/ 目录里、靠手动拷贝 —— 结果就是
+     * 「修了 bug 也送不到设备上」。现在和 dsh-ctl.sh 一样走版本门控下发。
+     */
+    private fun bootstrapTools(ctx: Context): String {
+        val b = StringBuilder("mkdir -p ~/dsh && ")
+        b.append("if [ ! -f ~/dsh/.tools-ver").append(TOOLS_VER).append(" ]; then ")
+        b.append("rm -f ~/dsh/.tools-ver*; ")
+        for (f in listOf("aria2-ctl.sh", "ariang-ctl.sh")) {
+            val b64 = Base64.encodeToString(ctx.assets.open(f).readBytes(), Base64.NO_WRAP)
+            b.append("printf '%s' '").append(b64).append("' | base64 -d > ~/dsh/").append(f)
+                .append(" && chmod +x ~/dsh/").append(f).append(" && ")
+        }
+        b.append("touch ~/dsh/.tools-ver").append(TOOLS_VER).append("; fi && ")
+        return b.toString()
+    }
+
     fun cmd(ctx: Context, vararg args: String): String =
-        bootstrap(ctx) + "bash ~/dsh/dsh-ctl.sh " + args.joinToString(" ")
+        bootstrap(ctx) + bootstrapTools(ctx) + "bash ~/dsh/dsh-ctl.sh " + args.joinToString(" ")
 
     /** 费用查询：余额（官方接口）+ 本地会话 token 用量估算 */
     fun costCmd(ctx: Context, vararg args: String): String =

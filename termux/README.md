@@ -33,7 +33,10 @@ file-allocation=none        # 手机别用预分配
 
 - App 的「DSH 控制台 / Asiiya 工作台」通过 `dsh-ctl.sh` 的 `aria2-*` 子命令调用（`status` 里带 `aria*` 字段）
 - OpenList 的离线下载指向同一个 Aria2（设置键 `aria2_uri` / `aria2_secret`）
-- 看门狗 `dsh-watchdog.sh` 每 60 秒对两个脚本各执行一次 `ensure`，掉了自动拉起
+- **自动下发**：`aria2-ctl.sh` / `ariang-ctl.sh` 已随 App 打包（`assets/`），
+  由 `DshApi.bootstrapTools()` 版本门控下发到 `~/dsh/` —— 改脚本 bump `TOOLS_VER` 即可送达
+- **不再有看门狗**：v0.6.4 起移除了常驻守护（它持有 `termux-wake-lock` 持续耗电）。
+  现在 Aria2 / AriaNg / OpenList / dsh 全部**手动按需启停**，`ensure` 子命令仅保留给手动调用
 
 ## 一个坑（原始文件名）
 
