@@ -48,6 +48,7 @@
     <string name="card_uptime">运行时长</string>
     <string name="state_running">运行中</string>
     <string name="state_stopped">已停止</string>
+    <string name="state_stopping">停止中</string>
     <string name="state_starting">启动中</string>
     <string name="model_ok">已连接</string>
     <string name="model_missing">未配置</string>

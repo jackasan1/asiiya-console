@@ -74,6 +74,15 @@ class MainActivity : AppCompatActivity() {
     private var idleTicks = 0
     /** 上次拉取费用的时间戳（费用改为按时间而非按 tick 计数触发） */
     private var lastCostAt = 0L
+    /**
+     * 正在执行的动作（"start" / "stop"）。
+     *
+     * dsh 是 Node 应用，真实启动要 ~10 秒；停止也要等进程退出。
+     * 期间界面必须**立刻**给出反馈，否则用户会以为按钮没响应。
+     */
+    private var pendingAction: String? = null
+    /** 挂起开始时间，用于超时兜底（防止状态一直不收敛）*/
+    private var pendingSince = 0L
     /** 用户主动点过「停止」后，不再自动拉起 */
     private var userStopped = false
     /** 连续几次探测到服务未运行 */
@@ -136,7 +145,10 @@ class MainActivity : AppCompatActivity() {
 
         b.btnMenu.setOnClickListener { b.drawer.openDrawer(GravityCompat.START) }
         b.cardHarness.actRestart.setOnClickListener {
-            confirm(getString(R.string.act_restart) + "？") { ringBusy(); action(getString(R.string.act_restart), "restart") }
+            confirm(getString(R.string.act_restart) + "？") {
+                ringBusy(); beginPending("start")
+                action(getString(R.string.act_restart), "restart")
+            }
         }
         // ---- 抽屉一级：项目行 → 二级操作台 ----
         b.projDsh.setOnClickListener { openSubPage("dsh") }
@@ -203,12 +215,14 @@ class MainActivity : AppCompatActivity() {
         b.cardHarness.btnDshMore.setOnClickListener { dshMoreDialog() }
         b.cardHarness.actStart.setOnClickListener {
             userStopped = false; downTicks = 0
-            ringBusy(); action(getString(R.string.act_start), "start")
+            ringBusy(); beginPending("start")
+            action(getString(R.string.act_start), "start")
         }
         b.cardHarness.actStop.setOnClickListener {
             confirm(getString(R.string.confirm_stop)) {
                 userStopped = true; downTicks = 0
-                ringBusy(); action(getString(R.string.act_stop), "stop")
+                ringBusy(); beginPending("stop")
+                action(getString(R.string.act_stop), "stop")
             }
         }
         b.cardHarness.actLog.setOnClickListener { toggleLog() }
@@ -439,6 +453,8 @@ class MainActivity : AppCompatActivity() {
      * 任何变化（或用户操作，见 ctl()）立刻回到 5 秒。安装过程中保持 5 秒。
      */
     private fun nextPollDelay(): Long = when {
+        // 动作执行中：1 秒一探，服务一就绪立刻翻成「运行中」
+        pendingAction != null -> 1_000L
         busy > 0 || installPolling -> 5_000L
         idleTicks <= 3  -> 5_000L
         idleTicks <= 8  -> 10_000L
@@ -649,6 +665,12 @@ class MainActivity : AppCompatActivity() {
         if (stderr.isNotEmpty()) log("[stderr] " + stderr)
 
         busy = (busy - 1).coerceAtLeast(0)
+
+        // 动作回执到达 → 立刻拉一次状态，而不是干等下一个轮询周期
+        if (pendingAction != null) {
+            ui.removeCallbacks(tick)
+            ui.postDelayed(tick, 350)
+        }
     }
 
     private fun onStdout(out: String) {
@@ -721,9 +743,46 @@ class MainActivity : AppCompatActivity() {
         val st = lastStatus
         b.cardHarness.tvDshSub.text = getString(
             R.string.dsh_card_sub_fmt, (st?.dshVersion ?: "").ifEmpty { "?" }, host.ifEmpty { "--" })
-        val up = st?.service == true
-        b.cardHarness.tvDshState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
-        b.cardHarness.tvDshState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+        // 挂起态优先：点了就立刻显示「启动中… / 停止中…」，不等 Termux 回执
+        when (pendingAction) {
+            "start" -> {
+                b.cardHarness.tvDshState.text = getString(R.string.state_starting)
+                b.cardHarness.tvDshState.setTextColor(ContextCompat.getColor(this, R.color.warn))
+            }
+            "stop" -> {
+                b.cardHarness.tvDshState.text = getString(R.string.state_stopping)
+                b.cardHarness.tvDshState.setTextColor(ContextCompat.getColor(this, R.color.warn))
+            }
+            else -> {
+                val up = st?.service == true
+                b.cardHarness.tvDshState.text =
+                    getString(if (up) R.string.state_running else R.string.state_stopped)
+                b.cardHarness.tvDshState.setTextColor(
+                    ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+            }
+        }
+    }
+
+    /**
+     * 进入挂起态：立刻把状态徽标切成进行中、暂时禁用动作按钮，
+     * 并把轮询提到 1 秒档，等服务真正就绪/退出后自动收敛。
+     */
+    private fun beginPending(kind: String) {
+        pendingAction = kind
+        pendingSince = System.currentTimeMillis()
+        idleTicks = 0
+        hostLabel()
+        b.cardHarness.actStart.isEnabled = false
+        b.cardHarness.actStop.isEnabled = false
+        b.cardHarness.actRestart.isEnabled = false
+    }
+
+    /** 退出挂起态：按真实状态恢复按钮的主次与可用性 */
+    private fun endPending() {
+        if (pendingAction == null) return
+        pendingAction = null
+        styleActionButtons(lastStatus?.service == true)
+        hostLabel()
     }
 
     // ---------------- 状态渲染 ----------------
@@ -734,6 +793,12 @@ class MainActivity : AppCompatActivity() {
 
         // 自适应轮询：状态没变就逐步退避，一旦变化立刻回到最勤的档位
         if (prev == s) idleTicks++ else idleTicks = 0
+
+        // 乐观 UI 收敛：实况与预期一致（或超时 25 秒）就结束挂起态
+        pendingAction?.let { kind ->
+            val done = if (kind == "start") s.service else !s.service
+            if (done || System.currentTimeMillis() - pendingSince > 25_000L) endPending()
+        }
 
         stopSkeleton()
         if (prev == null || prev.service != s.service) pulse()
@@ -753,7 +818,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         b.cardHarness.ivDshIcon.alpha = if (s.service) 1f else 0.5f
-        styleActionButtons(s.service)
+        if (pendingAction == null) styleActionButtons(s.service)
         if (prev != null && prev.service != s.service) {
             // 刚变成"停止"：给主按钮一个脉冲，提示可以启动
             if (!s.service) {

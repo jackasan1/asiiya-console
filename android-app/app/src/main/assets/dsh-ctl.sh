@@ -7,7 +7,7 @@ WDPID="$BASE/dsh-watchdog.pid"
 INSTLOG="$BASE/install.log"
 [ -f "$BASE/config.sh" ] && . "$BASE/config.sh"
 PORT="${DSH_PORT:-3080}"
-CTL_VER=8
+CTL_VER=9
 
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 port_code() { local c; c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null)"; printf '%s' "${c:-000}"; }
@@ -24,7 +24,7 @@ ensure_url() {
   printf '%s' "$u"
 }
 wait_ready() {
-  local i; for i in $(seq 1 45); do ready && return 0; sleep 2; done; return 1
+  local i; for i in $(seq 1 450); do ready && return 0; sleep 0.2; done; return 1
 }
 
 
@@ -73,10 +73,10 @@ ensure_sv() {
   rm -f "$pf"
   command -v service-daemon >/dev/null 2>&1 || return 1
   service-daemon start >/dev/null 2>&1
-  local i; for i in $(seq 1 15); do [ -d "$OL_SVDIR/supervise" ] && return 0; sleep 1; done
+  local i; for i in $(seq 1 75); do [ -d "$OL_SVDIR/supervise" ] && return 0; sleep 0.2; done
   return 1
 }
-ol_wait() { local i; for i in $(seq 1 30); do ol_ready && return 0; sleep 1; done; return 1; }
+ol_wait() { local i; for i in $(seq 1 150); do ol_ready && return 0; sleep 0.2; done; return 1; }
 ol_write_run() {
   mkdir -p "$OL_SVDIR"
   cat > "$OL_SVDIR/run" <<'OLRUN'
@@ -162,15 +162,17 @@ start)
     echo "看门狗已拉起"
   fi
   if wait_ready; then echo "服务就绪（HTTP $(port_code)）"; else echo "等待超时，请查看日志"; fi
-  for i in $(seq 1 30); do [ -n "$(ensure_url)" ] && break; sleep 2; done
+  for i in $(seq 1 300); do [ -n "$(ensure_url)" ] && break; sleep 0.2; done
   echo "URL=$(ensure_url)"
   ;;
 
 stop)
   if wd_up; then kill "$(cat "$WDPID")" 2>/dev/null && echo "看门狗已停"; else echo "看门狗未在运行"; fi
-  sleep 1
+  # 等看门狗真正退出（通常 <200ms），而不是无脑 sleep 1
+  for i in $(seq 1 40); do wd_up || break; sleep 0.1; done
   if pkill -f "expose-internal[s]" 2>/dev/null; then echo "dsh web 已停"; else echo "dsh web 未在运行"; fi
-  sleep 2
+  # 等残留进程真正消失（上限 4s），而不是无脑 sleep 2
+  for i in $(seq 1 40); do svc_up || break; sleep 0.1; done
   if svc_up; then echo "仍有残留进程"; else echo "已全部停止"; fi
   rm -f "$URLFILE"
   ;;
@@ -180,7 +182,7 @@ open)
     wd_up || setsid bash "$BASE/dsh-watchdog.sh" >/dev/null 2>&1 < /dev/null &
     wait_ready || { echo "服务未就绪，无法打开"; exit 1; }
   fi
-  for i in $(seq 1 15); do [ -n "$(ensure_url)" ] && break; sleep 2; done
+  for i in $(seq 1 150); do [ -n "$(ensure_url)" ] && break; sleep 0.2; done
   U="$(ensure_url)"
   if [ -z "$U" ]; then echo "未取到地址（服务可能在启动中，稍后重试）"; exit 1; fi
   echo "URL=$U"
@@ -304,8 +306,7 @@ PYM
 
 restart)
   echo "==> 重启服务"
-  "$0" stop >/dev/null 2>&1
-  sleep 2
+  "$0" stop >/dev/null 2>&1   # stop 内部已等待进程真正退出
   "$0" start
   ;;
 
@@ -481,7 +482,7 @@ openlist-restart)
   ol_inst || { echo "✗ 未安装 OpenList"; exit 1; }
   ensure_sv >/dev/null 2>&1
   sv down "$OL_SVDIR" 2>/dev/null
-  sleep 2
+  for i in $(seq 1 30); do ol_ready || break; sleep 0.1; done
   ol_write_run
   sv up "$OL_SVDIR" 2>/dev/null
   if ol_wait; then echo "✅ OpenList 已重启 (HTTP $(ol_code))"; else echo "⚠ 重启超时"; fi

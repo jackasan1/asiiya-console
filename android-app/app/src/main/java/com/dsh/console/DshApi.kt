@@ -94,7 +94,7 @@ data class Cost(
 object DshApi {
 
     /** 与 assets/dsh-ctl.sh 里的 CTL_VER 保持一致 */
-    const val CTL_VERSION = "8"
+    const val CTL_VERSION = "9"
 
     /** 与 assets/dsh-cost.sh 的版本对应：改脚本就让旧标记失效，重新落盘一次 */
     private const val COST_VER = "5"
