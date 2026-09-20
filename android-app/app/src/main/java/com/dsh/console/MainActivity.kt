@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         b.btnMenu.setOnClickListener { b.drawer.openDrawer(GravityCompat.START) }
-        b.actRestart.setOnClickListener {
+        b.cardHarness.actRestart.setOnClickListener {
             confirm(getString(R.string.act_restart) + "？") { ringBusy(); action(getString(R.string.act_restart), "restart") }
         }
         // ---- 抽屉一级：项目行 → 二级操作台 ----
@@ -187,23 +187,23 @@ class MainActivity : AppCompatActivity() {
         }
         b.drawerUpdate.setOnClickListener { closeDrawer(); checkUpdate(false) }
         b.drawerBuild.setOnClickListener { closeDrawer(); action(getString(R.string.menu_buildtime), "buildtime", "6") }
-        listOf(b.actStart, b.actStop, b.actRestart, b.actLog,
+        listOf(b.cardHarness.actStart, b.cardHarness.actStop, b.cardHarness.actRestart, b.cardHarness.actLog,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
         // 方案 A：点标题行或「打开」按钮进控制台；更多收进 ⋮
-        b.dshHead.setOnClickListener { openConsole() }
-        b.btnDshMore.setOnClickListener { dshMoreDialog() }
-        b.actStart.setOnClickListener {
+        b.cardHarness.dshHead.setOnClickListener { openConsole() }
+        b.cardHarness.btnDshMore.setOnClickListener { dshMoreDialog() }
+        b.cardHarness.actStart.setOnClickListener {
             userStopped = false; downTicks = 0
             ringBusy(); action(getString(R.string.act_start), "start")
         }
-        b.actStop.setOnClickListener {
+        b.cardHarness.actStop.setOnClickListener {
             confirm(getString(R.string.confirm_stop)) {
                 userStopped = true; downTicks = 0
                 ringBusy(); action(getString(R.string.act_stop), "stop")
             }
         }
-        b.actLog.setOnClickListener { toggleLog() }
+        b.cardHarness.actLog.setOnClickListener { toggleLog() }
 
         // 设置弹出卡片
         b.sheetBg.setOnClickListener { hideSheet() }
@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity() {
         b.tvCfgWd.setOnClickListener { numConfDialog("wdInterval", getString(R.string.cfg_wd), 15, 3600) }
         b.tvCfgBoot.setOnClickListener { bootConfDialog() }
         // 日志区嵌在主界面的 ScrollView 里，必须禁止父级拦截触摸，否则内层永远滚不动
-        b.svLog.setOnTouchListener { v, e ->
+        b.cardLog.svLog.setOnTouchListener { v, e ->
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE ->
                     v.parent?.requestDisallowInterceptTouchEvent(true)
@@ -225,9 +225,9 @@ class MainActivity : AppCompatActivity() {
             }
             false
         }
-        b.btnLogClear.setOnClickListener { b.tvLog.text = "" }
-        b.btnLogCopy.setOnClickListener {
-            val t = b.tvLog.text?.toString().orEmpty()
+        b.cardLog.btnLogClear.setOnClickListener { b.cardLog.tvLog.text = "" }
+        b.cardLog.btnLogCopy.setOnClickListener {
+            val t = b.cardLog.tvLog.text?.toString().orEmpty()
             if (t.isNotEmpty()) {
                 (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
                     .setPrimaryClip(ClipData.newPlainText("dsh-log", t))
@@ -237,10 +237,10 @@ class MainActivity : AppCompatActivity() {
         b.btnConsole.setOnClickListener { openConsole() }
 
         // ---- OpenList 网盘卡 ----
-        b.btnOlStart.setOnClickListener { olPrimary() }
-        b.btnOlStop.setOnClickListener { action(getString(R.string.act_stop), "openlist-stop") }
-        b.btnOlOpen.setOnClickListener { openOpenList() }
-        b.btnOlMore.setOnClickListener { olMoreDialog() }
+        b.cardOpenlist.btnOlStart.setOnClickListener { olPrimary() }
+        b.cardOpenlist.btnOlStop.setOnClickListener { action(getString(R.string.act_stop), "openlist-stop") }
+        b.cardOpenlist.btnOlOpen.setOnClickListener { openOpenList() }
+        b.cardOpenlist.btnOlMore.setOnClickListener { olMoreDialog() }
         b.swipeMain.setColorSchemeColors(
             ContextCompat.getColor(this, R.color.accent),
             ContextCompat.getColor(this, R.color.accent2)
@@ -262,18 +262,18 @@ class MainActivity : AppCompatActivity() {
         b.drawerAbout.setOnClickListener { closeDrawer(); about() }
         b.drawerPinWidget.setOnClickListener { closeDrawer(); pinWidget() }
 
-        b.costCard.setOnClickListener { showCostDetail() }
+        b.cardCost.costCard.setOnClickListener { showCostDetail() }
         // ---- Aria2 卡 ----
-        b.btnAriaStart.setOnClickListener { action(getString(R.string.act_start), "aria2-start") }
-        b.btnAriaStop.setOnClickListener { action(getString(R.string.act_stop), "aria2-stop") }
-        b.btnAriaCopy.setOnClickListener { copyRpcInfo() }
-        b.btnAriaMore.setOnClickListener { ariaMoreDialog() }
+        b.cardAria.btnAriaStart.setOnClickListener { action(getString(R.string.act_start), "aria2-start") }
+        b.cardAria.btnAriaStop.setOnClickListener { action(getString(R.string.act_stop), "aria2-stop") }
+        b.cardAria.btnAriaCopy.setOnClickListener { copyRpcInfo() }
+        b.cardAria.btnAriaMore.setOnClickListener { ariaMoreDialog() }
         b.projAria.setOnClickListener { openSubPage("aria") }
 
-        b.sparkCost.setOnClickListener {
+        b.cardCost.sparkCost.setOnClickListener {
             lastCost?.let { c -> sparkMode = 1 - sparkMode; renderSpark(c) }
         }
-        pressable(b.costCard)
+        pressable(b.cardCost.costCard)
 
         b.tvVersion.text = getString(R.string.version_fmt, BuildConfig.VERSION_NAME, DshApi.CTL_VERSION)
         log(getString(R.string.msg_ready))
@@ -516,60 +516,60 @@ class MainActivity : AppCompatActivity() {
         costLoaded = true
 
         if (c.error.isNotEmpty()) {
-            b.tvCostBal.text = getString(R.string.cost_dash)
-            b.tvCostState.text = getString(R.string.cost_state_err)
-            b.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.bad))
-            b.tvCostSub.text =
+            b.cardCost.tvCostBal.text = getString(R.string.cost_dash)
+            b.cardCost.tvCostState.text = getString(R.string.cost_state_err)
+            b.cardCost.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.bad))
+            b.cardCost.tvCostSub.text =
                 if (c.error == "NO_TOKEN" || c.error.contains("invalid token", true))
                     getString(R.string.cost_need_login)
                 else c.error
-            b.tvCostPeak.text = getString(R.string.cost_peak_init)
-            b.tvCostBudget.text = ""
-            b.tvCostBudgetPct.text = ""
-            b.pbCostBudget.progress = 0
-            b.sparkCost.setData(FloatArray(0))
+            b.cardCost.tvCostPeak.text = getString(R.string.cost_peak_init)
+            b.cardCost.tvCostBudget.text = ""
+            b.cardCost.tvCostBudgetPct.text = ""
+            b.cardCost.pbCostBudget.progress = 0
+            b.cardCost.sparkCost.setData(FloatArray(0))
         } else {
             // 官方数据（与「DeepSeek 开放平台」网页同源）
-            b.tvCostBal.text = money(c.balance)
-            b.tvCostState.text = getString(R.string.cost_state_official)
-            b.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.ok))
-            b.tvCostSub.text = getString(R.string.cost_sub_official, c.at, money(c.totalCost))
+            b.cardCost.tvCostBal.text = money(c.balance)
+            b.cardCost.tvCostState.text = getString(R.string.cost_state_official)
+            b.cardCost.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.ok))
+            b.cardCost.tvCostSub.text = getString(R.string.cost_sub_official, c.at, money(c.totalCost))
         }
 
-        b.tvCostToday.text = money(c.today.cost)
-        b.tvCostYesterday.text = money(c.yesterday.cost)
-        b.tvCostMonth.text = money(c.month.cost)
-        b.tvCostD30.text = money(c.d30.cost)
-        b.tvCostHint.text = getString(R.string.cost_hint_usage, c.today.req, tokens(c.today.tokens))
+        b.cardCost.tvCostToday.text = money(c.today.cost)
+        b.cardCost.tvCostYesterday.text = money(c.yesterday.cost)
+        b.cardCost.tvCostMonth.text = money(c.month.cost)
+        b.cardCost.tvCostD30.text = money(c.d30.cost)
+        b.cardCost.tvCostHint.text = getString(R.string.cost_hint_usage, c.today.req, tokens(c.today.tokens))
 
         // 峰谷档位（峰=琥珀，谷=绿）
         val left = fmtLeft(c.peakMinutesLeft)
-        b.tvCostPeak.text = (if (c.peakIsPeak)
+        b.cardCost.tvCostPeak.text = (if (c.peakIsPeak)
             getString(R.string.cost_peak_line, left, money(c.peakCost), money(c.offCost))
         else
             getString(R.string.cost_off_line, left, money(c.peakCost), money(c.offCost))) +
             if (c.peakWeekend) getString(R.string.cost_weekend) else ""
-        b.tvCostPeak.setTextColor(
+        b.cardCost.tvCostPeak.setTextColor(
             ContextCompat.getColor(this, if (c.peakIsPeak) R.color.warn else R.color.ok))
 
         // 预算进度（≥80% 接近、≥100% 超支）
         if (c.budgetDaily > 0) {
-            b.tvCostBudget.text =
+            b.cardCost.tvCostBudget.text =
                 getString(R.string.cost_budget_fmt, money(c.today.cost), money(c.budgetDaily))
-            b.tvCostBudgetPct.text = String.format(Locale.US, "%.0f%%", c.dailyPct)
+            b.cardCost.tvCostBudgetPct.text = String.format(Locale.US, "%.0f%%", c.dailyPct)
             val col = when {
                 c.dailyPct >= 100 -> R.color.bad
                 c.dailyPct >= 80 -> R.color.warn
                 else -> R.color.ok
             }
             val c2 = ContextCompat.getColor(this, col)
-            b.tvCostBudgetPct.setTextColor(c2)
-            b.pbCostBudget.progressTintList = ColorStateList.valueOf(c2)
-            b.pbCostBudget.progress = c.dailyPct.coerceIn(0.0, 100.0).toInt()
+            b.cardCost.tvCostBudgetPct.setTextColor(c2)
+            b.cardCost.pbCostBudget.progressTintList = ColorStateList.valueOf(c2)
+            b.cardCost.pbCostBudget.progress = c.dailyPct.coerceIn(0.0, 100.0).toInt()
         } else {
-            b.tvCostBudget.text = getString(R.string.cost_budget_none)
-            b.tvCostBudgetPct.text = ""
-            b.pbCostBudget.progress = 0
+            b.cardCost.tvCostBudget.text = getString(R.string.cost_budget_none)
+            b.cardCost.tvCostBudgetPct.text = ""
+            b.cardCost.pbCostBudget.progress = 0
         }
 
         refreshWidgets()          // 小组件只读缓存，推一次几乎零成本
@@ -678,7 +678,7 @@ class MainActivity : AppCompatActivity() {
         if (parseConf(out)) return
 
         if (installPolling) {
-            b.installCard.visibility = View.VISIBLE
+            b.cardInstall.installCard.visibility = View.VISIBLE
             out.lines().filter { it.isNotBlank() }.forEach { log(it, kindOf(it)) }
             return
         }
@@ -702,11 +702,11 @@ class MainActivity : AppCompatActivity() {
     private fun hostLabel() {
         val host = lastUrl.substringAfter("://").substringBefore("/")
         val st = lastStatus
-        b.tvDshSub.text = getString(
+        b.cardHarness.tvDshSub.text = getString(
             R.string.dsh_card_sub_fmt, (st?.dshVersion ?: "").ifEmpty { "?" }, host.ifEmpty { "--" })
         val up = st?.service == true
-        b.tvDshState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
-        b.tvDshState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+        b.cardHarness.tvDshState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
+        b.cardHarness.tvDshState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
     }
 
     // ---------------- 状态渲染 ----------------
@@ -732,14 +732,14 @@ class MainActivity : AppCompatActivity() {
                 action(getString(R.string.act_start), "start")
             }
         }
-        b.ivDshIcon.alpha = if (s.service) 1f else 0.5f
+        b.cardHarness.ivDshIcon.alpha = if (s.service) 1f else 0.5f
         styleActionButtons(s.service)
         if (prev != null && prev.service != s.service) {
             // 刚变成"停止"：给主按钮一个脉冲，提示可以启动
             if (!s.service) {
-                b.actStart.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140)
+                b.cardHarness.actStart.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140)
                     .withEndAction {
-                        b.actStart.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
+                        b.cardHarness.actStart.animate().scaleX(1f).scaleY(1f).setDuration(200).start()
                     }.start()
             }
         }
@@ -755,27 +755,27 @@ class MainActivity : AppCompatActivity() {
         if (subProject != null) refreshSubChip()
 
         // 服务停止时端口/进程/时长显示「—」，不再是 000 / --:--:--
-        rollText(b.tvPortValue, if (s.service) s.portCode else "—")
-        b.tvPortValue.setTextColor(ContextCompat.getColor(this, when {
+        rollText(b.cardHarness.tvPortValue, if (s.service) s.portCode else "—")
+        b.cardHarness.tvPortValue.setTextColor(ContextCompat.getColor(this, when {
             !s.service -> R.color.dim
             s.port -> R.color.fg
             else -> R.color.bad
         }))
 
-        b.tvModelValue.text = getString(if (s.model == "OK") R.string.model_ok else R.string.model_missing)
-        b.tvModelValue.setTextColor(ContextCompat.getColor(
+        b.cardHarness.tvModelValue.text = getString(if (s.model == "OK") R.string.model_ok else R.string.model_missing)
+        b.cardHarness.tvModelValue.setTextColor(ContextCompat.getColor(
             this, if (s.model == "OK" && s.service) R.color.ok else R.color.dim))
 
-        rollText(b.tvProcValue, if (s.service) s.procs.ifEmpty { "0" } else "—")
-        b.tvUptimeValue.text = if (s.service && s.runtime.isNotEmpty()) s.runtime else "—"
+        rollText(b.cardHarness.tvProcValue, if (s.service) s.procs.ifEmpty { "0" } else "—")
+        b.cardHarness.tvUptimeValue.text = if (s.service && s.runtime.isNotEmpty()) s.runtime else "—"
 
         if (s.url.isNotEmpty()) { lastUrl = s.url; hostLabel() }
 
 
         if (s.installing != installPolling) {
             installPolling = s.installing
-            b.installCard.visibility = if (s.installing) View.VISIBLE else View.GONE
-            if (!s.installing) b.tvInstall.text = ""
+            b.cardInstall.installCard.visibility = if (s.installing) View.VISIBLE else View.GONE
+            if (!s.installing) b.cardInstall.tvInstall.text = ""
         }
 
         applyOpenList(s)
@@ -928,21 +928,21 @@ class MainActivity : AppCompatActivity() {
 
     /** Aria2 卡的渲染 */
     private fun applyAria(s: Status) {
-        b.tvAriaState.text = stateText(s.ariaState)
-        b.tvAriaState.setTextColor(ContextCompat.getColor(this, if (s.ariaState) R.color.ok else R.color.dim))
-        b.tvAriaSub.text = getString(R.string.aria_sub_fmt,
+        b.cardAria.tvAriaState.text = stateText(s.ariaState)
+        b.cardAria.tvAriaState.setTextColor(ContextCompat.getColor(this, if (s.ariaState) R.color.ok else R.color.dim))
+        b.cardAria.tvAriaSub.text = getString(R.string.aria_sub_fmt,
             s.ariaVersion.ifEmpty { "Aria2" }, s.ariaPort.ifEmpty { "6800" })
-        b.tvAriaPortValue.text = if (s.ariaState) s.ariaPort.ifEmpty { "6800" } else "—"
-        b.tvAriaTasksValue.text = if (s.ariaState) s.ariaTasks.ifEmpty { "0" } else "—"
+        b.cardAria.tvAriaPortValue.text = if (s.ariaState) s.ariaPort.ifEmpty { "6800" } else "—"
+        b.cardAria.tvAriaTasksValue.text = if (s.ariaState) s.ariaTasks.ifEmpty { "0" } else "—"
         val sp = speedText(s.ariaSpeed)
-        b.tvAriaSpeedValue.text = if (s.ariaState) sp else "—"
-        b.tvAriaSpeedValue.setTextColor(ContextCompat.getColor(
+        b.cardAria.tvAriaSpeedValue.text = if (s.ariaState) sp else "—"
+        b.cardAria.tvAriaSpeedValue.setTextColor(ContextCompat.getColor(
             this, if (s.ariaState && sp != "0") R.color.cyan else R.color.fg))
         // 按钮主次和 dsh 卡一致：停了就突出「启动」
-        b.btnAriaStart.isEnabled = !s.ariaState
-        b.btnAriaStart.alpha = if (s.ariaState) 0.45f else 1f
-        b.btnAriaStop.isEnabled = s.ariaState
-        b.btnAriaStop.alpha = if (s.ariaState) 1f else 0.45f
+        b.cardAria.btnAriaStart.isEnabled = !s.ariaState
+        b.cardAria.btnAriaStart.alpha = if (s.ariaState) 0.45f else 1f
+        b.cardAria.btnAriaStop.isEnabled = s.ariaState
+        b.cardAria.btnAriaStop.alpha = if (s.ariaState) 1f else 0.45f
     }
 
     /** 下载速度：字节/秒 → 人看的单位 */
@@ -1393,35 +1393,35 @@ class MainActivity : AppCompatActivity() {
     private fun styleActionButtons(running: Boolean) {
         val accent = ContextCompat.getColor(this, R.color.accent)
         if (running) {
-            b.actStart.setBackgroundResource(R.drawable.bg_btn_ghost)
-            b.actStart.setTextColor(accent)
-            b.actStart.alpha = 0.45f
-            b.actStart.isEnabled = false
+            b.cardHarness.actStart.setBackgroundResource(R.drawable.bg_btn_ghost)
+            b.cardHarness.actStart.setTextColor(accent)
+            b.cardHarness.actStart.alpha = 0.45f
+            b.cardHarness.actStart.isEnabled = false
         } else {
-            b.actStart.setBackgroundResource(R.drawable.bg_btn_primary)
-            b.actStart.setTextColor(Color.WHITE)
-            b.actStart.alpha = 1f
-            b.actStart.isEnabled = true
+            b.cardHarness.actStart.setBackgroundResource(R.drawable.bg_btn_primary)
+            b.cardHarness.actStart.setTextColor(Color.WHITE)
+            b.cardHarness.actStart.alpha = 1f
+            b.cardHarness.actStart.isEnabled = true
         }
-        b.actStop.isEnabled = running
-        b.actStop.alpha = if (running) 1f else 0.45f
-        b.actRestart.isEnabled = running
-        b.actRestart.alpha = if (running) 1f else 0.45f
+        b.cardHarness.actStop.isEnabled = running
+        b.cardHarness.actStop.alpha = if (running) 1f else 0.45f
+        b.cardHarness.actRestart.isEnabled = running
+        b.cardHarness.actRestart.alpha = if (running) 1f else 0.45f
     }
 
     /** 迷你图渲染：近 14 天 / 今日逐小时 两种视图共用一块图（点按切换，卡片不增高） */
     private fun renderSpark(c: Cost) {
         if (sparkMode == 0) {
-            b.tvCostSparkLabel.text = getString(R.string.cost_spark_14d)
-            b.sparkCost.setData(FloatArray(c.daily.size) { c.daily[it].toFloat() })
-            b.tvCostSpark.text = if (c.daily.isNotEmpty())
+            b.cardCost.tvCostSparkLabel.text = getString(R.string.cost_spark_14d)
+            b.cardCost.sparkCost.setData(FloatArray(c.daily.size) { c.daily[it].toFloat() })
+            b.cardCost.tvCostSpark.text = if (c.daily.isNotEmpty())
                 getString(R.string.cost_spark_fmt, c.daily.size, money(c.dailyTotal), money(c.dailyAvg))
             else getString(R.string.cost_spark_init)
         } else {
-            b.tvCostSparkLabel.text = getString(R.string.cost_spark_today)
+            b.cardCost.tvCostSparkLabel.text = getString(R.string.cost_spark_today)
             val nowHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-            b.sparkCost.setData(FloatArray(c.hourly.size) { c.hourly[it].toFloat() }, nowHour)
-            b.tvCostSpark.text = if (c.hourly.any { it > 0.0 } && c.hourlyPeakHour >= 0)
+            b.cardCost.sparkCost.setData(FloatArray(c.hourly.size) { c.hourly[it].toFloat() }, nowHour)
+            b.cardCost.tvCostSpark.text = if (c.hourly.any { it > 0.0 } && c.hourlyPeakHour >= 0)
                 getString(R.string.cost_hour_peak_fmt, c.hourlyPeakHour, money(c.hourlyPeakCost),
                     money(c.today.cost))
             else getString(R.string.cost_hour_none)
@@ -1601,26 +1601,26 @@ class MainActivity : AppCompatActivity() {
 
     /** 启动/停止中：弧变短并绕圈转 + 中心圆盘脉冲 */
     private fun ringBusy() {
-        b.ivDshIcon.animate().rotationBy(360f).setDuration(650).start()
+        b.cardHarness.ivDshIcon.animate().rotationBy(360f).setDuration(650).start()
         pulse()
     }
 
     private fun pulse() {
-        b.ivDshIcon.animate().scaleX(1.25f).scaleY(1.25f).setDuration(140)
+        b.cardHarness.ivDshIcon.animate().scaleX(1.25f).scaleY(1.25f).setDuration(140)
             .withEndAction {
-                b.ivDshIcon.animate().scaleX(1f).scaleY(1f).setDuration(220).start()
+                b.cardHarness.ivDshIcon.animate().scaleX(1f).scaleY(1f).setDuration(220).start()
             }.start()
     }
 
     /** 统一的动作入口：自动展开日志卡，让输出可见 */
     private fun action(label: String, vararg args: String, stdin: String? = null) {
-        if (b.logCard.visibility != View.VISIBLE) b.logCard.visibility = View.VISIBLE
+        if (b.cardLog.logCard.visibility != View.VISIBLE) b.cardLog.logCard.visibility = View.VISIBLE
         ctl(label, *args, stdin = stdin)
     }
 
     /** 只有当前已在底部时才自动跟随；用户上滑查看历史时不打断 */
     private fun autoScrollIfAtBottom() {
-        val sv = b.svLog
+        val sv = b.cardLog.svLog
         val child = sv.getChildAt(0) ?: return
         val threshold = (resources.displayMetrics.density * 32).toInt()
         val atBottom = sv.scrollY + sv.height >= child.height - threshold
@@ -1629,15 +1629,15 @@ class MainActivity : AppCompatActivity() {
 
     /** 首次状态到达前的骨架态：占位 + 呼吸闪烁 */
     private fun startSkeleton() {
-        b.tvPortValue.text = "—"
-        b.tvModelValue.text = "—"
-        b.tvProcValue.text = "—"
-        b.tvUptimeValue.text = "—"
-        b.tvDshState.text = getString(R.string.state_loading)
-        b.tvLog.text = getString(R.string.log_empty)
+        b.cardHarness.tvPortValue.text = "—"
+        b.cardHarness.tvModelValue.text = "—"
+        b.cardHarness.tvProcValue.text = "—"
+        b.cardHarness.tvUptimeValue.text = "—"
+        b.cardHarness.tvDshState.text = getString(R.string.state_loading)
+        b.cardLog.tvLog.text = getString(R.string.log_empty)
         ui.postDelayed({
             if (skeleton) {
-                skeletonAnim = ObjectAnimator.ofFloat(b.ivDshIcon, "alpha", 1f, 0.35f).apply {
+                skeletonAnim = ObjectAnimator.ofFloat(b.cardHarness.ivDshIcon, "alpha", 1f, 0.35f).apply {
                     duration = 900
                     repeatMode = ValueAnimator.REVERSE
                     repeatCount = ValueAnimator.INFINITE
@@ -1652,7 +1652,7 @@ class MainActivity : AppCompatActivity() {
         skeleton = false
         skeletonAnim?.cancel()
         skeletonAnim = null
-        b.ivDshIcon.alpha = 1f
+        b.cardHarness.ivDshIcon.alpha = 1f
     }
 
     /** 数字平滑滚动；非数字则直接替换 */
@@ -1872,32 +1872,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyOpenList(s: Status) {
         if (!s.olInstalled) {
-            b.btnOlStart.text = getString(R.string.ol_install)
-            b.tvOlState.text = getString(R.string.ol_not_installed)
-            b.tvOlState.setTextColor(ContextCompat.getColor(this, R.color.dim))
-            b.tvOlSub.text = getString(R.string.ol_sub_not_installed)
-            b.tvOlPortValue.text = getString(R.string.ol_dash)
-            b.tvOlUptimeValue.text = getString(R.string.ol_dash)
-            b.tvOlBootValue.text =
+            b.cardOpenlist.btnOlStart.text = getString(R.string.ol_install)
+            b.cardOpenlist.tvOlState.text = getString(R.string.ol_not_installed)
+            b.cardOpenlist.tvOlState.setTextColor(ContextCompat.getColor(this, R.color.dim))
+            b.cardOpenlist.tvOlSub.text = getString(R.string.ol_sub_not_installed)
+            b.cardOpenlist.tvOlPortValue.text = getString(R.string.ol_dash)
+            b.cardOpenlist.tvOlUptimeValue.text = getString(R.string.ol_dash)
+            b.cardOpenlist.tvOlBootValue.text =
                 getString(if (s.olBoot) R.string.ol_flag_on else R.string.ol_flag_off)
             return
         }
-        b.btnOlStart.text = getString(R.string.act_start)
+        b.cardOpenlist.btnOlStart.text = getString(R.string.act_start)
 
         val up = s.olService
-        b.tvOlState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
-        b.tvOlState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
-        b.tvOlSub.text = getString(R.string.ol_sub_fmt, s.olVersion.ifEmpty { "?" })
+        b.cardOpenlist.tvOlState.text = getString(if (up) R.string.state_running else R.string.state_stopped)
+        b.cardOpenlist.tvOlState.setTextColor(ContextCompat.getColor(this, if (up) R.color.ok else R.color.dim))
+        b.cardOpenlist.tvOlSub.text = getString(R.string.ol_sub_fmt, s.olVersion.ifEmpty { "?" })
 
-        b.tvOlPortValue.text = s.olPort.ifEmpty { "5244" }
+        b.cardOpenlist.tvOlPortValue.text = s.olPort.ifEmpty { "5244" }
         val httpOk = s.olPortCode == "200" || s.olPortCode == "401"
-        b.tvOlPortValue.setTextColor(
+        b.cardOpenlist.tvOlPortValue.setTextColor(
             ContextCompat.getColor(this, if (httpOk) R.color.fg else R.color.bad)
         )
 
-        b.tvOlUptimeValue.text = s.olRuntime.ifEmpty { getString(R.string.ol_dash) }
-        b.tvOlBootValue.text = getString(if (s.olBoot) R.string.ol_flag_on else R.string.ol_flag_off)
-        b.tvOlBootValue.setTextColor(
+        b.cardOpenlist.tvOlUptimeValue.text = s.olRuntime.ifEmpty { getString(R.string.ol_dash) }
+        b.cardOpenlist.tvOlBootValue.text = getString(if (s.olBoot) R.string.ol_flag_on else R.string.ol_flag_off)
+        b.cardOpenlist.tvOlBootValue.setTextColor(
             ContextCompat.getColor(this, if (s.olBoot) R.color.fg else R.color.dim)
         )
 
@@ -1947,9 +1947,9 @@ class MainActivity : AppCompatActivity() {
             .setView(box)
             .setPositiveButton(R.string.ok) { _, _ ->
                 val key = et.text.toString().trim()
-                b.tvInstall.text = ""
-                b.logCard.visibility = View.VISIBLE
-                b.installCard.visibility = View.VISIBLE
+                b.cardInstall.tvInstall.text = ""
+                b.cardLog.logCard.visibility = View.VISIBLE
+                b.cardInstall.installCard.visibility = View.VISIBLE
                 installPolling = true
                 ringBusy()
                 askNotificationPermission()
@@ -1971,8 +1971,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleLog() {
-        val show = b.logCard.visibility != View.VISIBLE
-        b.logCard.visibility = if (show) View.VISIBLE else View.GONE
+        val show = b.cardLog.logCard.visibility != View.VISIBLE
+        b.cardLog.logCard.visibility = if (show) View.VISIBLE else View.GONE
     }
 
     private fun openConsole() {
@@ -2066,7 +2066,7 @@ class MainActivity : AppCompatActivity() {
                 val cut = logBuf.indexOf("\n", 40000)
                 if (cut > 0) logBuf.delete(0, cut + 1)
             }
-            b.tvLog.text = logBuf
+            b.cardLog.tvLog.text = logBuf
             autoScrollIfAtBottom()
             ui.postDelayed(this, if (q.size > 20) 6L else 40L)
         }

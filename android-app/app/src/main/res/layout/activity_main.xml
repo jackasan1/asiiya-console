@@ -81,27 +81,27 @@
         </LinearLayout>
 
         <!-- ============ 服务卡（DeepSeek Harness，与网盘/费用卡同款）============ -->
-                <include layout="@layout/card_harness" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <include android:id="@+id/cardHarness" layout="@layout/card_harness" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ OpenList 网盘卡 ============ -->
-                <include layout="@layout/card_openlist" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <include android:id="@+id/cardOpenlist" layout="@layout/card_openlist" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ Aria2 离线下载卡 ============ -->
-                <include layout="@layout/card_aria" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <include android:id="@+id/cardAria" layout="@layout/card_aria" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ 费用卡（DeepSeek 官方数据）============ -->
-                <include layout="@layout/card_cost" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <include android:id="@+id/cardCost" layout="@layout/card_cost" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ 日志卡（默认隐藏）============ -->
-                <include layout="@layout/card_log" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <include android:id="@+id/cardLog" layout="@layout/card_log" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <!-- ============ 安装进度（默认隐藏）============ -->
-                <include layout="@layout/card_install" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <include android:id="@+id/cardInstall" layout="@layout/card_install" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
 
 
         <TextView
