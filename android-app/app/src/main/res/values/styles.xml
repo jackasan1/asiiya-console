@@ -22,57 +22,57 @@
     </style>
 
     <!-- ================= 字阶 ================= -->
-    <style name="TextAppearance.Dsh.TopbarTitle">
+    <style name="TextAppearance.Dsh.TopbarTitle" parent="">
         <item name="android:textColor">@color/fg</item>
         <item name="android:textSize">19sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 
-    <style name="TextAppearance.Dsh.CardTitle">
+    <style name="TextAppearance.Dsh.CardTitle" parent="">
         <item name="android:textColor">@color/fg</item>
         <item name="android:textSize">17sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 
-    <style name="TextAppearance.Dsh.CardSub">
+    <style name="TextAppearance.Dsh.CardSub" parent="">
         <item name="android:textColor">@color/fg2</item>
         <item name="android:textSize">11.5sp</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 
-    <style name="TextAppearance.Dsh.BigNumber">
+    <style name="TextAppearance.Dsh.BigNumber" parent="">
         <item name="android:textColor">@color/fg</item>
         <item name="android:textSize">34sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 
-    <style name="TextAppearance.Dsh.Value">
+    <style name="TextAppearance.Dsh.Value" parent="">
         <item name="android:textColor">@color/fg</item>
         <item name="android:textSize">15sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="TextAppearance.Dsh.Label">
+    <style name="TextAppearance.Dsh.Label" parent="">
         <item name="android:textColor">@color/dim</item>
         <item name="android:textSize">12sp</item>
     </style>
 
-    <style name="TextAppearance.Dsh.Caption">
+    <style name="TextAppearance.Dsh.Caption" parent="">
         <item name="android:textColor">@color/dim</item>
         <item name="android:textSize">11.5sp</item>
     </style>
 
-    <style name="TextAppearance.Dsh.Pill">
+    <style name="TextAppearance.Dsh.Pill" parent="">
         <item name="android:textColor">@color/ok</item>
         <item name="android:textSize">12.5sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 
     <!-- ================= 按钮 ================= -->
-    <style name="Widget.Dsh.Btn">
+    <style name="Widget.Dsh.Btn" parent="">
         <item name="android:layout_height">@dimen/btn_h</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
