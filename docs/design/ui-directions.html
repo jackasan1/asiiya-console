@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Asiiya 工作台 · UI 视觉方向提案 v1</title>
+<style>
+/* ============================================================
+   Asiiya 工作台 · UI 方向提案 · 预览页
+   3 个风格方向 × (核心页面 / 关键组件 / 交互状态 / 动效分镜)
+   ============================================================ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:#0A0C11;color:#E8ECF4;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.mono,code{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 14px 90px}
+
+/* ---------- 文档头 ---------- */
+.doc-hero{border-radius:24px;padding:24px 20px;position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 20% 0%,#1B2440 0%,#0E1220 55%,#0A0C11 100%);
+  border:1px solid rgba(255,255,255,.08)}
+.doc-hero:after{content:"";position:absolute;inset:-40% -10% auto -10%;height:60%;
+  background:radial-gradient(50% 100% at 30% 0%,rgba(95,216,234,.22),transparent 70%),
+             radial-gradient(45% 100% at 78% 10%,rgba(139,92,246,.20),transparent 70%);
+  filter:blur(10px);pointer-events:none}
+.doc-hero>*{position:relative;z-index:2}
+.eyebrow{font:600 10.5px/1 ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:#7C8AA5}
+.doc-hero h1{font-size:27px;line-height:1.22;margin:10px 0 8px;letter-spacing:-.025em;font-weight:800}
+.doc-hero p{color:#93A0B4;font-size:13.5px;line-height:1.78;margin:0}
+.doc-hero .stack{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.tag{font-size:10.5px;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.13);
+  color:#9AA8BE;background:rgba(255,255,255,.03);white-space:nowrap}
+.doc-note{margin-top:14px;font-size:12px;color:#7C8AA5;line-height:1.7;
+  border-left:2px solid rgba(255,255,255,.14);padding-left:11px}
+
+/* ---------- 目录 ---------- */
+.toc{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
+.toc a{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit;
+  border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);
+  border-radius:15px;padding:11px 13px;transition:background .2s}
+.toc a:active{background:rgba(255,255,255,.06)}
+.toc .n{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;
+  font:700 12px/1 ui-monospace,monospace;color:#0A0C11}
+.toc .t{flex:1;min-width:0}
+.toc .t b{display:block;font-size:13.5px}
+.toc .t span{font-size:11px;color:#7C8AA5}
+.toc .arw{color:#5E6B80;font-size:14px}
+
+/* ---------- 方向区块 ---------- */
+.dir{margin-top:34px;border-radius:24px;padding:20px 14px 30px;position:relative;
+  border:1px solid rgba(255,255,255,.07);
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.008))}
+.dir-hd{display:flex;align-items:flex-start;gap:12px}
+.dir-ix{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none;
+  font:800 16px/1 ui-monospace,monospace}
+.dir-hd h2{font-size:20px;margin:0;letter-spacing:-.02em;font-weight:800}
+.dir-hd .en{display:block;font:600 10px/1 ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:#7C8AA5;margin-top:6px}
+.thesis{color:#95A2B6;font-size:13px;line-height:1.8;margin:13px 0 0}
+.thesis b{color:#DCE4F0;font-weight:600}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;margin-top:13px}
+.kv div{font-size:10.5px;color:#8E9BB0;background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.06);border-radius:11px;padding:8px 10px;line-height:1.45}
+.kv b{display:block;color:#E2E9F4;font-weight:700;font-size:11.5px;margin-bottom:2px}
+
+/* 色板 */
+.pal{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.sw{width:52px;height:52px;border-radius:13px;position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.15)}
+.sw i{position:absolute;left:6px;bottom:5px;font:700 8px/1 ui-monospace,monospace;
+  color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.75);letter-spacing:.02em}
+.sw b{position:absolute;left:6px;top:5px;font:700 8.5px/1 ui-monospace,monospace;
+  color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.75)}
+
+/* 章节标题 */
+.bt{display:flex;align-items:center;gap:9px;margin:28px 0 14px;font-size:13.5px;font-weight:800;
+  color:#CBD6E6;letter-spacing:.01em}
+.bt:before{content:"";width:3px;height:15px;border-radius:2px;background:currentColor}
+.bt small{font-weight:500;color:#6F7D94;font-size:11px;letter-spacing:0}
+
+/* ---------- 手机 ---------- */
+.phones{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start}
+.phone{width:100%;max-width:372px;height:812px;flex:none;position:relative;
+  border-radius:38px;padding:9px;background:#05070B;
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.10),
+             inset 0 0 0 1px rgba(0,0,0,.6)}
+.phone .cap{position:absolute;top:-24px;left:4px;font-size:10.5px;color:#7C8AA5;
+  font-family:ui-monospace,monospace;letter-spacing:.06em;white-space:nowrap}
+.phones.gapped{margin-top:34px}
+.scr{width:100%;height:100%;border-radius:30px;overflow:hidden;position:relative;
+  display:flex;flex-direction:column}
+
+/* 状态栏 */
+.pst{height:44px;display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 24px 7px;font-size:11.5px;font-weight:700;position:relative;z-index:6;flex:none}
+.pst .r{display:flex;gap:5px;align-items:center;font-size:10px;letter-spacing:.5px}
+.pbody{flex:1;overflow:hidden;padding:4px 12px 0;position:relative;z-index:3}
+
+/* 顶部栏 */
+.tbar{height:48px;display:flex;align-items:center;gap:9px}
+.tbb{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex:none;
+  font-size:15px;line-height:1}
+.tbt{flex:1;text-align:center;font-size:17px;font-weight:800;letter-spacing:-.01em}
+
+/* 卡片 */
+.card{margin-top:12px;padding:14px;position:relative;overflow:hidden}
+.ch{display:flex;align-items:center;gap:9px}
+.ico{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;
+  font-size:15px;line-height:1}
+.ch .tx{flex:1;min-width:0}
+.ttl{font-size:14.5px;font-weight:750;letter-spacing:-.005em}
+.sub{font-size:10.5px;margin-top:2.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:10.5px;font-weight:750;padding:5px 9px;border-radius:999px;display:inline-flex;
+  align-items:center;gap:4px;white-space:nowrap;flex:none;line-height:1}
+.dot{width:5px;height:5px;border-radius:999px;flex:none}
+.more{width:30px;height:30px;display:grid;place-items:center;font-size:15px;flex:none;opacity:.6}
+
+/* 3 列指标 */
+.g3{display:flex;gap:6px;margin-top:12px}
+.blk{flex:1;padding:8px 4px;text-align:center;min-width:0}
+.blk .k{font-size:9px;letter-spacing:.07em;text-transform:uppercase;font-weight:700}
+.blk .v{font-size:12.5px;font-weight:800;margin-top:3.5px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+
+/* 按钮 */
+.btns{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;height:44px;font-size:13px;font-weight:750;display:grid;place-items:center;
+  border:0;letter-spacing:.01em;line-height:1}
+.btn.wide{flex:none;width:100%;margin-top:12px}
+.btn.sm{height:34px;font-size:11.5px;padding:0 14px;flex:none}
+
+/* 进度 */
+.prog{height:6px;border-radius:999px;overflow:hidden;margin-top:11px}
+.prog i{display:block;height:100%;border-radius:999px}
+
+/* 行 */
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:11px;font-size:11.5px}
+.row .l{color:#8A96A8}
+.row .r{font-weight:750;font-variant-numeric:tabular-nums}
+
+/* sparkline 波形 */
+.spark{height:44px;margin-top:10px;position:relative}
+.spark svg{display:block;width:100%;height:100%}
+
+/* 环形 */
+.ringwrap{display:flex;align-items:center;gap:14px;margin-top:6px}
+.ring{width:84px;height:84px;flex:none;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .mid b{font-size:17px;font-weight:850;letter-spacing:-.03em}
+.ring .mid span{font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.6}
+
+/* 日志 */
+.log{margin-top:10px;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:9.5px;
+  line-height:1.85;border-radius:12px;padding:10px;max-height:104px;overflow:hidden}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log .ts{opacity:.5;margin-right:6px}
+
+/* 底部胶囊 / 导航 */
+.foot{padding:12px 0 16px}
+.pillbtn{height:48px;border-radius:16px;display:grid;place-items:center;
+  font-size:13.5px;font-weight:800}
+.ver{text-align:center;font-size:9.5px;margin-top:10px;letter-spacing:.04em}
+
+/* 抽屉 / 弹层 */
+.scrim{position:absolute;inset:0;background:rgba(2,4,8,.62);z-index:20;display:flex}
+.scrim.center{align-items:center;justify-content:center}
+.scrim.bottom{align-items:flex-end}
+.sheet{width:100%;margin:0 12px 16px;padding:16px;position:relative}
+.sheet .st{font-size:15.5px;font-weight:800}
+.sec{font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 7px}
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;
+  font-size:13px}
+.lrow .rr{font-size:12.5px;font-weight:700;opacity:.85;font-variant-numeric:tabular-nums;
+  max-width:56%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.divider{height:1px;opacity:.5}
+.drawer{width:78%;height:100%;padding:16px 14px;overflow:hidden}
+.dsec{font-size:9.5px;font-weight:750;letter-spacing:.12em;text-transform:uppercase;margin:16px 0 6px}
+
+/* ---------- 组件板 ---------- */
+.cgrid{display:grid;grid-template-columns:1fr;gap:12px}
+.cbox{border-radius:16px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.022);
+  padding:14px 13px}
+.cbox h4{margin:0 0 11px;font-size:11px;font-weight:750;letter-spacing:.09em;
+  text-transform:uppercase;color:#7C8AA5}
+.crow{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.cnote{font-size:10.5px;color:#6F7D94;margin-top:11px;line-height:1.6;
+  font-family:ui-monospace,monospace}
+
+/* ---------- 状态矩阵 ---------- */
+.mx{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:11.5px}
+.mx th{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#7C8AA5;
+  text-align:left;font-weight:750;padding:0 8px 4px}
+.mx td{padding:9px 8px;vertical-align:middle}
+.mx tr{background:rgba(255,255,255,.028)}
+.mx td:first-child{border-radius:12px 0 0 12px;font-weight:750;color:#CBD6E6;white-space:nowrap}
+.mx td:last-child{border-radius:0 12px 12px 0}
+.mx .st-name{font-size:10px;color:#6F7D94;font-family:ui-monospace,monospace}
+
+/* ---------- 动效分镜 ---------- */
+.film{display:flex;gap:11px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:none}
+.film::-webkit-scrollbar{display:none}
+.frame{flex:none;width:158px}
+.fv{height:186px;border-radius:15px;position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;
+  background:#0C0F15}
+.fn{position:absolute;top:7px;left:8px;font:700 8.5px/1 ui-monospace,monospace;
+  letter-spacing:.08em;opacity:.55;z-index:4}
+.fm{font-size:10px;color:#8E9BB0;margin-top:8px;line-height:1.65;font-family:ui-monospace,monospace}
+.fm b{color:#DCE4F0;font-family:inherit}
+.fbar{display:flex;gap:5px;margin-top:6px;font:600 8.5px/1.7 ui-monospace,monospace;color:#5E6B80;
+  flex-wrap:wrap}
+.fbar em{font-style:normal;background:rgba(255,255,255,.05);border-radius:5px;padding:2px 6px;
+  white-space:nowrap}
+
+/* 分镜内的演示元素 */
+.dm{width:74%;border-radius:12px;text-align:center;font-size:11px;font-weight:750;
+  padding:13px 8px;line-height:1.3}
+
+/* 图例 */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:10.5px;color:#8E9BB0;
+  font-family:ui-monospace,monospace}
+
+@media(min-width:900px){
+  .wrap{padding:30px 26px 110px}
+  .toc{grid-template-columns:repeat(3,1fr)}
+  .cgrid{grid-template-columns:repeat(2,1fr)}
+  .doc-hero{padding:32px 30px}
+  .dir{padding:26px 24px 36px}
+}
+</style>
+<style>
+/* ============================================================
+   方向 A · Nebula Glass 星云玻璃
+   弥散极光 + 磨砂玻璃 + 发光描边
+   ============================================================ */
+.dA .dir-ix{background:linear-gradient(135deg,#5FD8EA,#4F8BF7);color:#06121C;
+  box-shadow:0 8px 26px -8px rgba(79,139,247,.75)}
+.dA .bt:before{background:#5FD8EA}
+
+.dA .scr{
+  background:
+    radial-gradient(90% 55% at 15% -6%,rgba(30,64,175,.55),transparent 62%),
+    radial-gradient(75% 45% at 92% 4%,rgba(14,116,144,.42),transparent 60%),
+    radial-gradient(70% 40% at 50% 104%,rgba(99,102,241,.22),transparent 65%),
+    linear-gradient(180deg,#070A12,#05070D 60%,#06080F);
+  color:#EAF0FA}
+.dA .scr:before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),transparent 22%)}
+.dA .pst{color:#A9B7CE}
+.dA .tbb{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);
+  color:#DCE6F5;backdrop-filter:blur(12px)}
+.dA .tbb.round{border-radius:999px}
+.dA .tbt{color:#F2F6FD;text-shadow:0 1px 12px rgba(79,139,247,.5)}
+.dA .card{
+  background:linear-gradient(165deg,rgba(38,48,70,.62),rgba(18,24,38,.58));
+  backdrop-filter:blur(22px) saturate(155%);
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:24px;
+  box-shadow:0 26px 56px -26px rgba(0,0,0,.92),
+             inset 0 1px 0 rgba(255,255,255,.10),
+             inset 0 -1px 0 rgba(255,255,255,.03)}
+.dA .card:after{content:"";position:absolute;left:14%;right:14%;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(95,216,234,.85),transparent)}
+.dA .ico{border-radius:11px}
+.dA .ico.b{background:radial-gradient(circle at 32% 28%,rgba(95,216,234,.45),rgba(79,139,247,.28));
+  border:1px solid rgba(95,216,234,.38);color:#CBEBFB;
+  box-shadow:0 0 18px -2px rgba(95,216,234,.45)}
+.dA .ico.g{background:radial-gradient(circle at 32% 28%,rgba(62,216,164,.42),rgba(15,137,110,.22));
+  border:1px solid rgba(62,216,164,.36);color:#BFF6E5;
+  box-shadow:0 0 18px -2px rgba(62,216,164,.4)}
+.dA .ico.v{background:radial-gradient(circle at 32% 28%,rgba(167,139,250,.45),rgba(99,102,241,.24));
+  border:1px solid rgba(167,139,250,.4);color:#E2D9FF;
+  box-shadow:0 0 18px -2px rgba(167,139,250,.45)}
+.dA .sub{color:#7C8CA6}
+.dA .ttl{color:#F1F5FC}
+.dA .pill{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.11);color:#9FB0C9}
+.dA .pill.ok{background:rgba(62,216,164,.14);border-color:rgba(62,216,164,.34);color:#6FF0C6}
+.dA .pill.warn{background:rgba(255,183,77,.14);border-color:rgba(255,183,77,.34);color:#FFCE85}
+.dA .pill.bad{background:rgba(251,113,133,.14);border-color:rgba(251,113,133,.34);color:#FF9CAC}
+.dA .pill.acc{background:rgba(79,139,247,.16);border-color:rgba(79,139,247,.36);color:#9CC2FF}
+.dA .blk{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
+  border:1px solid rgba(255,255,255,.085);border-radius:16px}
+.dA .blk .k{color:#7C8CA6}
+.dA .blk .v{color:#EFF4FC;text-shadow:0 0 18px rgba(95,216,234,.28)}
+.dA .btn{border-radius:16px}
+.dA .btn.primary{background:linear-gradient(135deg,#5FD8EA,#4F8BF7);color:#04121C;
+  box-shadow:0 12px 26px -12px rgba(79,139,247,.85),inset 0 1px 0 rgba(255,255,255,.4)}
+.dA .btn.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#D6E0F0}
+.dA .btn.danger{background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.3);color:#FF9CAC}
+.dA .prog{background:rgba(255,255,255,.08)}
+.dA .prog i{background:linear-gradient(90deg,#5FD8EA,#4F8BF7)}
+.dA .row .l{color:#7C8CA6}
+.dA .row .r{color:#E4EBF7}
+.dA .log{background:rgba(4,8,16,.62);border:1px solid rgba(255,255,255,.07);color:#93A7C4}
+.dA .log .ts{color:#5F7290}
+.dA .log .ok{color:#6FF0C6}
+.dA .pillbtn{background:rgba(79,139,247,.13);border:1px solid rgba(79,139,247,.32);color:#9CC2FF}
+.dA .ver{color:#5C6C86}
+.dA .sheet{background:linear-gradient(170deg,rgba(34,43,63,.92),rgba(16,22,35,.94));
+  backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-radius:26px;
+  box-shadow:0 30px 70px -24px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.1)}
+.dA .sheet .st{color:#F1F5FC}
+.dA .sec{color:#6F8098}
+.dA .lrow{color:#D6E0F0}
+.dA .lrow .rr{color:#8FA1BC}
+.dA .divider{background:rgba(255,255,255,.08)}
+.dA .drawer{background:linear-gradient(180deg,rgba(20,27,42,.97),rgba(9,13,21,.99));
+  border-right:1px solid rgba(255,255,255,.09)}
+.dA .dsec{color:#6F8098}
+.dA .ring .mid b{color:#F1F5FC}
+
+/* 方向 A · 浅色 */
+.dA .scr.light{
+  background:
+    radial-gradient(90% 55% at 12% -8%,rgba(125,211,252,.55),transparent 60%),
+    radial-gradient(75% 45% at 95% 2%,rgba(165,180,252,.42),transparent 58%),
+    linear-gradient(180deg,#F0F4FC,#E7EDF8);
+  color:#0F1722}
+.dA .scr.light .pst{color:#5B6779}
+.dA .scr.light .tbt{color:#0F1722;text-shadow:none}
+.dA .scr.light .tbb{background:rgba(255,255,255,.72);border-color:rgba(15,23,42,.08);color:#334155}
+.dA .scr.light .card{background:linear-gradient(165deg,rgba(255,255,255,.9),rgba(255,255,255,.68));
+  border-color:rgba(255,255,255,.9);
+  box-shadow:0 22px 44px -24px rgba(30,58,138,.34),0 0 0 1px rgba(15,23,42,.045),
+             inset 0 1px 0 rgba(255,255,255,.95)}
+.dA .scr.light .card:after{background:linear-gradient(90deg,transparent,rgba(56,189,248,.9),transparent)}
+.dA .scr.light .ttl{color:#0F1722}
+.dA .scr.light .sub{color:#7A879B}
+.dA .scr.light .pill{background:rgba(15,23,42,.045);border-color:rgba(15,23,42,.08);color:#5B6779}
+.dA .scr.light .pill.ok{background:rgba(15,165,122,.12);border-color:rgba(15,165,122,.28);color:#0B7F5E}
+.dA .scr.light .pill.acc{background:rgba(79,124,247,.12);border-color:rgba(79,124,247,.26);color:#3559C7}
+.dA .scr.light .blk{background:rgba(255,255,255,.72);border-color:rgba(15,23,42,.06)}
+.dA .scr.light .blk .k{color:#7A879B}
+.dA .scr.light .blk .v{color:#0F1722;text-shadow:none}
+.dA .scr.light .btn.ghost{background:rgba(15,23,42,.045);border-color:rgba(15,23,42,.09);color:#28344A}
+.dA .scr.light .row .l{color:#7A879B}
+.dA .scr.light .row .r{color:#1B2536}
+.dA .scr.light .prog{background:rgba(15,23,42,.09)}
+.dA .scr.light .log{background:#0F1722;color:#A9BBD4}
+.dA .scr.light .ver{color:#8A96A8}
+</style>
+<style>
+/* ============================================================
+   方向 B · Signal Deck 信号仪表
+   纯平极简 + 精密网格 + 等宽数字 + 单一信号色
+   ============================================================ */
+.dB .dir-ix{background:#C8F751;color:#0A0A0C}
+.dB .bt:before{background:#C8F751}
+
+.dB .scr{background:#0A0A0C;color:#F2F2F4}
+.dB .scr:before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:100% 44px,44px 100%}
+.dB .pst{color:#8A8A93;font-family:ui-monospace,monospace;font-size:11px}
+.dB .tbb{border:1px solid #26262C;border-radius:9px;color:#C9C9CF;font-size:13px}
+.dB .tbb.round{border-radius:9px}
+.dB .tbt{font-size:15px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#F2F2F4}
+.dB .card{background:#0F0F12;border:1px solid #1E1E23;border-radius:10px;padding:13px 14px}
+.dB .card:before,.dB .card:after{content:"";position:absolute;width:7px;height:7px;
+  border-color:#3A3A42;border-style:solid}
+.dB .card:before{top:6px;left:6px;border-width:1px 0 0 1px}
+.dB .card:after{bottom:6px;right:6px;border-width:0 1px 1px 0}
+.dB .card.live{border-color:#3D4A1A}
+.dB .card.live:before,.dB .card.live:after{border-color:#C8F751}
+.dB .ico{border-radius:8px;font-size:13px;background:#16161A;border:1px solid #26262C;color:#9A9AA2}
+.dB .ico.g{background:rgba(200,247,81,.12);border-color:rgba(200,247,81,.4);color:#C8F751}
+.dB .ttl{font-size:13.5px;font-weight:700;color:#F2F2F4}
+.dB .sub{color:#6E6E77;font-family:ui-monospace,monospace;font-size:10px}
+.dB .pill{border-radius:6px;background:#141418;border:1px solid #26262C;color:#9A9AA2;
+  font-family:ui-monospace,monospace;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+  padding:4px 7px}
+.dB .pill.ok{background:rgba(200,247,81,.12);border-color:rgba(200,247,81,.45);color:#C8F751}
+.dB .pill.warn{background:rgba(255,176,32,.12);border-color:rgba(255,176,32,.42);color:#FFB020}
+.dB .pill.bad{background:rgba(255,92,92,.12);border-color:rgba(255,92,92,.42);color:#FF5C5C}
+.dB .pill.acc{background:rgba(130,180,255,.1);border-color:rgba(130,180,255,.35);color:#82B4FF}
+.dB .blk{background:#0C0C0F;border:1px solid #1D1D22;border-radius:8px;padding:7px 4px}
+.dB .blk .k{color:#6E6E77;font-size:8.5px;letter-spacing:.14em}
+.dB .blk .v{font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#F2F2F4}
+.dB .blk .v.sig{color:#C8F751}
+.dB .btn{border-radius:8px;font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;
+  font-weight:800;font-family:ui-monospace,monospace;height:42px}
+.dB .btn.primary{background:#C8F751;color:#0A0A0C}
+.dB .btn.ghost{background:transparent;border:1px solid #2A2A31;color:#C9C9CF}
+.dB .btn.danger{background:transparent;border:1px solid rgba(255,92,92,.45);color:#FF5C5C}
+.dB .prog{height:4px;border-radius:2px;background:#1B1B20}
+.dB .prog i{background:#C8F751;border-radius:2px}
+.dB .row{font-family:ui-monospace,monospace;font-size:10.5px}
+.dB .row .l{color:#6E6E77;letter-spacing:.05em}
+.dB .row .r{color:#E6E6EA}
+.dB .row .r.sig{color:#C8F751}
+.dB .log{background:#08080A;border:1px solid #1A1A1F;border-radius:6px;color:#8E8E97;font-size:9px}
+.dB .log .ts{color:#56565E}
+.dB .log .ok{color:#C8F751}
+.dB .log .er{color:#FF5C5C}
+.dB .pillbtn{border:1px solid #26262C;border-radius:8px;color:#C9C9CF;background:transparent;
+  font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase}
+.dB .ver{color:#56565E;font-family:ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}
+.dB .sheet{background:#0F0F12;border:1px solid #26262C;border-radius:14px;
+  box-shadow:0 30px 60px -24px rgba(0,0,0,.95)}
+.dB .sheet .st{color:#F2F2F4;font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+  font-family:ui-monospace,monospace}
+.dB .sec{color:#6E6E77;font-size:9px;letter-spacing:.18em}
+.dB .lrow{color:#C9C9CF;font-size:12px;font-family:ui-monospace,monospace}
+.dB .lrow .rr{color:#8E8E97}
+.dB .divider{background:#1D1D22;opacity:1}
+.dB .drawer{background:#0C0C0F;border-right:1px solid #1E1E23}
+.dB .dsec{color:#6E6E77;letter-spacing:.18em}
+.dB .ring .mid b{font-family:ui-monospace,monospace;color:#F2F2F4}
+.dB .tbt,.dB .blk .v,.dB .row .r{font-variant-numeric:tabular-nums}
+
+/* 方向 B · 浅色 */
+.dB .scr.light{background:#F4F4F1;color:#0E0E10}
+.dB .scr.light:before{background-image:linear-gradient(rgba(0,0,0,.035) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,0,0,.035) 1px,transparent 1px)}
+.dB .scr.light .pst{color:#6B6B72}
+.dB .scr.light .tbb{background:#FFF;border-color:#DEDED8;color:#3A3A40}
+.dB .scr.light .tbt{color:#0E0E10}
+.dB .scr.light .card{background:#FFF;border-color:#E1E1DA}
+.dB .scr.light .card:before,.dB .scr.light .card:after{border-color:#C3C3BB}
+.dB .scr.light .card.live{border-color:#A8C43C}
+.dB .scr.light .card.live:before,.dB .scr.light .card.live:after{border-color:#7B9A00}
+.dB .scr.light .ico{background:#F1F1EC;border-color:#E1E1DA;color:#6B6B72}
+.dB .scr.light .ico.g{background:rgba(123,154,0,.12);border-color:rgba(123,154,0,.4);color:#5C7500}
+.dB .scr.light .ttl{color:#0E0E10}
+.dB .scr.light .sub{color:#84848B}
+.dB .scr.light .pill{background:#F1F1EC;border-color:#E1E1DA;color:#6B6B72}
+.dB .scr.light .pill.ok{background:rgba(123,154,0,.14);border-color:rgba(123,154,0,.45);color:#557000}
+.dB .scr.light .blk{background:#FAFAF7;border-color:#E6E6DF}
+.dB .scr.light .blk .k{color:#84848B}
+.dB .scr.light .blk .v{color:#0E0E10}
+.dB .scr.light .blk .v.sig{color:#5C7500}
+.dB .scr.light .btn.primary{background:#111114;color:#F4F4F1}
+.dB .scr.light .btn.ghost{background:transparent;border-color:#D6D6CF;color:#3A3A40}
+.dB .scr.light .prog{background:#E4E4DD}
+.dB .scr.light .prog i{background:#7B9A00}
+.dB .scr.light .row .l{color:#84848B}
+.dB .scr.light .row .r{color:#1A1A1E}
+.dB .scr.light .log{background:#FFF;border-color:#E6E6DF;color:#5A5A62}
+.dB .scr.light .ver{color:#9A9AA1}
+</style>
+<style>
+/* ============================================================
+   方向 C · Lumen Soft 柔光层叠
+   超大圆角 + 柔和双向阴影 + 触感按压 + 温润强调色
+   ============================================================ */
+.dC .dir-ix{background:linear-gradient(140deg,#B7C4FF,#7C8CFF);color:#131A33;
+  box-shadow:0 10px 24px -10px rgba(124,140,255,.8)}
+.dC .bt:before{background:#8AA2FF}
+
+.dC .scr{background:
+    radial-gradient(90% 50% at 50% -10%,rgba(124,140,255,.16),transparent 65%),
+    linear-gradient(180deg,#12141A,#0F1116 70%,#0D0F14);
+  color:#EDEFF5}
+.dC .pst{color:#9AA3B5}
+.dC .tbb{background:linear-gradient(180deg,#1E222B,#181B23);border:1px solid rgba(255,255,255,.06);
+  color:#C9D1E2;border-radius:14px;
+  box-shadow:0 4px 10px -4px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.07)}
+.dC .tbb.round{border-radius:999px}
+.dC .tbt{color:#F0F2F8;font-size:17.5px}
+.dC .card{background:linear-gradient(168deg,#1B1F28,#15181F);
+  border:1px solid rgba(255,255,255,.065);border-radius:28px;
+  box-shadow:0 18px 34px -20px rgba(0,0,0,.9),0 2px 6px -2px rgba(0,0,0,.5),
+             inset 0 1px 0 rgba(255,255,255,.075)}
+.dC .ico{border-radius:14px}
+.dC .ico.b{background:linear-gradient(150deg,#8AA2FF,#6B7CFF);color:#101528;
+  box-shadow:0 8px 18px -8px rgba(107,124,255,.9)}
+.dC .ico.g{background:linear-gradient(150deg,#7BEBC4,#3FC99A);color:#0C2A22;
+  box-shadow:0 8px 18px -8px rgba(63,201,154,.85)}
+.dC .ico.v{background:linear-gradient(150deg,#D0BEFF,#A98CFF);color:#20143A;
+  box-shadow:0 8px 18px -8px rgba(169,140,255,.85)}
+.dC .ttl{color:#F0F2F8}
+.dC .sub{color:#7D879B}
+.dC .pill{background:rgba(255,255,255,.055);color:#A5AFC3;border:1px solid rgba(255,255,255,.05);
+  border-radius:999px}
+.dC .pill.ok{background:rgba(95,216,168,.15);color:#77E9C0}
+.dC .pill.warn{background:rgba(255,196,107,.15);color:#FFD395}
+.dC .pill.bad{background:rgba(255,132,151,.15);color:#FFA8B6}
+.dC .pill.acc{background:rgba(138,162,255,.16);color:#B2C2FF}
+.dC .blk{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.055);border-radius:18px}
+.dC .blk .k{color:#7D879B}
+.dC .blk .v{color:#F0F2F8}
+.dC .btn{border-radius:999px}
+.dC .btn.primary{background:linear-gradient(140deg,#8AA2FF,#6B7CFF);color:#0E1220;
+  box-shadow:0 12px 24px -10px rgba(107,124,255,.95),inset 0 1px 0 rgba(255,255,255,.35)}
+.dC .btn.ghost{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.06);color:#C9D1E2}
+.dC .btn.danger{background:rgba(255,132,151,.13);color:#FFA8B6}
+.dC .prog{background:rgba(255,255,255,.075);border-radius:999px}
+.dC .prog i{background:linear-gradient(90deg,#8AA2FF,#6B7CFF);border-radius:999px}
+.dC .row .l{color:#7D879B}
+.dC .row .r{color:#E7EAF2}
+.dC .log{background:rgba(8,10,14,.55);border:1px solid rgba(255,255,255,.05);color:#98A3B8;
+  border-radius:16px}
+.dC .log .ts{color:#616B7F}
+.dC .log .ok{color:#77E9C0}
+.dC .pillbtn{background:rgba(138,162,255,.13);color:#B2C2FF;border-radius:999px}
+.dC .ver{color:#5F6879}
+.dC .sheet{background:linear-gradient(170deg,#212630,#181B23);border:1px solid rgba(255,255,255,.08);
+  border-radius:34px;box-shadow:0 34px 70px -26px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.08)}
+.dC .sheet .st{color:#F0F2F8}
+.dC .sec{color:#727C90}
+.dC .lrow{color:#C9D1E2}
+.dC .lrow .rr{color:#8A94A8}
+.dC .divider{background:rgba(255,255,255,.06)}
+.dC .drawer{background:linear-gradient(180deg,#191C24,#101318);
+  border-right:1px solid rgba(255,255,255,.06)}
+.dC .dsec{color:#727C90}
+.dC .ring .mid b{color:#F0F2F8}
+
+/* 方向 C · 浅色（暖纸） */
+.dC .scr.light{background:
+    radial-gradient(90% 50% at 50% -10%,rgba(124,140,255,.14),transparent 65%),
+    linear-gradient(180deg,#FBFBF9,#F4F4F1);
+  color:#14161C}
+.dC .scr.light .pst{color:#6C7284}
+.dC .scr.light .tbb{background:linear-gradient(180deg,#FFF,#F7F7F4);border-color:rgba(20,22,30,.05);
+  color:#3A4050;box-shadow:0 6px 14px -8px rgba(20,22,40,.35)}
+.dC .scr.light .tbt{color:#14161C}
+.dC .scr.light .card{background:linear-gradient(168deg,#FFFFFF,#FAFAF8);
+  border-color:rgba(20,22,30,.05);
+  box-shadow:0 20px 34px -22px rgba(30,36,60,.35),0 2px 6px -3px rgba(30,36,60,.12),
+             inset 0 1px 0 #FFF}
+.dC .scr.light .ttl{color:#14161C}
+.dC .scr.light .sub{color:#7F8598}
+.dC .scr.light .pill{background:rgba(20,22,30,.045);color:#5A6070;border-color:transparent}
+.dC .scr.light .pill.ok{background:rgba(28,160,120,.13);color:#0E7A5A}
+.dC .scr.light .pill.acc{background:rgba(91,108,255,.12);color:#3E4EDB}
+.dC .scr.light .blk{background:linear-gradient(180deg,#FFF,#F8F8F5);border-color:rgba(20,22,30,.05)}
+.dC .scr.light .blk .k{color:#7F8598}
+.dC .scr.light .blk .v{color:#14161C}
+.dC .scr.light .btn.ghost{background:#FFF;border-color:rgba(20,22,30,.07);color:#3A4050;
+  box-shadow:0 6px 14px -9px rgba(20,22,40,.4)}
+.dC .scr.light .row .l{color:#7F8598}
+.dC .scr.light .row .r{color:#1A1D26}
+.dC .scr.light .prog{background:rgba(20,22,30,.08)}
+.dC .scr.light .log{background:#14161C;border-color:transparent;color:#A8B0C2;border-radius:16px}
+.dC .scr.light .ver{color:#9BA1B0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-hero">
+    <div class="eyebrow">Design Direction Review · v1</div>
+    <h1>Asiiya 工作台 · UI 视觉方向提案</h1>
+    <p>基于现有 <code>dsh-console</code> 的信息架构（服务卡 / 网盘卡 / 下载卡 / 费用卡 / 抽屉 / 底部弹层 / 桌面小组件），
+       重塑视觉语言、组件体系与动效语法。<b>保持功能不变，只换设计语法。</b></p>
+    <div class="stack">
+      <span class="tag">移动端优先</span>
+      <span class="tag">浅色 + 深色双模</span>
+      <span class="tag">组件状态完整</span>
+      <span class="tag">动效可落地</span>
+      <span class="tag">不新增功能</span>
+    </div>
+    <div class="doc-note">
+      本页为<b>纯设计预览</b>，不涉及任何项目代码改动。<br>
+      每套方向包含：① 核心页面 ② 关键组件 ③ 交互状态 ④ 动效分镜。<br>
+      确认方向后再进入 Token 细化与 Android 实现。
+    </div>
+  </div>
+
+  <nav class="toc">
+    <a href="#dirA"><span class="n" style="background:linear-gradient(135deg,#5FD8EA,#4F8BF7)">A</span>
+      <span class="t"><b>星云玻璃</b><span>Nebula Glass · 弥散光 + 磨砂</span></span><span class="arw">↓</span></a>
+    <a href="#dirB"><span class="n" style="background:#C8F751">B</span>
+      <span class="t"><b>信号仪表</b><span>Signal Deck · 精密网格 + 等宽</span></span><span class="arw">↓</span></a>
+    <a href="#dirC"><span class="n" style="background:linear-gradient(140deg,#B7C4FF,#7C8CFF)">C</span>
+      <span class="t"><b>柔光层叠</b><span>Lumen Soft · 大圆角 + 触感</span></span><span class="arw">↓</span></a>
+  </nav>
+
+  <section class="dir dA" id="dirA"></section>
+  <section class="dir dB" id="dirB"></section>
+  <section class="dir dC" id="dirC"></section>
+
+  <div class="doc-hero" style="margin-top:34px">
+    <div class="eyebrow">Next Step</div>
+    <h1 style="font-size:20px">确认方向后的落地路径</h1>
+    <p><b>1.</b> 选一套方向（也可 A+C 混搭）→ <b>2.</b> 细化 color/dimen/style Token → 
+       <b>3.</b> 落成 Kotlin + ViewBinding 实现，逐步替换现有 drawable 与 layout →
+       <b>4.</b> 动效用 <code>ViewPropertyAnimator</code> / <code>SpringAnimation</code> 落地。</p>
+  </div>
+</div>
+<style>
+/* ---------- 状态通用 ---------- */
+.s-hover{filter:brightness(1.14) saturate(1.05)}
+.s-press{transform:scale(.965);filter:brightness(.93)}
+.s-focus{outline:2px solid currentColor;outline-offset:2px}
+.s-dis{opacity:.34;filter:saturate(.35)}
+.s-load{position:relative;color:transparent!important}
+.s-load:after{content:"";position:absolute;inset:0;margin:auto;width:15px;height:15px;
+  border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  animation:spin .72s linear infinite}
+.dB .s-load:after{border-radius:2px;border-width:2px;width:13px;height:13px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.st-cell{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:88px}
+.st-cell .lbl{font:600 9px/1 ui-monospace,monospace;letter-spacing:.09em;text-transform:uppercase;
+  color:#6F7D94}
+.st-panel{border-radius:13px;padding:10px 11px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+  justify-content:center}
+.st-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.st-row .rl{font-size:11px;font-weight:750;color:#C9D4E4;min-width:70px}
+
+/* ---------- 补充组件 ---------- */
+.bigfig{font-size:33px;font-weight:850;letter-spacing:-.035em;line-height:1;font-variant-numeric:tabular-nums}
+.bigfig small{font-size:14px;font-weight:750;opacity:.8;margin-right:1px}
+.field{display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;font-size:13px;
+  border-radius:14px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);
+  color:#DCE4F0;min-width:190px}
+.field .ph{color:#6F7D94}
+.field .caret{width:1.5px;height:16px;background:#5FD8EA;animation:blink 1.1s steps(1,end) infinite}
+@keyframes blink{50%{opacity:0}}
+.sw2{width:44px;height:26px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;
+  flex:none}
+.sw2:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:left .22s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.sw2.on{background:#3ED8A4}
+.sw2.on:after{left:21px}
+.sw2.onA{background:linear-gradient(135deg,#5FD8EA,#4F8BF7)}
+.sw2.onB{background:#C8F751}
+.sw2.onC{background:linear-gradient(140deg,#8AA2FF,#6B7CFF)}
+.sw2.onB:after{background:#0A0A0C}
+.sw2.onC:after{background:#0E1220}
+.chip{font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:999px}
+.chipA{background:rgba(79,139,247,.14);color:#9CC2FF;border:1px solid rgba(79,139,247,.3)}
+.chipB{border:1px solid #2A2A31;color:#C9C9CF;border-radius:7px;
+  font-family:ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;font-size:10px}
+.chipC{background:rgba(138,162,255,.14);color:#B2C2FF}
+.sk{height:9px;border-radius:999px;background:rgba(255,255,255,.09);overflow:hidden;position:relative}
+.sk:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+  animation:shim 1.4s linear infinite}
+@keyframes shim{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.dB .sk{border-radius:2px}
+.dB .field{border-radius:8px;font-family:ui-monospace,monospace}
+.dB .chip{border-radius:7px}
+.dC .field{border-radius:999px;border-color:rgba(255,255,255,.07);background:rgba(255,255,255,.05)}
+.dC .chip{border-radius:999px}
+</style>
+<script>
+/* =========================================================
+   Asiiya 工作台 · 3 方向预览渲染器
+   ========================================================= */
+const PAL={
+  dA:{ bg:'#06080F', surf:'#161C2A', line:'rgba(255,255,255,.11)', acc1:'#5FD8EA', acc2:'#4F8BF7',
+       ok:'#3ED8A4', warn:'#FFB74D', bad:'#FB7185', dim:'#5F6E88', fg:'#EAF0FA',
+       lightBg:'#EEF2FA' },
+  dB:{ bg:'#0A0A0C', surf:'#0F0F12', line:'#1E1E23', acc1:'#C8F751', acc2:'#8A8A93',
+       ok:'#C8F751', warn:'#FFB020', bad:'#FF5C5C', dim:'#6E6E77', fg:'#F2F2F4',
+       lightBg:'#F4F4F1' },
+  dC:{ bg:'#0F1116', surf:'#1B1F28', line:'rgba(255,255,255,.065)', acc1:'#8AA2FF', acc2:'#6B7CFF',
+       ok:'#5FD8A8', warn:'#FFC46B', bad:'#FF8497', dim:'#7D879B', fg:'#EDEFF5',
+       lightBg:'#F6F5F2' }
+};
+
+/* ---------- 小工具 ---------- */
+const miniSpark=(c,id)=>{
+  const y=[34,29,31,23,26,18,21,14,17,11,15,9,13,7,10,6,9,5,8,4];
+  const step=200/(y.length-1);
+  const line=y.map((v,i)=>`${(i*step).toFixed(1)},${v}`).join(' ');
+  return `<svg viewBox="0 0 200 40" preserveAspectRatio="none">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${c}" stop-opacity=".38"/>
+      <stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient></defs>
+    <path d="M0,40 L${line.replace(/ /g,' L')} L200,40 Z" fill="url(#${id})"/>
+    <polyline points="${line}" fill="none" stroke="${c}" stroke-width="1.7"
+      stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+};
+const ring=(pct,c,tr,label,val)=>`
+  <div class="ring"><svg viewBox="0 0 84 84" width="84" height="84">
+    <circle cx="42" cy="42" r="34" fill="none" stroke="${tr}" stroke-width="8"/>
+    <circle cx="42" cy="42" r="34" fill="none" stroke="${c}" stroke-width="8"
+      stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="${213.6*(1-pct)}"/>
+  </svg><div class="mid"><b>${val}</b><span>${label}</span></div></div>`;
+
+/* ---------- 主控台手机 ---------- */
+function dash(cls,theme){
+  const P=PAL[cls], L=theme==='light';
+  const ic=(k,g)=>`<div class="ico ${g}">${k}</div>`;
+  return `
+  <div class="phone"><span class="cap">${L?'② 主控台 · 浅色':'① 主控台 · 深色'}</span>
+  <div class="scr ${L?'light':''}">
+    <div class="pst"><span>9:41</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+    <div class="pbody">
+      <div class="tbar">
+        <div class="tbb">☰</div>
+        <div class="tbt">Asiiya 工作台</div>
+        <div class="tbb round">☀</div>
+      </div>
+
+      <div class="card live">
+        <div class="ch">
+          ${ic('◈','b')}
+          <div class="tx"><div class="ttl">DeepSeek Harness</div>
+            <div class="sub">v0.5.0 · 127.0.0.1:3080</div></div>
+          <div class="pill ok"><span class="dot" style="background:currentColor"></span>运行中</div>
+          <div class="more">⋮</div>
+        </div>
+        <div class="g3">
+          <div class="blk"><div class="k">端口</div><div class="v ${cls==='dB'?'sig':''}">3080</div></div>
+          <div class="blk"><div class="k">模型</div><div class="v">V3</div></div>
+          <div class="blk"><div class="k">进程</div><div class="v">1</div></div>
+        </div>
+        <div class="row"><span class="l">运行时长</span><span class="r">02:14:36</span></div>
+        <div class="btns"><button class="btn ghost">停止</button>
+          <button class="btn primary">打开界面</button></div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          ${ic('▤','g')}
+          <div class="tx"><div class="ttl">OpenList 网盘</div>
+            <div class="sub">v3.41 · 原 AList</div></div>
+          <div class="pill warn">已停止</div>
+          <div class="more">⋮</div>
+        </div>
+        <div class="row"><span class="l">本地地址</span><span class="r">:5244</span></div>
+        <div class="btns"><button class="btn ghost">启动</button>
+          <button class="btn ghost">安装</button></div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          ${ic('⇣','v')}
+          <div class="tx"><div class="ttl">Aria2 离线下载</div>
+            <div class="sub">aria2c 1.37 · RPC 6800</div></div>
+          <div class="pill ok">运行中</div>
+          <div class="more">⋮</div>
+        </div>
+        <div class="prog"><i style="width:68%"></i></div>
+        <div class="row"><span class="l">任务 3 / 5</span>
+          <span class="r ${cls==='dB'?'sig':''}">12.4 MB/s</span></div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          ${ic('◔','b')}
+          <div class="tx"><div class="ttl">用量与费用</div>
+            <div class="sub">本月 · DeepSeek 官方数据</div></div>
+          <div class="pill acc">V3</div>
+        </div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:10px">
+          <div class="bigfig"><small>¥</small>12.86</div>
+          <div style="text-align:right;font-size:10px;opacity:.72;line-height:1.6">
+            今日 ¥1.42<br>预估 ¥18.20</div>
+        </div>
+        <div class="spark">${miniSpark(P.acc1,cls+theme)}</div>
+        <div class="row"><span class="l">输入 1.24M · 输出 386K</span>
+          <span class="r">tok</span></div>
+      </div>
+
+      <div class="foot">
+        <div class="pillbtn">打开控制台</div>
+        <div class="ver">app 0.5.0 · ctl v14</div>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+/* ---------- 抽屉 / 弹层 / 日志 ---------- */
+function drawerPhone(cls){
+  return `
+  <div class="phone"><span class="cap">③ 抽屉导航</span>
+  <div class="scr">
+    <div class="pst"><span>9:41</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+    <div class="pbody" style="padding:0 12px;opacity:.5;filter:blur(1px)">
+      <div class="tbar"><div class="tbb">☰</div><div class="tbt">Asiiya 工作台</div><div class="tbb round">☀</div></div>
+      <div class="card live"><div class="ch"><div class="ico b">◈</div>
+        <div class="tx"><div class="ttl">DeepSeek Harness</div><div class="sub">127.0.0.1:3080</div></div>
+        <div class="pill ok">运行中</div></div></div>
+    </div>
+    <div class="scrim" style="top:44px"><div class="drawer">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div class="ico b">◈</div>
+        <div class="tx"><div class="ttl">Asiiya</div><div class="sub">工作台</div></div></div>
+      <div class="dsec">服务控制</div>
+      <div class="lrow"><span>◈ DeepSeek Harness</span><span class="rr">运行中</span></div>
+      <div class="lrow"><span>▤ OpenList 网盘</span><span class="rr">已停止</span></div>
+      <div class="lrow"><span>⇣ Aria2 下载</span><span class="rr">运行中</span></div>
+      <div class="divider"></div>
+      <div class="dsec">维护</div>
+      <div class="lrow"><span>环境体检</span><span class="rr">›</span></div>
+      <div class="lrow"><span>安装 / 修复 dsh</span><span class="rr">›</span></div>
+      <div class="lrow"><span>服务日志</span><span class="rr">›</span></div>
+      <div class="divider"></div>
+      <div class="dsec">信息</div>
+      <div class="lrow"><span>检查更新</span><span class="rr">›</span></div>
+      <div class="lrow"><span>关于</span><span class="rr">›</span></div>
+    </div></div>
+  </div></div>`;
+}
+function sheetPhone(cls){
+  const P=PAL[cls];
+  return `
+  <div class="phone"><span class="cap">④ 设置弹层 + 日志</span>
+  <div class="scr">
+    <div class="pst"><span>9:41</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+    <div class="pbody" style="padding:0 12px;opacity:.45">
+      <div class="tbar"><div class="tbb">☰</div><div class="tbt">Asiiya 工作台</div><div class="tbb round">☀</div></div>
+      <div class="card live"><div class="ch"><div class="ico b">◈</div>
+        <div class="tx"><div class="ttl">DeepSeek Harness</div><div class="sub">127.0.0.1:3080</div></div>
+        <div class="pill ok">运行中</div></div>
+        <div class="g3">
+          <div class="blk"><div class="k">端口</div><div class="v">3080</div></div>
+          <div class="blk"><div class="k">模型</div><div class="v">V3</div></div>
+          <div class="blk"><div class="k">进程</div><div class="v">1</div></div></div></div>
+      <div class="card"><div class="ch"><div class="ico g">▤</div>
+        <div class="tx"><div class="ttl">OpenList 网盘</div><div class="sub">v3.41</div></div>
+        <div class="pill warn">已停止</div></div></div>
+    </div>
+    <div class="scrim bottom">
+      <div class="sheet">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="st">设置</div><div class="pill ok">已连接</div></div>
+        <div class="sec">状态</div>
+        <div class="lrow"><span>地址</span><span class="rr">127.0.0.1:3080</span></div>
+        <div class="divider"></div>
+        <div class="lrow"><span>默认模型</span><span class="rr">deepseek-v3 ›</span></div>
+        <div class="divider"></div>
+        <div class="lrow"><span>运行配置</span><span class="rr">端口 3080 ›</span></div>
+        <div class="sec">关于</div>
+        <div class="lrow"><span>App 版本</span><span class="rr">0.5.0</span></div>
+        <div class="divider"></div>
+        <div class="lrow"><span>控制脚本</span><span class="rr">v14</span></div>
+        <div class="btns"><button class="btn ghost">复制地址</button>
+          <button class="btn primary">完成</button></div>
+      </div>
+    </div>
+  </div></div>`;
+}
+function consolePhone(cls){
+  const P=PAL[cls], t=cls==='dB';
+  return `
+  <div class="phone"><span class="cap">⑤ 控制台 / 日志</span>
+  <div class="scr">
+    <div class="pst"><span>9:41</span><span class="r">▮▮▮ ᯤ ▰</span></div>
+    <div class="pbody" style="padding:4px 12px 0">
+      <div class="tbar"><div class="tbb">←</div><div class="tbt">Asiiya 界面</div>
+        <div class="tbb">⟳</div></div>
+      <div class="card" style="margin-top:4px">
+        <div class="ch"><div class="ico b">◔</div>
+          <div class="tx"><div class="ttl">Web 控制台</div><div class="sub">127.0.0.1:3080</div></div>
+          <div class="pill acc">WebView</div></div>
+        <div class="prog" style="margin-top:14px"><i style="width:100%"></i></div>
+        <div class="row"><span class="l">加载完成</span><span class="r">0.8s</span></div>
+        <div class="btns"><button class="btn ghost">刷新</button>
+          <button class="btn ghost">外部打开</button></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ico v">▤</div>
+          <div class="tx"><div class="ttl">服务日志</div><div class="sub">实时 · 追尾</div></div>
+          <div class="pill ok">LIVE</div></div>
+        <div class="log">
+          <div><span class="ts">21:31:04</span>dsh listen 0.0.0.0:3080</div>
+          <div><span class="ts">21:31:05</span><span class="ok">✓ watchdog online</span></div>
+          <div><span class="ts">21:31:11</span>GET /api/status 200 6ms</div>
+          <div><span class="ts">21:31:19</span>POST /api/chat 200 412ms</div>
+          <div><span class="ts">21:31:26</span><span class="ok">✓ model deepseek-v3 ok</span></div>
+          <div><span class="ts">21:31:33</span>GET /api/usage 200 9ms</div>
+        </div>
+        <div class="row"><span class="l">共 214 行</span><span class="r">自动滚动 ●</span></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ico g">◔</div>
+          <div class="tx"><div class="ttl">预算 / 额度</div><div class="sub">本月剩余</div></div></div>
+        <div class="ringwrap">${ring(.62,P.acc1,'rgba(255,255,255,.09)','已用','62%')}
+          <div style="flex:1;font-size:11px;line-height:2">
+            <div class="row" style="margin:0"><span class="l">已用</span><span class="r">¥12.86</span></div>
+            <div class="row" style="margin:0"><span class="l">额度</span><span class="r">¥20.00</span></div>
+            <div class="row" style="margin:0"><span class="l">剩余</span>
+              <span class="r ${t?'sig':''}">¥7.14</span></div>
+          </div></div>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+/* ---------- 组件板 ---------- */
+function components(cls){
+  const P=PAL[cls], t=cls==='dB';
+  return `
+  <div class="cgrid">
+    <div class="cbox"><h4>按钮 Button</h4>
+      <div class="crow">
+        <button class="btn primary" style="flex:none;padding:0 22px">启动</button>
+        <button class="btn ghost" style="flex:none;padding:0 22px">停止</button>
+        <button class="btn danger" style="flex:none;padding:0 22px">卸载</button>
+        <button class="btn primary" style="flex:none;padding:0 22px;opacity:.34">禁用</button>
+      </div>
+      <div class="cnote">高度 44 · 圆角 ${cls==='dA'?'16':cls==='dB'?'8':'full'} · 主按钮为唯一高饱和元素</div>
+    </div>
+
+    <div class="cbox"><h4>状态胶囊 Status Pill</h4>
+      <div class="crow">
+        <span class="pill ok">● 运行中</span>
+        <span class="pill warn">○ 已停止</span>
+        <span class="pill bad">✕ 异常</span>
+        <span class="pill acc">◔ 启动中</span>
+        <span class="pill">未知</span>
+      </div>
+      <div class="cnote">5 态语义色 · 前缀符号冗余编码（不只靠颜色）</div>
+    </div>
+
+    <div class="cbox"><h4>指标块 Metric Block</h4>
+      <div class="g3" style="margin-top:0">
+        <div class="blk"><div class="k">端口</div><div class="v ${t?'sig':''}">3080</div></div>
+        <div class="blk"><div class="k">模型</div><div class="v">V3</div></div>
+        <div class="blk"><div class="k">进程</div><div class="v">1</div></div>
+      </div>
+      <div class="cnote">标签 9–10px 大写 · 值 12.5px 加粗 · 等宽数字防跳动</div>
+    </div>
+
+    <div class="cbox"><h4>列表行 List Row</h4>
+      <div class="lrow"><span>默认模型</span><span class="rr">deepseek-v3 ›</span></div>
+      <div class="divider"></div>
+      <div class="lrow"><span>端口</span><span class="rr">3080</span></div>
+      <div class="divider"></div>
+      <div class="lrow s-hover" style="border-radius:8px"><span>按下态预览</span><span class="rr">›</span></div>
+    </div>
+
+    <div class="cbox"><h4>输入 / 开关 / 芯片</h4>
+      <div class="crow"><div class="field"><span class="ph">粘贴新的 API Key</span><span class="caret"></span></div></div>
+      <div class="crow" style="margin-top:11px">
+        <div class="sw2 ${cls==='dB'?'onB':cls==='dC'?'onC':'onA'}"></div>
+        <span style="font-size:12px;opacity:.85">开机自启</span>
+        <div class="sw2" style="margin-left:6px"></div>
+        <span style="font-size:12px;opacity:.85">看门狗</span>
+      </div>
+      <div class="crow" style="margin-top:11px">
+        <span class="chip chip${cls==='dB'?'B':cls==='dC'?'C':'A'}">刷新</span>
+        <span class="chip chip${cls==='dB'?'B':cls==='dC'?'C':'A'}">外部打开</span>
+        <span class="chip chip${cls==='dB'?'B':cls==='dC'?'C':'A'}">复制地址</span>
+      </div>
+    </div>
+
+    <div class="cbox"><h4>进度 / 骨架 / 环形</h4>
+      <div class="prog"><i style="width:68%"></i></div>
+      <div class="cnote" style="margin:7px 0 12px">安装进度 68% · 线性填充（非条纹动画）</div>
+      <div class="sk" style="width:72%"></div>
+      <div class="cnote" style="margin:7px 0 12px">骨架屏 · 仅加载态使用，不滥用</div>
+      <div class="ringwrap">${ring(.62,P.acc1,'rgba(255,255,255,.09)','已用','¥12.86')}
+        <div style="flex:1;font-size:11px;opacity:.8;line-height:1.9">
+          环形进度：沿用现有 <b>RingView</b><br>仅换描边宽度与端点样式</div></div>
+    </div>
+
+    <div class="cbox"><h4>卡片头 Card Header</h4>
+      <div class="ch" style="padding:2px 0">
+        <div class="ico b">◈</div>
+        <div class="tx"><div class="ttl">DeepSeek Harness</div>
+          <div class="sub">v0.5.0 · 127.0.0.1:3080</div></div>
+        <div class="pill ok">运行中</div><div class="more">⋮</div>
+      </div>
+      <div class="cnote">图标 34 · 标题 14.5/750 · 副标题截断 · 胶囊右对齐 · ⋮ 热区 30</div>
+    </div>
+
+    <div class="cbox"><h4>数据可视化 Sparkline</h4>
+      <div class="spark" style="margin-top:2px">${miniSpark(P.acc1,cls+'cmp')}</div>
+      <div class="cnote">沿用现有 <b>SparkView</b> · 加面积渐变 + 端点圆头</div>
+    </div>
+
+    <div class="cbox"><h4>浅色模式组件条</h4>
+      <div class="scr light" style="height:auto;border-radius:16px;padding:14px;display:block">
+        <div class="crow">
+          <button class="btn primary" style="flex:none;padding:0 20px">启动</button>
+          <button class="btn ghost" style="flex:none;padding:0 20px">停止</button>
+          <span class="pill ok">● 运行中</span>
+          <span class="pill warn">○ 已停止</span>
+        </div>
+        <div class="g3" style="margin-top:12px">
+          <div class="blk"><div class="k">端口</div><div class="v ${t?'sig':''}">3080</div></div>
+          <div class="blk"><div class="k">模型</div><div class="v">V3</div></div>
+          <div class="blk"><div class="k">进程</div><div class="v">1</div></div>
+        </div>
+      </div>
+      <div class="cnote">同一套 Token，仅切换语义色值 —— 不是简单反色</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 交互状态矩阵 ---------- */
+function states(cls){
+  const S=[['默认',''],['悬停','s-hover'],['按下','s-press'],['聚焦','s-focus'],
+           ['禁用','s-dis'],['加载','s-load']];
+  const btns=st=>`<button class="btn primary ${st.cls}" style="flex:none;padding:0 18px">启动</button>`;
+  return `
+  <div class="st-panel"><span style="font-size:11px;opacity:.7">主按钮 6 态 ——</span>
+    ${S.map(([n,c])=>`<div class="st-cell">${btns({cls:c})}<span class="lbl">${n}</span></div>`).join('')}
+  </div>
+  <div class="st-row"><span class="rl">幽灵按钮</span>
+    ${S.map(([n,c])=>`<button class="btn ghost ${c}" style="flex:none;padding:0 16px;height:34px;font-size:11.5px">停止</button>`).join('')}
+  </div>
+  <div class="st-row"><span class="rl">状态胶囊</span>
+    <span class="pill ok">● 运行中</span>
+    <span class="pill ok s-hover">● 悬停</span>
+    <span class="pill warn s-press">○ 按下</span>
+    <span class="pill acc s-focus">◔ 聚焦</span>
+    <span class="pill s-dis">禁用</span>
+    <span class="pill acc s-load">加载</span>
+  </div>
+  <div class="st-row"><span class="rl">列表行</span>
+    <div class="lrow" style="min-width:190px;padding:8px 10px;border-radius:10px">
+      <span>默认</span><span class="rr">›</span></div>
+    <div class="lrow s-hover" style="min-width:190px;padding:8px 10px;border-radius:10px">
+      <span>悬停</span><span class="rr">›</span></div>
+    <div class="lrow s-press" style="min-width:190px;padding:8px 10px;border-radius:10px">
+      <span>按下</span><span class="rr">›</span></div>
+    <div class="lrow s-dis" style="min-width:190px;padding:8px 10px;border-radius:10px">
+      <span>禁用</span><span class="rr">›</span></div>
+  </div>
+  <div class="st-row"><span class="rl">输入框</span>
+    <div class="field" style="min-width:170px"><span class="ph">默认 / 占位</span></div>
+    <div class="field s-focus" style="min-width:170px"><span>已聚焦</span></div>
+    <div class="field s-dis" style="min-width:170px"><span>禁用</span></div>
+  </div>
+  <div class="st-row"><span class="rl">卡片</span>
+    <div class="card" style="margin:0;min-width:170px;padding:11px">
+      <div class="ttl" style="font-size:12.5px">默认态</div></div>
+    <div class="card s-hover" style="margin:0;min-width:170px;padding:11px">
+      <div class="ttl" style="font-size:12.5px">悬停 / 抬升</div></div>
+    <div class="card s-press" style="margin:0;min-width:170px;padding:11px">
+      <div class="ttl" style="font-size:12.5px">按下 / 内凹</div></div>
+    <div class="card s-load" style="margin:0;min-width:170px;padding:11px">
+      <div class="ttl" style="font-size:12.5px">加载中</div></div>
+  </div>
+  <div class="legend">
+    <span>悬停：亮度 +14%</span><span>按下：scale .965 + 亮度 −7%</span>
+    <span>聚焦：2px 描边 + 2px offset</span><span>禁用：透明度 34% + 去饱和</span>
+    <span>加载：内容隐去 + 中心 spinner</span>
+  </div>`;
+}
+
+/* ---------- 动效分镜 ---------- */
+function story(cls){
+  const art={
+    dA:[
+      {n:'F1 · 0ms',t:'卡片入场 · 错峰浮现',
+       a:`<div class="dm" style="background:linear-gradient(165deg,rgba(38,48,70,.9),rgba(18,24,38,.9));
+          border:1px solid rgba(255,255,255,.14);color:#DCE6F5">Harness</div>`,
+       d:'卡片从 Y+14 淡入，按索引错峰 60ms；玻璃模糊由 0→22px 渐显',
+       m:['transform Y','opacity','backdrop-blur','stagger 60ms']},
+      {n:'F2 · 180ms',t:'状态跃迁 · 启动',
+       a:`<div style="display:flex;gap:7px;align-items:center">
+          <span class="pill warn" style="opacity:.5">○ 已停止</span>
+          <span style="font-size:11px;opacity:.5">→</span>
+          <span class="pill ok">● 运行中</span></div>`,
+       d:'胶囊底色/文字色 160ms 交叉淡入；圆点由空心→实心并轻微脉冲 1 次',
+       m:['color 160ms','scale 1→1.06→1','外发光 0→8px']},
+      {n:'F3 · 420ms',t:'数值滚动',
+       a:`<div style="text-align:center"><div class="bigfig" style="font-size:26px">¥12.86</div>
+          <div style="font-size:9.5px;opacity:.6;margin-top:5px">1.42 → 12.86</div></div>`,
+       d:'费用数字用 tabular-nums 逐位滚动，480ms ease-out；面积图同步左→右绘制',
+       m:['digit roll 480ms','stroke-dashoffset','ease-out']},
+      {n:'F4 · 900ms',t:'弹层上滑',
+       a:`<div style="width:80%;border-radius:18px 18px 14px 14px;padding:12px;
+          background:linear-gradient(170deg,rgba(34,43,63,.95),rgba(16,22,35,.95));
+          border:1px solid rgba(255,255,255,.14)">
+          <div style="font-size:11px;color:#DCE6F5">设置</div>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.12);margin-top:8px"></div>
+          <div style="height:6px;width:60%;border-radius:3px;background:rgba(255,255,255,.12);margin-top:6px"></div></div>`,
+       d:'弹层 Y+100%→0 弹性上滑；背景遮罩 0→.62 并逐级模糊（blur 0→14px）',
+       m:['spring(0.34,1.2)','scrim .62','blur 0→14px']}
+    ],
+    dB:[
+      {n:'F1 · 0ms',t:'网格扫描入场',
+       a:`<div style="position:absolute;inset:0;background-image:
+            linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+            background-size:100% 22px,22px 100%"></div>
+          <div style="position:relative;font-family:ui-monospace,monospace;font-size:11px;color:#C8F751">
+            SCAN 00→100%</div>`,
+       d:'1px 扫描线自上而下 220ms 扫过，网格随之点亮；无位移、无模糊（仪表语义）',
+       m:['scanline 220ms','linear','no blur']},
+      {n:'F2 · 220ms',t:'数值翻牌',
+       a:`<div style="font-family:ui-monospace,monospace;font-size:22px;color:#F2F2F4">
+          0<span style="opacity:.3">8</span><br>
+          <span style="color:#C8F751">3080</span></div>`,
+       d:'等宽数字逐位翻牌，每 22ms 进位；旧值上移淡出，新值下移淡入',
+       m:['22ms/位','translateY 8px','tabular-nums']},
+      {n:'F3 · 320ms',t:'状态瞬时切换',
+       a:`<div style="text-align:center">
+          <span class="pill ok" style="animation:fb .42s steps(1) 2">● RUNNING</span></div>
+          <style>@keyframes fb{50%{opacity:.25}}</style>`,
+       d:'状态切换零过渡（瞬时），配 1px 描边闪烁 2 次；强调"确定性"而非顺滑',
+       m:['instant','border blink ×2','420ms']},
+      {n:'F4 · 500ms',t:'进度线性填充',
+       a:`<div style="width:78%">
+          <div style="height:4px;background:#1B1B20;border-radius:2px;overflow:hidden">
+            <div style="width:68%;height:100%;background:#C8F751;border-radius:2px"></div></div>
+          <div style="font-family:ui-monospace,monospace;font-size:10px;color:#8E8E97;
+              margin-top:7px">INSTALL 68% · 04:12</div></div>`,
+       d:'进度条线性匀速填充，无回弹；百分比等宽文本同步递增',
+       m:['linear','duration=真实耗时','数字同步']}
+    ],
+    dC:[
+      {n:'F1 · 0ms',t:'按压回弹',
+       a:`<div class="dm" style="background:linear-gradient(140deg,#8AA2FF,#6B7CFF);color:#0E1220;
+          transform:scale(.96);box-shadow:0 6px 14px -8px rgba(107,124,255,.8)">打开界面</div>`,
+       d:'按下 scale .96 + 阴影收缩；松手弹簧回弹到 1.0（带轻微过冲）',
+       m:['scale .96→1','spring bouncy','shadow 收缩']},
+      {n:'F2 · 160ms',t:'卡片展开',
+       a:`<div style="width:76%;border-radius:18px;padding:11px;
+          background:linear-gradient(168deg,#1B1F28,#15181F);border:1px solid rgba(255,255,255,.08)">
+          <div style="font-size:11px;color:#EDEFF5">日志详情</div>
+          <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin-top:7px"></div>
+          <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin-top:5px;width:80%"></div>
+          <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin-top:5px;width:55%"></div></div>`,
+       d:'高度 + 透明度 + 轻微 scaleY 同步展开；内容行按 30ms 错峰淡入',
+       m:['height auto','opacity','stagger 30ms','spring']},
+      {n:'F3 · 520ms',t:'成功涟漪',
+       a:`<div style="position:relative;width:80px;height:80px">
+          <div style="position:absolute;inset:0;border-radius:50%;background:rgba(95,216,168,.22);
+            animation:rp 1.2s ease-out infinite"></div>
+          <div style="position:absolute;inset:14px;border-radius:50%;background:linear-gradient(150deg,#7BEBC4,#3FC99A);
+            display:grid;place-items:center;color:#0C2A22;font-size:19px">✓</div></div>
+          <style>@keyframes rp{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.5);opacity:0}}</style>`,
+       d:'操作成功时中心打勾 + 一次性放大，外圈涟漪扩散 1.2s 后消失；不常驻',
+       m:['scale pop','ripple 1.2s','once']},
+      {n:'F4 · 900ms',t:'弹层弹性上滑',
+       a:`<div style="width:80%;border-radius:24px 24px 18px 18px;padding:12px;
+          background:linear-gradient(170deg,#212630,#181B23);border:1px solid rgba(255,255,255,.08)">
+          <div style="font-size:11px;color:#EDEFF5">设置</div>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:8px"></div></div>`,
+       d:'弹簧上滑（bouncy），遮罩同步淡入并略微下压背景卡片，营造层叠纵深',
+       m:['spring bouncy','scrim fade','背景 scale .98']}
+    ]
+  }[cls];
+  return `<div class="film">${art.map(f=>`
+    <div class="frame">
+      <div class="fv"><span class="fn">${f.n}</span>${f.a}</div>
+      <div class="fm"><b>${f.t}</b><br>${f.d}</div>
+      <div class="fbar">${f.m.map(m=>`<em>${m}</em>`).join('')}</div>
+    </div>`).join('')}</div>`;
+}
+
+/* ---------- 方向数据 ---------- */
+const DIRS=[
+ {cls:'dA',id:'dirA',ix:'A',name:'星云玻璃',en:'Nebula Glass',
+  thesis:'深空底 + <b>弥散极光</b> + <b>磨砂玻璃卡片</b>。让「控制台悬浮在系统之上」有物理质感：卡片有厚度、有边缘高光、有背景折射。强调色用青→蓝渐变，只在关键动作出现。',
+  kv:[['材质','磨砂玻璃 / 1px 高光描边'],['圆角','卡 24 · 块 16 · 药丸 full'],
+      ['层级','模糊 + 外阴影 + 内高光'],['字阶','34 大数 / 17 标题 / 10.5 说明'],
+      ['动效','弹性 spring · 错峰入场'],['适用','追求高级感与质感']],
+  pal:['#06080F','#161C2A','#5FD8EA','#4F8BF7','#3ED8A4','#FFB74D','#FB7185','#EEF2FA']},
+ {cls:'dB',id:'dirB',ix:'B',name:'信号仪表',en:'Signal Deck',
+  thesis:'纯平极黑 + <b>精密网格</b> + <b>等宽数字</b>，只留一个信号色（酸橙绿）。像专业音频/航空仪表：零装饰、零模糊，信息密度优先，用刻度角标和 1px 描边表达秩序感。',
+  kv:[['材质','纯平 / 1px 描边 / 角标刻度'],['圆角','卡 10 · 块 8 · 药丸 6'],
+      ['层级','仅靠描边与留白'],['字阶','等宽大写标签 8.5–13'],
+      ['动效','瞬时切换 · 扫描线'],['适用','技术型用户 / 高信息密度']],
+  pal:['#0A0A0C','#0F0F12','#C8F751','#82B4FF','#FFB020','#FF5C5C','#F2F2F4','#F4F4F1']},
+ {cls:'dC',id:'dirC',ix:'C',name:'柔光层叠',en:'Lumen Soft',
+  thesis:'超大圆角 + <b>柔和双向阴影</b> + <b>触感按压</b>。卡片像一块块微微凸起的软材质，强调"可触摸"。温润的薰衣草蓝为主色，语义色更低饱和，整体亲和但不幼稚。',
+  kv:[['材质','柔和分层阴影 / 顶部高光'],['圆角','卡 28 · 块 18 · 按钮 full'],
+      ['层级','外阴影 + 内高光 + 渐变面'],['字阶','17.5 标题 / 33 大数'],
+      ['动效','弹性回弹 · 涟漪反馈'],['适用','长时间操作 / 亲和易用']],
+  pal:['#0F1116','#1B1F28','#8AA2FF','#6B7CFF','#5FD8A8','#FFC46B','#FF8497','#F6F5F2']}
+];
+
+/* ---------- 渲染 ---------- */
+DIRS.forEach(d=>{
+  const P=PAL[d.cls];
+  const sw=d.pal.map((c,i)=>{
+    const nm=['bg','surface','accent','accent2','ok','warn','bad','light'][i]||'';
+    return `<div class="sw" style="background:${c}"><b>${i+1}</b><i>${c}</i></div>`;}).join('');
+  document.getElementById(d.id).innerHTML=`
+    <div class="dir-hd">
+      <div class="dir-ix">${d.ix}</div>
+      <div><h2>${d.name}</h2><span class="en">Direction ${d.ix} · ${d.en}</span></div>
+    </div>
+    <p class="thesis">${d.thesis}</p>
+    <div class="kv">${d.kv.map(([k,v])=>`<div><b>${k}</b>${v}</div>`).join('')}</div>
+    <div class="pal">${sw}</div>
+
+    <div class="bt">核心页面 <small>Core Screens · 深色 / 浅色 · 真实信息架构</small></div>
+    <div class="phones">${dash(d.cls,'dark')}${dash(d.cls,'light')}</div>
+    <div class="phones gapped">${drawerPhone(d.cls)}${sheetPhone(d.cls)}</div>
+    <div class="phones gapped">${consolePhone(d.cls)}</div>
+
+    <div class="bt">关键组件 <small>Key Components · 组件体系与视觉语法</small></div>
+    <div>${components(d.cls)}</div>
+
+    <div class="bt">交互状态 <small>Interaction States · 完整状态覆盖</small></div>
+    <div>${states(d.cls)}</div>
+
+    <div class="bt">动效分镜 <small>Motion Storyboard · 触发 → 属性 → 时长 → 缓动</small></div>
+    <div>${story(d.cls)}</div>`;
+});
+</script>
+</body>
+</html>
+<script>
+/* 预览用：支持 ?z=0.5 缩放，便于整版截图 */
+(function(){
+  var m=/[?&]z=([0-9.]+)/.exec(location.search);
+  if(m){ var z=parseFloat(m[1]); if(z>0.1&&z<=1){ document.documentElement.style.zoom=z; } }
+})();
+</script>

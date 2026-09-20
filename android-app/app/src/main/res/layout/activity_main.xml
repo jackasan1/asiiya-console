@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -81,27 +82,117 @@
         </LinearLayout>
 
         <!-- ============ 服务卡（DeepSeek Harness，与网盘/费用卡同款）============ -->
-                <include android:id="@+id/cardHarness" layout="@layout/card_harness" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <com.dsh.console.ShadowLayout
+                android:id="@+id/wrapHarness"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:shadowRadius="@dimen/card_radius"
+                app:shadowBlur="@dimen/shadow_blur"
+                app:shadowDy="@dimen/shadow_dy"
+                app:shadowColor="@color/shadow_key">
+
+                <include
+                    android:id="@+id/cardHarness"
+                    layout="@layout/card_harness"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.dsh.console.ShadowLayout>
 
 
         <!-- ============ OpenList 网盘卡 ============ -->
-                <include android:id="@+id/cardOpenlist" layout="@layout/card_openlist" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <com.dsh.console.ShadowLayout
+                android:id="@+id/wrapOpenlist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:shadowRadius="@dimen/card_radius"
+                app:shadowBlur="@dimen/shadow_blur"
+                app:shadowDy="@dimen/shadow_dy"
+                app:shadowColor="@color/shadow_key">
+
+                <include
+                    android:id="@+id/cardOpenlist"
+                    layout="@layout/card_openlist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.dsh.console.ShadowLayout>
 
 
         <!-- ============ Aria2 离线下载卡 ============ -->
-                <include android:id="@+id/cardAria" layout="@layout/card_aria" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <com.dsh.console.ShadowLayout
+                android:id="@+id/wrapAria"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:shadowRadius="@dimen/card_radius"
+                app:shadowBlur="@dimen/shadow_blur"
+                app:shadowDy="@dimen/shadow_dy"
+                app:shadowColor="@color/shadow_key">
+
+                <include
+                    android:id="@+id/cardAria"
+                    layout="@layout/card_aria"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.dsh.console.ShadowLayout>
 
 
         <!-- ============ 费用卡（DeepSeek 官方数据）============ -->
-                <include android:id="@+id/cardCost" layout="@layout/card_cost" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <com.dsh.console.ShadowLayout
+                android:id="@+id/wrapCost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:shadowRadius="@dimen/card_radius"
+                app:shadowBlur="@dimen/shadow_blur"
+                app:shadowDy="@dimen/shadow_dy"
+                app:shadowColor="@color/shadow_key">
+
+                <include
+                    android:id="@+id/cardCost"
+                    layout="@layout/card_cost"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.dsh.console.ShadowLayout>
 
 
         <!-- ============ 日志卡（默认隐藏）============ -->
-                <include android:id="@+id/cardLog" layout="@layout/card_log" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <com.dsh.console.ShadowLayout
+                android:id="@+id/wrapLog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:shadowRadius="@dimen/card_radius"
+                app:shadowBlur="@dimen/shadow_blur"
+                app:shadowDy="@dimen/shadow_dy"
+                app:shadowColor="@color/shadow_key">
+
+                <include
+                    android:id="@+id/cardLog"
+                    layout="@layout/card_log"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.dsh.console.ShadowLayout>
 
 
         <!-- ============ 安装进度（默认隐藏）============ -->
-                <include android:id="@+id/cardInstall" layout="@layout/card_install" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" />
+                <com.dsh.console.ShadowLayout
+                android:id="@+id/wrapInstall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:shadowRadius="@dimen/card_radius"
+                app:shadowBlur="@dimen/shadow_blur"
+                app:shadowDy="@dimen/shadow_dy"
+                app:shadowColor="@color/shadow_key">
+
+                <include
+                    android:id="@+id/cardInstall"
+                    layout="@layout/card_install"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </com.dsh.console.ShadowLayout>
 
 
         <TextView
@@ -580,7 +671,8 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_deepseek" />
+                        android:src="@drawable/ic_deepseek"
+                        android:tint="@color/ico_fg" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -723,7 +815,8 @@
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_ariang" />
+                        android:src="@drawable/ic_ariang"
+                        android:tint="@color/ico_fg" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -795,7 +888,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@null"
                         android:src="@drawable/ic_coin"
-                        android:tint="@color/warn" />
+                        android:tint="@color/ico_fg" />
                 </FrameLayout>
 
                 <LinearLayout

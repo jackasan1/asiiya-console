@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>方向 C · 柔光层叠 — 实现版预览</title>
+<style>
+/* =========================================================================
+   方向 C · Lumen Soft — 实现版预览
+   本页所有色值 / 圆角 / 尺寸 均取自实现后的真实资源文件：
+     res/values/colors.xml · values-night/colors.xml · values/dimens.xml
+   （不是示意色，就是 App 里跑的那套 Token）
+   ========================================================================= */
+:root{
+  /* ---- 深色（values-night/colors.xml）---- */
+  --d-bg:#0F1116; --d-surface:#1B1F28; --d-surface2:#232833;
+  --d-stroke:rgba(255,255,255,.067);          /* #11FFFFFF */
+  --d-fg:#EDEFF5; --d-fg2:#98A0B2; --d-dim:#7D879B;
+  --d-accent:#6B7CFF; --d-accent-from:#B7C4FF; --d-accent-to:#7C8CFF;
+  --d-on-accent:#0E1220;
+  --d-ok:#5FD8A8; --d-warn:#FFC46B; --d-bad:#FF8497;
+  --d-track:#232833; --d-chip:#21252F;
+  --d-card-hi:rgba(255,255,255,.078);         /* #14FFFFFF */
+  --d-card-lo:rgba(255,255,255,.039);         /* #0AFFFFFF */
+  --d-shadow:rgba(0,0,0,.47);                 /* shadow_key #78000000 */
+  --d-ico-fg:#14162A;
+
+  /* ---- 浅色（values/colors.xml）---- */
+  --l-bg:#F6F5F2; --l-surface:#FFFFFF; --l-surface2:#F8F8F5;
+  --l-stroke:rgba(20,22,28,.059);             /* #0F14161C */
+  --l-fg:#14161C; --l-fg2:#6C7284; --l-dim:#9BA1B0;
+  --l-accent:#5B6CFF; --l-accent-from:#B7C4FF; --l-accent-to:#7C8CFF;
+  --l-on-accent:#FFFFFF;
+  --l-ok:#1CA078; --l-warn:#E09A3E; --l-bad:#E2536B;
+  --l-track:#E9E8E3; --l-chip:#F2F2EE;
+  --l-card-hi:rgba(255,255,255,1);
+  --l-card-lo:rgba(255,255,255,0);
+  --l-shadow:rgba(32,42,80,.09);              /* shadow_key #16202A50 */
+  --l-ico-fg:#14162A;
+
+  /* ---- 图标底板（两模式一致）---- */
+  --ico-a:#B7C4FF; --ico-b:#7C8CFF;
+  --ico-g-a:#7BEBC4; --ico-g-b:#3FC99A;
+  --ico-v-a:#D0BEFF; --ico-v-b:#A98CFF;
+  --ico-m-a:#FFD79A; --ico-m-b:#F5B45C;
+
+  /* ---- 尺寸：与 dimens.xml 完全一致 ---- */
+  --r-card:28px;      /* card_radius   */
+  --r-block:18px;     /* block_radius  */
+  --r-ico:14px;       /* ico_radius    */
+  --r-pill:999px;     /* 按钮全圆角    */
+  --card-pad:16px;    /* card_pad      */
+  --blur:10px;        /* shadow_blur   */
+  --dy:6px;           /* shadow_dy     */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;background:#0A0C11;color:#E8ECF4;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans SC","PingFang SC",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 14px 90px}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+
+/* ---------- 文档头 ---------- */
+.hero{border-radius:24px;padding:24px 20px;position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 18% 0%,#241F3E 0%,#141425 55%,#0A0C11 100%);
+  border:1px solid rgba(255,255,255,.08)}
+.hero:after{content:"";position:absolute;inset:-40% -10% auto -10%;height:60%;
+  background:radial-gradient(50% 100% at 28% 0%,rgba(183,196,255,.26),transparent 70%),
+             radial-gradient(45% 100% at 76% 10%,rgba(169,140,255,.22),transparent 70%);
+  filter:blur(10px);pointer-events:none}
+.hero>*{position:relative;z-index:2}
+.eyebrow{font:600 10.5px/1 ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:#8A93B5}
+.hero h1{font-size:25px;line-height:1.25;margin:10px 0 8px;letter-spacing:-.025em;font-weight:800}
+.hero p{color:#9AA3BD;font-size:13px;line-height:1.75;margin:0}
+.hero .note{margin-top:13px;font-size:11.5px;color:#7F88A3;line-height:1.7;
+  border-left:2px solid rgba(183,196,255,.5);padding-left:11px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
+.chip{font-size:10.5px;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.13);
+  color:#9AA8BE;background:rgba(255,255,255,.03)}
+
+/* ---------- 区块标题 ---------- */
+.bt{display:flex;align-items:center;gap:9px;margin:30px 0 14px;font-size:13.5px;font-weight:800;
+  color:#CBD6E6}
+.bt:before{content:"";width:3px;height:15px;border-radius:2px;background:#8AA2FF}
+.bt small{font-weight:500;color:#6F7D94;font-size:11px}
+
+/* ---------- Token 表 ---------- */
+.tok{display:grid;grid-template-columns:1fr;gap:9px}
+.tokcard{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);
+  border-radius:16px;padding:13px}
+.tokcard h4{margin:0 0 10px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7C8AA5}
+.sw{display:flex;flex-wrap:wrap;gap:7px}
+.swt{width:52px}
+.swt i{display:block;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.14)}
+.swt b{display:block;font:700 8.5px/1 ui-monospace,monospace;color:#DCE4F0;margin-top:5px;
+  overflow:hidden;text-overflow:ellipsis}
+.swt span{display:block;font:500 8px/1.4 ui-monospace,monospace;color:#6F7D94}
+table.dt{width:100%;border-collapse:collapse;font-size:11.5px}
+table.dt th{text-align:left;font:700 9.5px/1 ui-monospace,monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:#7C8AA5;padding:0 8px 7px}
+table.dt td{padding:6px 8px;border-top:1px solid rgba(255,255,255,.06);color:#B9C4D6}
+table.dt td:first-child{color:#E2E9F4;font-weight:650;white-space:nowrap}
+table.dt td code{font-family:ui-monospace,monospace;color:#A9B6D0;font-size:11px}
+table.dt tr.new td:first-child:after{content:" NEW";font:700 8px/1 ui-monospace,monospace;
+  color:#8AA2FF;margin-left:6px}
+
+/* ---------- 手机 ---------- */
+.phones{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start}
+.phone{width:100%;max-width:372px;height:812px;flex:none;position:relative;
+  border-radius:38px;padding:9px;background:#05070B;
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.10)}
+.phone .cap{position:absolute;top:-24px;left:4px;font:500 10.5px/1 ui-monospace,monospace;
+  color:#7C8AA5;white-space:nowrap}
+.scr{width:100%;height:100%;border-radius:30px;overflow:hidden;position:relative;
+  display:flex;flex-direction:column}
+
+/* 深色屏 */
+.scr.dark{background:linear-gradient(180deg,#14161C,#0F1116 70%,#0C0E13);color:var(--d-fg)}
+/* 浅色屏 */
+.scr.light{background:linear-gradient(180deg,#F8F7F4,#F6F5F2 70%,#F1F0EC);color:var(--l-fg)}
+
+.pst{height:44px;display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 24px 7px;font-size:11.5px;font-weight:700;flex:none;position:relative;z-index:5}
+.pbody{flex:1;overflow:hidden;padding:4px 12px 0}
+
+/* 顶部栏 */
+.tbar{height:48px;display:flex;align-items:center;gap:9px}
+.tbb{width:40px;height:40px;border-radius:var(--r-ico);display:grid;place-items:center;
+  font-size:15px;flex:none;border-width:1px;border-style:solid}
+.tbb.round{border-radius:999px}
+.tbt{flex:1;text-align:center;font-size:17.5px;font-weight:800;letter-spacing:-.01em}
+.dark .tbb{background:linear-gradient(180deg,#232833,#1B1F28);border-color:var(--d-stroke);color:#C9D1E2}
+.dark .tbt{color:var(--d-fg)}
+.light .tbb{background:linear-gradient(180deg,#FFFFFF,#F8F8F5);border-color:var(--l-stroke);color:#3A4050}
+.light .tbt{color:var(--l-fg)}
+
+/* 卡片：实心面 + 顶部高光 + 1dp 描边 + 柔和分层阴影 —— 与 bg_card.xml 一致 */
+.card{margin-top:12px;padding:var(--card-pad);position:relative;overflow:hidden;
+  border-radius:var(--r-card);border-width:1px;border-style:solid}
+.card,.block{background-clip:padding-box}
+.dark .card{border-color:var(--d-stroke);
+  background:
+    linear-gradient(180deg,var(--d-card-hi),var(--d-card-lo)),
+    linear-gradient(180deg,var(--d-surface2),var(--d-surface));
+  box-shadow:0 var(--dy) calc(var(--blur)*2.2) calc(var(--blur)*-.45) var(--d-shadow),
+             0 2px 6px -2px rgba(0,0,0,.45)}
+.light .card{border-color:var(--l-stroke);
+  background:
+    linear-gradient(180deg,var(--l-card-hi),var(--l-card-lo)),
+    var(--l-surface);
+  box-shadow:0 calc(var(--dy) + 2px) calc(var(--blur)*2.6) calc(var(--blur)*-.5) var(--l-shadow),
+             0 1px 3px -1px rgba(32,42,80,.07)}
+
+/* 卡片头 */
+.ch{display:flex;align-items:center;gap:9px}
+.ico{width:34px;height:34px;border-radius:var(--r-ico);display:grid;place-items:center;
+  flex:none;font-size:15px;color:var(--d-ico-fg);font-weight:800}
+.ico.a{background:linear-gradient(315deg,var(--ico-a),var(--ico-b))}
+.ico.g{background:linear-gradient(315deg,var(--ico-g-a),var(--ico-g-b))}
+.ico.v{background:linear-gradient(315deg,var(--ico-v-a),var(--ico-v-b))}
+.ico.m{background:linear-gradient(315deg,var(--ico-m-a),var(--ico-m-b))}
+.ch .tx{flex:1;min-width:0}
+.ttl{font-size:15px;font-weight:700;letter-spacing:-.005em}
+.sub{font-size:11px;margin-top:2.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dark .ttl{color:var(--d-fg)} .dark .sub{color:var(--d-dim)}
+.light .ttl{color:var(--l-fg)} .light .sub{color:var(--l-dim)}
+
+/* 状态胶囊 */
+.pill{font-size:10.5px;font-weight:700;padding:5px 10px;border-radius:999px;flex:none;
+  white-space:nowrap;line-height:1;display:inline-flex;align-items:center;gap:4px}
+.dark .pill{background:var(--d-chip);color:var(--d-fg2)}
+.dark .pill.ok{background:rgba(95,216,168,.12);color:var(--d-ok)}
+.dark .pill.warn{background:rgba(255,196,107,.12);color:var(--d-warn)}
+.light .pill{background:var(--l-chip);color:var(--l-fg2)}
+.light .pill.ok{background:rgba(28,160,120,.11);color:var(--l-ok)}
+.light .pill.warn{background:rgba(224,154,62,.12);color:var(--l-warn)}
+.dot{width:5px;height:5px;border-radius:999px;background:currentColor;flex:none}
+
+/* 指标块（bg_block.xml）*/
+.g3{display:flex;gap:6px;margin-top:12px}
+.block{flex:1;padding:8px 4px;text-align:center;min-width:0;
+  border-radius:var(--r-block);border-width:1px;border-style:solid}
+.dark .block{border-color:var(--d-stroke);
+  background:linear-gradient(180deg,var(--d-card-hi),var(--d-card-lo)),var(--d-surface2)}
+.light .block{border-color:var(--l-stroke);
+  background:linear-gradient(180deg,var(--l-card-hi),var(--l-card-lo)),var(--l-surface2)}
+.block .k{font-size:10px;letter-spacing:.07em;color:var(--d-dim);font-weight:700}
+.light .block .k{color:var(--l-dim)}
+.block .v{font-size:13px;font-weight:700;margin-top:3px;font-feature-settings:"tnum"}
+.dark .block .v{color:var(--d-fg)} .light .block .v{color:var(--l-fg)}
+
+/* 行 */
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;font-size:11.5px}
+.dark .row .l{color:var(--d-dim)} .dark .row .r{color:var(--d-fg);font-weight:700}
+.light .row .l{color:var(--l-dim)} .light .row .r{color:var(--l-fg);font-weight:700}
+.row .r{font-feature-settings:"tnum"}
+
+/* 按钮（全圆角）*/
+.btns{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;height:52px;border-radius:var(--r-pill);font-size:13px;font-weight:700;
+  display:grid;place-items:center;border:0;letter-spacing:.01em;line-height:1}
+.dark .btn.primary{background:linear-gradient(0deg,var(--d-accent-from),var(--d-accent-to));color:var(--d-on-accent)}
+.dark .btn.ghost{background:var(--d-surface2);border:1px solid var(--d-stroke);color:#C9D1E2}
+.light .btn.primary{background:linear-gradient(0deg,var(--l-accent-from),var(--l-accent-to));color:var(--l-on-accent)}
+.light .btn.ghost{background:var(--l-surface);border:1px solid var(--l-stroke);color:#3A4050}
+
+/* 进度 */
+.prog{height:6px;border-radius:999px;overflow:hidden;margin-top:11px}
+.dark .prog{background:var(--d-track)} .light .prog{background:var(--l-track)}
+.prog i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--d-accent-from),var(--d-accent-to))}
+
+/* 大数字 + 折线 */
+.bigfig{font-size:33px;font-weight:800;letter-spacing:-.035em;line-height:1;
+  font-feature-settings:"tnum"}
+.bigfig small{font-size:15px;font-weight:700;opacity:.85;margin-right:1px}
+.spark{height:44px;margin-top:10px}
+.spark svg{display:block;width:100%;height:100%}
+
+/* 底部 */
+.foot{padding:12px 0 16px}
+.pillbtn{height:48px;border-radius:var(--r-block);display:grid;place-items:center;
+  font-size:13.5px;font-weight:700}
+.dark .pillbtn{background:rgba(107,124,255,.14);color:var(--d-accent);
+  border:1px solid rgba(107,124,255,.3)}
+.light .pillbtn{background:rgba(91,108,255,.1);color:var(--l-accent);
+  border:1px solid rgba(91,108,255,.22)}
+.ver{text-align:center;font:500 9.5px/1 ui-monospace,monospace;margin-top:10px;letter-spacing:.04em}
+.dark .ver{color:#5B6478} .light .ver{color:#9BA1B0}
+
+/* ---------- 组件板 ---------- */
+.cgrid{display:grid;grid-template-columns:1fr;gap:12px}
+.cbox{border-radius:16px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.022);
+  padding:14px 13px}
+.cbox h4{margin:0 0 11px;font-size:11px;font-weight:750;letter-spacing:.09em;
+  text-transform:uppercase;color:#7C8AA5}
+.crow{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.cnote{font-size:10.5px;color:#6F7D94;margin-top:11px;line-height:1.65;
+  font-family:ui-monospace,monospace}
+
+/* ---------- 前后对照 ---------- */
+.ba{display:grid;grid-template-columns:1fr;gap:12px}
+.bac{border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:14px;
+  background:rgba(255,255,255,.022)}
+.bac h5{margin:0 0 12px;font-size:12px;color:#CBD6E6}
+.bapair{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.bai{display:flex;flex-direction:column;gap:8px;align-items:center}
+.bai .tagl{font:700 8.5px/1 ui-monospace,monospace;letter-spacing:.1em;color:#6F7D94}
+.oldcard{width:150px;height:74px;border-radius:22px;background:#12161D;
+  border:1px solid rgba(255,255,255,.075);display:grid;place-items:center;
+  font:600 10px/1 ui-monospace,monospace;color:#7C8C9C}
+.newcard{width:150px;height:74px;border-radius:28px;
+  background:linear-gradient(180deg,rgba(255,255,255,.078),rgba(255,255,255,.039)),
+             linear-gradient(180deg,#232833,#1B1F28);
+  border:1px solid rgba(255,255,255,.067);display:grid;place-items:center;
+  font:600 10px/1 ui-monospace,monospace;color:#EDEFF5;
+  box-shadow:0 6px 22px -4.5px rgba(0,0,0,.47),0 2px 6px -2px rgba(0,0,0,.45)}
+.arw{color:#4A5568;font-size:16px}
+
+/* ---------- 动效表 ---------- */
+table.mo{width:100%;border-collapse:collapse;font-size:11.5px}
+table.mo th{text-align:left;font:700 9.5px/1 ui-monospace,monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:#7C8AA5;padding:0 8px 7px}
+table.mo td{padding:8px 8px;border-top:1px solid rgba(255,255,255,.06);color:#B9C4D6;vertical-align:top}
+table.mo td:first-child{color:#E2E9F4;font-weight:650;white-space:nowrap}
+table.mo code{font-family:ui-monospace,monospace;color:#A9B6D0;font-size:11px}
+
+@media(min-width:900px){
+  .wrap{padding:30px 26px 110px}
+  .tok{grid-template-columns:1fr 1fr}
+  .cgrid{grid-template-columns:1fr 1fr}
+  .ba{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Lumen Soft · Implementation Preview</div>
+    <h1>方向 C · 柔光层叠 — 实现版预览</h1>
+    <p>本页色值 / 圆角 / 尺寸<b>全部取自实现后的真实资源文件</b>，不是示意图：
+      <span class="mono">colors.xml · values-night/colors.xml · dimens.xml</span>。</p>
+    <div class="chips">
+      <span class="chip">card_radius 28dp</span><span class="chip">block_radius 18dp</span>
+      <span class="chip">ico_radius 14dp</span><span class="chip">按钮全圆角</span>
+      <span class="chip">柔和分层阴影</span><span class="chip">等宽数字 tnum</span>
+    </div>
+    <div class="note">
+      与设计提案的差异：<b>阴影已按你选的方案实现为自定义 ShadowLayout</b>（12 层手绘，非 elevation），
+      因此卡片阴影比纯 CSS 略"实"一些；这一点在真机上会更明显。
+    </div>
+  </div>
+
+  <div class="bt">Token 落地核对 <small>Real Tokens · 与资源文件逐项对应</small></div>
+  <div class="tok">
+    <div class="tokcard">
+      <h4>深色 · values-night/colors.xml</h4>
+      <div class="sw">
+        <div class="swt"><i style="background:#0F1116"></i><b>bg</b><span>#0F1116</span></div>
+        <div class="swt"><i style="background:#1B1F28"></i><b>surface</b><span>#1B1F28</span></div>
+        <div class="swt"><i style="background:#232833"></i><b>surface2</b><span>#232833</span></div>
+        <div class="swt"><i style="background:#B7C4FF"></i><b>accent_from</b><span>#B7C4FF</span></div>
+        <div class="swt"><i style="background:#7C8CFF"></i><b>accent_to</b><span>#7C8CFF</span></div>
+        <div class="swt"><i style="background:#5FD8A8"></i><b>ok</b><span>#5FD8A8</span></div>
+        <div class="swt"><i style="background:#FFC46B"></i><b>warn</b><span>#FFC46B</span></div>
+        <div class="swt"><i style="background:#FF8497"></i><b>bad</b><span>#FF8497</span></div>
+      </div>
+    </div>
+    <div class="tokcard">
+      <h4>浅色 · values/colors.xml</h4>
+      <div class="sw">
+        <div class="swt"><i style="background:#F6F5F2"></i><b>bg</b><span>#F6F5F2</span></div>
+        <div class="swt"><i style="background:#FFFFFF"></i><b>surface</b><span>#FFFFFF</span></div>
+        <div class="swt"><i style="background:#F8F8F5"></i><b>surface2</b><span>#F8F8F5</span></div>
+        <div class="swt"><i style="background:#B7C4FF"></i><b>accent_from</b><span>#B7C4FF</span></div>
+        <div class="swt"><i style="background:#7C8CFF"></i><b>accent_to</b><span>#7C8CFF</span></div>
+        <div class="swt"><i style="background:#1CA078"></i><b>ok</b><span>#1CA078</span></div>
+        <div class="swt"><i style="background:#E09A3E"></i><b>warn</b><span>#E09A3E</span></div>
+        <div class="swt"><i style="background:#E2536B"></i><b>bad</b><span>#E2536B</span></div>
+      </div>
+    </div>
+    <div class="tokcard">
+      <h4>图标底板（两模式一致）</h4>
+      <div class="sw">
+        <div class="swt"><i style="background:linear-gradient(315deg,#B7C4FF,#7C8CFF)"></i><b>blue</b><span>服务</span></div>
+        <div class="swt"><i style="background:linear-gradient(315deg,#7BEBC4,#3FC99A)"></i><b>green</b><span>网盘</span></div>
+        <div class="swt"><i style="background:linear-gradient(315deg,#D0BEFF,#A98CFF)"></i><b>violet</b><span>下载</span></div>
+        <div class="swt"><i style="background:linear-gradient(315deg,#FFD79A,#F5B45C)"></i><b>amber</b><span>费用</span></div>
+        <div class="swt"><i style="background:#14162A"></i><b>ico_fg</b><span>#14162A</span></div>
+      </div>
+      <div class="cnote">字形统一 ico_fg（深色），保证在亮色渐变底板上对比度足够</div>
+    </div>
+    <div class="tokcard">
+      <h4>尺寸 · dimens.xml</h4>
+      <table class="dt">
+        <tr><th>token</th><th>改前</th><th>现在</th></tr>
+        <tr><td>card_radius</td><td>22dp</td><td>28dp</td></tr>
+        <tr><td>block_radius</td><td>16dp</td><td>18dp</td></tr>
+        <tr><td>pill_radius</td><td>13dp</td><td>100dp</td></tr>
+        <tr class="new"><td>ico_radius</td><td>—</td><td>14dp</td></tr>
+        <tr class="new"><td>card_pad</td><td>—</td><td>16dp</td></tr>
+        <tr class="new"><td>shadow_blur</td><td>—</td><td>10dp</td></tr>
+        <tr class="new"><td>shadow_dy</td><td>—</td><td>6dp</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="bt">核心页面 <small>Core Screens · 与真实布局同构</small></div>
+  <div class="phones" id="phones"></div>
+
+  <div class="bt">关键组件 <small>Key Components · 实际尺寸与材质</small></div>
+  <div class="cgrid">
+    <div class="cbox"><h4>按钮（全圆角 · 52dp）</h4>
+      <div class="crow" style="padding:10px;border-radius:16px;background:#0F1116">
+        <button class="btn primary" style="flex:none;padding:0 22px;height:52px;height:52px">打开界面</button>
+        <button class="btn ghost" style="flex:none;padding:0 22px;height:52px">停止</button>
+      </div>
+      <div class="cnote">radius = pill_radius(100dp) · 高度 btn_h(52dp) · 主按钮渐变 accent_from→accent_to</div>
+    </div>
+    <div class="cbox"><h4>图标底板（34dp · 渐变圆角方块）</h4>
+      <div class="crow" style="padding:12px;border-radius:16px;background:#0F1116">
+        <div class="ico a">◈</div><div class="ico g">▤</div>
+        <div class="ico v">⇣</div><div class="ico m">◔</div>
+      </div>
+      <div class="cnote">34dp · ico_radius 14dp · 315° 对角渐变 · 字形 ico_fg</div>
+    </div>
+    <div class="cbox"><h4>指标块 + 状态胶囊</h4>
+      <div style="padding:12px;border-radius:16px;background:#0F1116">
+        <div class="g3" style="margin-top:0">
+          <div class="block"><div class="k">端口</div><div class="v">3080</div></div>
+          <div class="block"><div class="k">模型</div><div class="v">V3</div></div>
+          <div class="block"><div class="k">进程</div><div class="v">1</div></div>
+        </div>
+        <div class="crow" style="margin-top:12px">
+          <span class="pill ok"><span class="dot"></span>运行中</span>
+          <span class="pill warn"><span class="dot"></span>已停止</span>
+          <span class="pill"><span class="dot"></span>未知</span>
+        </div>
+      </div>
+      <div class="cnote">block_radius 18dp · 数值 13sp/700 · 等宽数字防跳动</div>
+    </div>
+    <div class="cbox"><h4>进度 + 费用数字</h4>
+      <div style="padding:12px;border-radius:16px;background:#0F1116">
+        <div class="prog" style="margin-top:0"><i style="width:68%"></i></div>
+        <div class="row"><span class="l">任务 3 / 5</span><span class="r">12.4 MB/s</span></div>
+        <div class="bigfig" style="margin-top:14px;color:#EDEFF5;font-size:33px"><small>¥</small>12.86</div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none">
+          <defs><linearGradient id="sp" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#B7C4FF" stop-opacity=".38"/>
+            <stop offset="1" stop-color="#B7C4FF" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,40 L0,34 L10.5,29 L21,31 L31.5,23 L42,26 L52.5,18 L63,21 L73.5,14 L84,17
+                   L94.5,11 L105,15 L115.5,9 L126,13 L136.5,7 L147,10 L157.5,6 L168,9 L178.5,5 L189,8 L200,4
+                   L200,40 Z" fill="url(#sp)"/>
+          <polyline points="0,34 10.5,29 21,31 31.5,23 42,26 52.5,18 63,21 73.5,14 84,17 94.5,11 105,15
+                   115.5,9 126,13 136.5,7 147,10 157.5,6 168,9 178.5,5 189,8 200,4"
+            fill="none" stroke="#B7C4FF" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg></div>
+      </div>
+      <div class="cnote">进度全圆角 · 大数字 33sp/800 · letterSpacing −0.035em</div>
+    </div>
+  </div>
+
+  <div class="bt">材质前后对照 <small>Before / After · 关键差异</small></div>
+  <div class="ba">
+    <div class="bac"><h5>卡片</h5>
+      <div class="bapair">
+        <div class="bai"><span class="tagl">BEFORE 22dp / 无阴影</span><div class="oldcard">surface</div></div>
+        <span class="arw">→</span>
+        <div class="bai"><span class="tagl">AFTER 28dp / 柔和分层阴影</span><div class="newcard">surface</div></div>
+      </div>
+      <div class="cnote">ShadowLayout 12 层手绘 · 顶部高光渐变 · 1dp 描边</div>
+    </div>
+    <div class="bac"><h5>图标底板</h5>
+      <div class="bapair">
+        <div class="bai"><span class="tagl">BEFORE 圆形 / 半透明</span>
+          <div style="width:44px;height:44px;border-radius:999px;background:rgba(107,124,255,.16);
+            border:.8px solid rgba(255,255,255,.075);display:grid;place-items:center;color:#8AA2FF">◈</div></div>
+        <span class="arw">→</span>
+        <div class="bai"><span class="tagl">AFTER 圆角方块 / 对角渐变</span>
+          <div class="ico a" style="width:44px;height:44px;border-radius:16px;font-size:18px">◈</div></div>
+      </div>
+      <div class="cnote">圆 → 14dp 圆角方块 · 半透明色 → 实心渐变 · 字形改为深色</div>
+    </div>
+    <div class="bac"><h5>按钮</h5>
+      <div class="bapair">
+        <div class="bai"><span class="tagl">BEFORE 16dp 圆角</span>
+          <div style="width:110px;height:44px;border-radius:16px;
+            background:linear-gradient(90deg,#4FC3E8,#3B7DF0);display:grid;place-items:center;
+            font-size:12px;font-weight:700;color:#fff">启动</div></div>
+        <span class="arw">→</span>
+        <div class="bai"><span class="tagl">AFTER 全圆角</span>
+          <div style="width:110px;height:44px;border-radius:999px;
+            background:linear-gradient(0deg,#B7C4FF,#7C8CFF);display:grid;place-items:center;
+            font-size:12px;font-weight:700;color:#0E1220">启动</div></div>
+      </div>
+      <div class="cnote">圆角 16dp → 100dp · 渐变方向 90° → 0° · 文字改 on_accent</div>
+    </div>
+    <div class="bac"><h5>底色</h5>
+      <div class="bapair">
+        <div class="bai"><span class="tagl">BEFORE 冷蓝黑 / 冷灰</span>
+          <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.12)">
+            <div style="width:50px;height:44px;background:#080B11"></div>
+            <div style="width:50px;height:44px;background:#E9EDF4"></div>
+          </div></div>
+        <span class="arw">→</span>
+        <div class="bai"><span class="tagl">AFTER 暖深灰 / 暖纸</span>
+          <div style="display:flex;gap:0;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.12)">
+            <div style="width:50px;height:44px;background:#0F1116"></div>
+            <div style="width:50px;height:44px;background:#F6F5F2"></div>
+          </div></div>
+      </div>
+      <div class="cnote">色调由冷转暖，与薰衣草蓝主色同族</div>
+    </div>
+  </div>
+
+  <div class="bt">动效落地 <small>Motion · 实际实现参数</small></div>
+  <div class="cbox" style="margin-top:0">
+    <table class="mo">
+      <tr><th>场景</th><th>实现</th><th>参数</th></tr>
+      <tr><td>按压反馈</td><td><code>UiMotion.pressable()</code></td>
+          <td>按下 scale 1→0.96 / <code>90ms</code> / Decelerate；松手 <code>Overshoot(2.0)</code> / <code>260ms</code></td></tr>
+      <tr><td>卡片入场</td><td><code>UiMotion.enterStagger()</code></td>
+          <td>translationY 14dp→0 + alpha 0→1 / <code>260ms</code> / 错峰 <code>60ms × index</code></td></tr>
+      <tr><td>余额滚动</td><td><code>UiMotion.rollMoney()</code></td>
+          <td>ValueAnimator / <code>480ms</code> / Decelerate · &lt;¥1 自动切 4 位小数</td></tr>
+      <tr><td>状态色缓动</td><td><code>UiMotion.tweenColor()</code></td>
+          <td>ArgbEvaluator / <code>160ms</code>（已备好，按需接入）</td></tr>
+      <tr><td>无障碍</td><td><code>animationsDisabled()</code></td>
+          <td>读 <code>ANIMATOR_DURATION_SCALE</code>，为 0 时直接落终态、不动画</td></tr>
+    </table>
+    <div class="cnote">全部平台原生 API，未引入任何新依赖（无 androidx.dynamicanimation）</div>
+  </div>
+
+</div>
+
+<script>
+/* 手机同构渲染：深/浅两套用同一份结构，仅切 Token */
+function card(theme, o){
+  return `
+  <div class="card">
+    <div class="ch">
+      <div class="ico ${o.g}">${o.glyph}</div>
+      <div class="tx"><div class="ttl">${o.title}</div><div class="sub">${o.sub}</div></div>
+      <span class="pill ${o.state}"><span class="dot"></span>${o.stateText}</span>
+    </div>
+    ${o.body || ''}
+  </div>`;
+}
+function phone(theme){
+  const a = card(theme,{
+    g:'a', glyph:'◈', title:'DeepSeek Harness', sub:'v0.5.0 · 127.0.0.1:3080',
+    state:'ok', stateText:'运行中',
+    body:`<div class="g3">
+            <div class="block"><div class="k">端口</div><div class="v">3080</div></div>
+            <div class="block"><div class="k">模型</div><div class="v">V3</div></div>
+            <div class="block"><div class="k">进程</div><div class="v">1</div></div>
+          </div>
+          <div class="row"><span class="l">运行时长</span><span class="r">02:14:36</span></div>
+          <div class="btns"><button class="btn ghost">停止</button>
+            <button class="btn primary">打开界面</button></div>`
+  });
+  const b = card(theme,{
+    g:'g', glyph:'▤', title:'OpenList 网盘', sub:'v3.41 · 原 AList',
+    state:'warn', stateText:'已停止',
+    body:`<div class="row"><span class="l">本地地址</span><span class="r">:5244</span></div>
+          <div class="btns"><button class="btn ghost">启动</button>
+            <button class="btn ghost">安装</button></div>`
+  });
+  const c = card(theme,{
+    g:'v', glyph:'⇣', title:'Aria2 离线下载', sub:'aria2c 1.37 · RPC 6800',
+    state:'ok', stateText:'运行中',
+    body:`<div class="prog"><i style="width:68%"></i></div>
+          <div class="row"><span class="l">任务 3 / 5</span><span class="r">12.4 MB/s</span></div>`
+  });
+  const d = card(theme,{
+    g:'m', glyph:'◔', title:'用量与费用', sub:'本月 · DeepSeek 官方数据',
+    state:'', stateText:'V3',
+    body:`<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:10px">
+            <div class="bigfig"><small>¥</small>12.86</div>
+            <div style="text-align:right;font-size:10px;opacity:.72;line-height:1.6">
+              今日 ¥1.42<br>预估 ¥18.20</div>
+          </div>
+          <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none">
+            <defs><linearGradient id="sp-${theme}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#B7C4FF" stop-opacity=".38"/>
+              <stop offset="1" stop-color="#B7C4FF" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,40 L0,34 L10.5,29 L21,31 L31.5,23 L42,26 L52.5,18 L63,21 L73.5,14 L84,17
+                     L94.5,11 L105,15 L115.5,9 L126,13 L136.5,7 L147,10 L157.5,6 L168,9 L178.5,5 L189,8 L200,4
+                     L200,40 Z" fill="url(#sp-${theme})"/>
+            <polyline points="0,34 10.5,29 21,31 31.5,23 42,26 52.5,18 63,21 73.5,14 84,17 94.5,11
+                     105,15 115.5,9 126,13 136.5,7 147,10 157.5,6 168,9 178.5,5 189,8 200,4"
+              fill="none" stroke="#B7C4FF" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg></div>
+          <div class="row"><span class="l">输入 1.24M · 输出 386K</span><span class="r">tok</span></div>`
+  });
+  const cap = theme === 'dark' ? '① 主控台 · 深色（values-night）' : '② 主控台 · 浅色（values）';
+  return `
+  <div class="phone"><span class="cap">${cap}</span>
+    <div class="scr ${theme}">
+      <div class="pst"><span>9:41</span><span style="letter-spacing:.5px">▮▮▮ ᯤ ▰</span></div>
+      <div class="pbody">
+        <div class="tbar">
+          <div class="tbb">☰</div>
+          <div class="tbt">Asiiya 工作台</div>
+          <div class="tbb round">☀</div>
+        </div>
+        ${a}${b}${c}${d}
+        <div class="foot">
+          <div class="pillbtn">打开控制台</div>
+          <div class="ver">app 0.5.0 · ctl v14</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+document.getElementById('phones').innerHTML = phone('dark') + phone('light');
+</script>
+</body>
+</html>

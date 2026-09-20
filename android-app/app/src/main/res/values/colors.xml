@@ -1,37 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ===== Asiiya Dark Console · Light ===== -->
-    <color name="bg">#FFE9EDF4</color>
+    <!-- ============================================================
+         Lumen Soft · Light  (方向 C 柔光层叠)
+         暖纸底 + 薰衣草蓝 + 语义色统一降饱和
+         ============================================================ -->
+    <color name="bg">#FFF6F5F2</color>
     <color name="surface">#FFFFFFFF</color>
-    <color name="surface2">#FFF2F5FA</color>
-    <color name="stroke">#170F172A</color>
-    <color name="fg">#FF0F1722</color>
-    <color name="fg2">#FF5B6779</color>
-    <color name="dim">#FF8A96A8</color>
-    <color name="accent">#FF3B7DF0</color>
-    <color name="accent2">#FF0FA57A</color>
-    <color name="ok">#FF0FA57A</color>
-    <color name="ok_bg">#1F0FA57A</color>
-    <color name="ok_stroke">#5C0FA57A</color>
-    <color name="bad">#FFE11D48</color>
-    <color name="warn">#FFE8912A</color>
-    <color name="accent_from">#FF4FC3E8</color>
-    <color name="accent_to">#FF3B7DF0</color>
-    <color name="track">#FFE4EAF2</color>
-    <color name="bar">#FFDAE1EB</color>
-    <color name="bar_hi">#FFAEBBCB</color>
-    <color name="bar_last">#FF2563EB</color>
-    <color name="ring_track">#1A3B7DF0</color>
-    <color name="ring_tick">#33FFFFFF</color>
-    <color name="chip">#FFF2F5FA</color>
+    <color name="surface2">#FFF8F8F5</color>
+    <color name="stroke">#0F14161C</color>
+    <color name="fg">#FF14161C</color>
+    <color name="fg2">#FF6C7284</color>
+    <color name="dim">#FF9BA1B0</color>
+
+    <color name="accent">#FF5B6CFF</color>
+    <color name="accent2">#FF1CA078</color>
+    <color name="accent_from">#FFB7C4FF</color>
+    <color name="accent_to">#FF7C8CFF</color>
+    <color name="on_accent">#FFFFFFFF</color>
+
+    <color name="ok">#FF1CA078</color>
+    <color name="ok_bg">#1F1CA078</color>
+    <color name="ok_stroke">#5C1CA078</color>
+    <color name="bad">#FFE2536B</color>
+    <color name="warn">#FFE09A3E</color>
+
+    <color name="track">#FFE9E8E3</color>
+    <color name="bar">#FFDEDDD7</color>
+    <color name="bar_hi">#FF8A8F9C</color>
+    <color name="bar_last">#FF5B6CFF</color>
+    <color name="ring_track">#1F5B6CFF</color>
+    <color name="ring_tick">#33000000</color>
+
+    <color name="chip">#FFF2F2EE</color>
     <color name="card">#FFFFFFFF</color>
-    <color name="log_ts">#FFA8B2C0</color>
-    <color name="tint_blue">#1A3B7DF0</color>
-    <color name="tint_red">#1AE11D48</color>
-    <color name="tint_amber">#1AE8912A</color>
+    <color name="log_ts">#FF9BA1B0</color>
+
+    <color name="tint_blue">#1A5B6CFF</color>
+    <color name="tint_red">#1AE2536B</color>
+    <color name="tint_amber">#1AE09A3E</color>
     <color name="tint_gray">#14000000</color>
-    <color name="violet">#FF8B5CF6</color>
-    <color name="cyan">#FF06B6D4</color>
+    <color name="violet">#FF8B6BE0</color>
+    <color name="cyan">#FF2AA8C4</color>
+
+    <!-- ===== 材质（Lumen Soft 新增）===== -->
+    <color name="card_hi">#FFFFFFFF</color>
+    <color name="card_lo">#00FFFFFF</color>
+    <color name="shadow_key">#16202A50</color>
+    <color name="shadow_ambient">#0E202A50</color>
+    <color name="ico_from">#FFB7C4FF</color>
+    <color name="ico_to">#FF7C8CFF</color>
+    <color name="ico_green_from">#FF7BEBC4</color>
+    <color name="ico_green_to">#FF3FC99A</color>
+    <color name="ico_violet_from">#FFD0BEFF</color>
+    <color name="ico_violet_to">#FFA98CFF</color>
+    <color name="ico_amber_from">#FFFFD79A</color>
+    <color name="ico_amber_to">#FFF5B45C</color>
+
     <!-- 桌面小组件专用（RemoteViews 在启动器进程渲染，不跟随 App 内主题，固定深色） -->
     <color name="widget_bg">#FF12161D</color>
     <color name="widget_fg">#FFEEF3FA</color>
@@ -40,4 +64,5 @@
     <color name="widget_bad">#FFFB7185</color>
     <color name="widget_warn">#FFFFB74D</color>
     <color name="widget_chip">#FF1A212B</color>
+    <color name="ico_fg">#FF14162A</color>
 </resources>

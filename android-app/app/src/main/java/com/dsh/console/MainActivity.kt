@@ -189,6 +189,10 @@ class MainActivity : AppCompatActivity() {
         b.drawerBuild.setOnClickListener { closeDrawer(); action(getString(R.string.menu_buildtime), "buildtime", "6") }
         listOf(b.cardHarness.actStart, b.cardHarness.actStop, b.cardHarness.actRestart, b.cardHarness.actLog,
                b.btnMenu, b.btnTopRight, b.btnConsole).forEach { pressable(it) }
+
+        // 卡片错峰入场（Lumen Soft）
+        listOf(b.wrapHarness, b.wrapOpenlist, b.wrapAria, b.wrapCost)
+            .forEachIndexed { i, v -> UiMotion.enterStagger(v, i) }
         b.btnTopRight.setOnClickListener { toggleTheme(it) }
         // 方案 A：点标题行或「打开」按钮进控制台；更多收进 ⋮
         b.cardHarness.dshHead.setOnClickListener { openConsole() }
@@ -530,7 +534,7 @@ class MainActivity : AppCompatActivity() {
             b.cardCost.sparkCost.setData(FloatArray(0))
         } else {
             // 官方数据（与「DeepSeek 开放平台」网页同源）
-            b.cardCost.tvCostBal.text = money(c.balance)
+            UiMotion.rollMoney(b.cardCost.tvCostBal, c.balance)   // 数字滚动
             b.cardCost.tvCostState.text = getString(R.string.cost_state_official)
             b.cardCost.tvCostState.setTextColor(ContextCompat.getColor(this, R.color.ok))
             b.cardCost.tvCostSub.text = getString(R.string.cost_sub_official, c.at, money(c.totalCost))
@@ -2089,17 +2093,8 @@ class MainActivity : AppCompatActivity() {
         else -> K.DIM
     }
 
-    private fun pressable(v: View) {
-        v.setOnTouchListener { view, e ->
-            when (e.actionMasked) {
-                MotionEvent.ACTION_DOWN ->
-                    view.animate().scaleX(0.90f).scaleY(0.90f).setDuration(90).start()
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
-                    view.animate().scaleX(1f).scaleY(1f).setDuration(150).start()
-            }
-            false
-        }
-    }
+    /** 按压反馈：统一走 [UiMotion.pressable]（弹簧回弹 + 尊重系统动画开关）*/
+    private fun pressable(v: View) = UiMotion.pressable(v)
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 

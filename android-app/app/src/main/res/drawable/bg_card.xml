@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/surface" />
-    <corners android:radius="@dimen/card_radius" />
-    <stroke android:width="@dimen/stroke_w" android:color="@color/stroke" />
-</shape>
+<!-- Lumen Soft: 卡片 = 实心面 + 顶部高光渐变 + 1dp 描边 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/surface" />
+            <corners android:radius="@dimen/card_radius" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="@color/card_hi"
+                android:endColor="@color/card_lo"
+                android:type="linear" />
+            <corners android:radius="@dimen/card_radius" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="@dimen/stroke_w" android:color="@color/stroke" />
+            <corners android:radius="@dimen/card_radius" />
+        </shape>
+    </item>
+</layer-list>

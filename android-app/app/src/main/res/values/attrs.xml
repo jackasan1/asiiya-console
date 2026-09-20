@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Lumen Soft · 柔和分层阴影容器 -->
+    <declare-styleable name="ShadowLayout">
+        <!-- 子视图圆角（应与卡片圆角一致）-->
+        <attr name="shadowRadius" format="dimension" />
+        <!-- 阴影扩散范围 -->
+        <attr name="shadowBlur" format="dimension" />
+        <!-- 阴影垂直偏移，正值向下 -->
+        <attr name="shadowDy" format="dimension" />
+        <!-- 阴影颜色（含 alpha）-->
+        <attr name="shadowColor" format="color" />
+    </declare-styleable>
+</resources>

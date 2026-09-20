@@ -29,7 +29,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@null"
                         android:src="@drawable/ic_coin"
-                        android:tint="@color/warn" />
+                        android:tint="@color/ico_fg" />
                 </FrameLayout>
 
                 <LinearLayout

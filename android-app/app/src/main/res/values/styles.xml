@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- ================= 弹窗 ================= -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- ==================== 弹窗 ==================== -->
     <style name="ThemeOverlay.DshConsole.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/fg</item>
@@ -13,6 +12,12 @@
         <item name="android:textColorHint">@color/dim</item>
         <item name="textColorAlertDialogListItem">@color/fg</item>
         <item name="materialAlertDialogTitleTextStyle">@style/DshDialogTitle</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Dsh.Dialog</item>
+    </style>
+
+    <style name="ShapeAppearance.Dsh.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/card_radius</item>
     </style>
 
     <style name="DshDialogTitle" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
@@ -21,69 +26,77 @@
         <item name="android:textStyle">bold</item>
     </style>
 
-    <!-- ================= 字阶 ================= -->
+    <!-- ==================== 字阶（Lumen Soft）==================== -->
     <style name="TextAppearance.Dsh.TopbarTitle" parent="">
         <item name="android:textColor">@color/fg</item>
-        <item name="android:textSize">19sp</item>
+        <item name="android:textSize">17.5sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.Dsh.CardTitle" parent="">
         <item name="android:textColor">@color/fg</item>
-        <item name="android:textSize">17sp</item>
+        <item name="android:textSize">15sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 
     <style name="TextAppearance.Dsh.CardSub" parent="">
         <item name="android:textColor">@color/fg2</item>
-        <item name="android:textSize">11.5sp</item>
+        <item name="android:textSize">11sp</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 
+    <!-- 大数字：等宽数字，避免刷新跳动 -->
     <style name="TextAppearance.Dsh.BigNumber" parent="">
         <item name="android:textColor">@color/fg</item>
-        <item name="android:textSize">34sp</item>
+        <item name="android:textSize">33sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:includeFontPadding">false</item>
+        <item name="android:letterSpacing">-0.035</item>
+        <item name="android:fontFeatureSettings">tnum</item>
     </style>
 
     <style name="TextAppearance.Dsh.Value" parent="">
         <item name="android:textColor">@color/fg</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">13sp</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:fontFeatureSettings">tnum</item>
     </style>
 
+    <!-- 指标标签：小号 + 字距拉开 -->
     <style name="TextAppearance.Dsh.Label" parent="">
         <item name="android:textColor">@color/dim</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:letterSpacing">0.07</item>
     </style>
 
     <style name="TextAppearance.Dsh.Caption" parent="">
         <item name="android:textColor">@color/dim</item>
-        <item name="android:textSize">11.5sp</item>
+        <item name="android:textSize">11sp</item>
     </style>
 
     <style name="TextAppearance.Dsh.Pill" parent="">
         <item name="android:textColor">@color/ok</item>
-        <item name="android:textSize">12.5sp</item>
+        <item name="android:textSize">10.5sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <!-- ================= 按钮 ================= -->
+    <!-- ==================== 按钮 ==================== -->
     <style name="Widget.Dsh.Btn" parent="">
         <item name="android:layout_height">@dimen/btn_h</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">13sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:gravity">center</item>
         <item name="android:includeFontPadding">false</item>
         <item name="android:textColor">@color/fg</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:stateListAnimator">@null</item>
     </style>
 
     <style name="Widget.Dsh.Btn.Primary" parent="Widget.Dsh.Btn">
         <item name="android:background">@drawable/bg_btn_primary</item>
-        <item name="android:textColor">#FFFFFFFF</item>
+        <item name="android:textColor">@color/on_accent</item>
     </style>
 
     <style name="Widget.Dsh.Btn.Ghost" parent="Widget.Dsh.Btn">

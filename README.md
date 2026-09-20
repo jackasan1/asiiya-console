@@ -1,8 +1,26 @@
-# DeepSeek Harness for Android/Termux
+<div align="center">
 
-> 在 **Android 手机 Termux 环境** 原生运行 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的一键部署项目 · One-click deployment of DeepSeek Harness on **Android/Termux**.
->
-> 点击下方语言标题切换 · Click a language below to view its README.
+# Asiiya
+
+**Android 上的 DeepSeek Harness 控制台 —— 一键部署 + 原生管理 App**
+
+在手机 Termux 里原生运行 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，
+并用一个**原生 Android App** 管理它：启动/停止、端口与模型、余额与用量、离线下载、网盘 —— 全在一块屏幕上。
+
+`Kotlin` · `ViewBinding` · `minSdk 26` · 深色 / 浅色双模
+
+[![Release](https://img.shields.io/github/v/release/jackasan1/asiiya-console?label=release)](https://github.com/jackasan1/asiiya-console/releases/latest)
+[![Build APK](https://github.com/jackasan1/asiiya-console/actions/workflows/android.yml/badge.svg)](https://github.com/jackasan1/asiiya-console/actions/workflows/android.yml)
+
+<img src="docs/screenshots/dashboard-dark.png" width="41%" alt="深色模式">&nbsp;&nbsp;<img src="docs/screenshots/dashboard-light.png" width="41%" alt="浅色模式">
+
+<sub>真机截图 · 深色 / 浅色双模</sub>
+
+</div>
+
+---
+
+> 🇨🇳 中文说明在下方 · Click a language below to view its README.
 
 > [!IMPORTANT]
 > **当前最高支持 deepseek-harness rc.7**，向下兼容 rc.6 及更早版本。
@@ -18,6 +36,30 @@
 
 > ⚠️ **需要 Termux**：必须在 Android 手机的 Termux 终端里安装运行。**不要用 Google Play 版 Termux**（已过时）。
 
+### 管理 App（Asiiya 工作台）
+
+不想每次敲命令？可以装一个原生 App 来管它：
+
+| 能力 | 说明 |
+|---|---|
+| 🎛 **服务控制** | Harness / OpenList / Aria2 三张卡，启动 · 停止 · 重启 · 看日志 |
+| 📊 **状态一屏** | 端口、模型连接状态、进程数、运行时长 |
+| 💰 **费用与用量** | 余额、今日/昨日/本月/近 30 天、预算进度、花费走势 |
+| 📥 **离线下载** | 分享链接到 App 直接丢给 Aria2，支持剪贴板批量 |
+| 🧭 **抽屉导航** | 一级项目目录 → 二级操作台 |
+| 🌗 **深浅双模** | 跟随系统，也可手动切换 |
+| 🖼 **桌面小组件** | 状态常驻桌面，一键启停 |
+
+**下载**：[最新 Release](https://github.com/jackasan1/asiiya-console/releases/latest) → `app-release.apk`
+
+> App 通过 Termux 的 `RUN_COMMAND` 接口工作，**不需要 root**。
+> 首次使用需在 Termux 里执行一次：
+> ```bash
+> mkdir -p ~/.termux && echo 'allow-external-apps=true' >> ~/.termux/termux.properties
+> ```
+> 然后重启 Termux，并在首次打开 App 时授予「运行 Termux 命令」权限。
+
+
 ### 一、安装 Termux
 
 - **F-Droid（推荐）**：<https://f-droid.org/en/packages/com.termux/>
@@ -29,12 +71,12 @@
 
 ```bash
 pkg install -y git
-git clone https://github.com/FunnelCakes/deepseek-harness-android.git
-cd deepseek-harness-android
+git clone https://github.com/jackasan1/asiiya-console.git
+cd asiiya-console
 bash setup.sh
 ```
 
-> 🇨🇳 **国内用户提示**：`setup.sh` 会自动测速，npm / nodejs.org 较慢时**自动切换到 npmmirror 镜像**（仅本次会话生效，不改全局配置）。若 `git clone` 很慢或超时，请先开代理/TUN，或改用镜像 clone（如 `https://gitclone.com/github.com/FunnelCakes/deepseek-harness-android.git`）。
+> 🇨🇳 **国内用户提示**：`setup.sh` 会自动测速，npm / nodejs.org 较慢时**自动切换到 npmmirror 镜像**（仅本次会话生效，不改全局配置）。若 `git clone` 很慢或超时，请先开代理/TUN，或改用镜像 clone（如 `https://gitclone.com/github.com/jackasan1/asiiya-console.git`）。
 
 ### 三、使用
 
@@ -85,7 +127,16 @@ bash ~/dsh/stop_dsh.sh    # 停止
 - 不同手机 / ROM 的差异可能导致额外问题，例如：部分 ROM 通过 SELinux 禁用 `link()` 系统调用（会话/附件无法持久化，本脚本已改为 `rename()` 修复）、命名空间沙箱权限不同、bwrap/landlock 是否可用等。
 - `setup.sh` 覆盖了通用 Android 场景，但个别机型可能需要额外适配。
 
-**欢迎提 issue / PR 适配更多环境**：如果你在其它品牌、系统版本或 root 状态下遇到问题，欢迎在 [Issues](https://github.com/FunnelCakes/deepseek-harness-android/issues) 提交，或提交 Pull Request 补充对应机型的修复。
+**欢迎提 issue / PR 适配更多环境**：如果你在其它品牌、系统版本或 root 状态下遇到问题，欢迎在 [Issues](https://github.com/jackasan1/asiiya-console/issues) 提交，或提交 Pull Request 补充对应机型的修复。
+
+### 设计
+
+界面经历过一次完整重构（「柔光层叠」方向），相关文档：
+
+- [设计方向提案](docs/design/ui-directions.html) — 3 套风格方向的完整对比
+- [实现版预览](docs/design/implementation-preview.html) — 真实 Token 值渲染
+- [Token 施工图](docs/design/design-tokens.md) — 色值 / 尺寸 / 字阶 / 动效规格
+- [更新日志](CHANGELOG.md)
 
 ### 参考
 
@@ -118,8 +169,8 @@ Run `pkg update -y` after opening Termux.
 
 ```bash
 pkg install -y git
-git clone https://github.com/FunnelCakes/deepseek-harness-android.git
-cd deepseek-harness-android
+git clone https://github.com/jackasan1/asiiya-console.git
+cd asiiya-console
 bash setup.sh
 ```
 
@@ -174,7 +225,7 @@ Open <http://127.0.0.1:3080>, enter your **DeepSeek API Key** in the **Models** 
 - Different phones / ROMs may behave differently, e.g. some ROMs block the `link()` syscall via SELinux (sessions/attachments fail to persist — this script switches to `rename()` to fix it), namespace-sandbox permissions vary, and bwrap/landlock may or may not be available.
 - `setup.sh` covers the common Android cases, but specific devices may need extra tweaks.
 
-**Issues & PRs welcome**: if you hit a problem on another brand / OS version / root state, please open an [issue](https://github.com/FunnelCakes/deepseek-harness-android/issues) or submit a pull request with a fix for your environment.
+**Issues & PRs welcome**: if you hit a problem on another brand / OS version / root state, please open an [issue](https://github.com/jackasan1/asiiya-console/issues) or submit a pull request with a fix for your environment.
 
 ### References
 
@@ -186,6 +237,12 @@ Open <http://127.0.0.1:3080>, enter your **DeepSeek API Key** in the **Models** 
 </details>
 
 ---
+
+## 致谢
+
+- [FunnelCakes/deepseek-harness-android](https://github.com/FunnelCakes/deepseek-harness-android) —— 本项目的上游，Android/Termux 兼容修复的原始工作
+- [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) —— DeepSeek 官方 agent harness
+- [Termux](https://termux.dev/) —— 让这一切成为可能
 
 ## License
 
