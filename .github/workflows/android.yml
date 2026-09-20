@@ -45,6 +45,15 @@ jobs:
             echo "no keystore secret; building unsigned"
           fi
 
+      - name: Generate Gradle wrapper
+        run: gradle wrapper --gradle-version 8.7
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Android Lint
+        run: ./gradlew lintDebug --no-daemon
+
       - name: Build release APK
         env:
           GIT_SHA: ${{ github.sha }}
@@ -52,7 +61,6 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          gradle wrapper --gradle-version 8.7
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK

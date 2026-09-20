@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  只允许对「本机环回」使用明文 HTTP：
+  dsh Web UI 跑在 http://127.0.0.1:3080，Aria2 RPC 在 6800，OpenList 在 5244。
+  其余一切域名强制 HTTPS，避免 API Key / 会话数据被中间人截获。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">::1</domain>
+    </domain-config>
+</network-security-config>

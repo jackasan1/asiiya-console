@@ -11,8 +11,8 @@ android {
         applicationId = "com.dsh.console"
         minSdk = 26
         targetSdk = 34
-        versionCode = 15
-        versionName = "0.6.0"
+        versionCode = 16
+        versionName = "0.6.1"
         buildConfigField("String", "GIT_SHA", "\"" + (System.getenv("GIT_SHA") ?: "unknown") + "\"")
     }
 
@@ -35,8 +35,9 @@ android {
                 signingConfig = signingConfigs.getByName("shared")
         }
         getByName("release") {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // R8 代码压缩 + 资源压缩：APK 体积预计减少 30~45%
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (!System.getenv("ANDROID_KEYSTORE_PATH").isNullOrBlank())
                 signingConfig = signingConfigs.getByName("shared")
@@ -65,4 +66,10 @@ dependencies {
     implementation("androidx.drawerlayout:drawerlayout:1.2.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+
+    // ---- 单元测试 ----
+    testImplementation("junit:junit:4.13.2")
+    // Android 自带的是 org.json 桩实现（单测里会抛 Stub!），
+    // 这里放一份真实实现，让 JSON 解析测试能真跑
+    testImplementation("org.json:json:20240303")
 }

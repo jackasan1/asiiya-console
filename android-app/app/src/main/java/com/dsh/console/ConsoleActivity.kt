@@ -5,8 +5,10 @@ import android.graphics.Color
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.webkit.WebResourceRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.WebSettings
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -31,6 +33,14 @@ class ConsoleActivity : AppCompatActivity() {
         b.web.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            // ---- 安全收紧：这是加载「带你 API Key 的本地界面」的 WebView ----
+            allowFileAccess = false                       // 不允许 file:// 读本地文件
+            allowContentAccess = false                    // 不允许 content:// 访问
+            allowFileAccessFromFileURLs = false           // 禁止 file 页面读其他 file
+            allowUniversalAccessFromFileURLs = false      // 禁止 file 页面发跨域请求
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW  // 禁 https 页面混入 http
+            @Suppress("DEPRECATION")
+            setGeolocationEnabled(false)
         }
         // 用主题背景避免加载时闪白
         b.web.setBackgroundColor(
@@ -47,6 +57,21 @@ class ConsoleActivity : AppCompatActivity() {
         b.swipe.setOnRefreshListener { b.web.reload() }
 
         b.web.webViewClient = object : WebViewClient() {
+            /** 站外链接一律交给系统浏览器，避免在被信任的本地 WebView 里被带走 */
+            override fun shouldOverrideUrlLoading(
+                view: WebView?, request: WebResourceRequest?
+            ): Boolean {
+                val u = request?.url ?: return false
+                val h = u.host ?: return true
+                return if (h == "127.0.0.1" || h == "localhost") {
+                    false                      // 本机环回：留在 WebView
+                } else {
+                    runCatching {
+                        startActivity(Intent(Intent.ACTION_VIEW, u))
+                    }
+                    true
+                }
+            }
             override fun onPageFinished(view: WebView?, u: String?) {
                 b.swipe.isRefreshing = false
                 b.progress.visibility = android.view.View.GONE

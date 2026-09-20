@@ -49,7 +49,7 @@
                     android:layout_gravity="center"
                     android:contentDescription="@string/menu_about"
                     android:src="@drawable/ic_menu"
-                    android:tint="@color/fg" />
+                    app:tint="@color/fg" />
             </FrameLayout>
 
             <TextView
@@ -77,7 +77,7 @@
                     android:id="@+id/ivTheme"
                     android:contentDescription="@string/theme_toggle"
                     android:src="@drawable/ic_sun"
-                    android:tint="@color/fg" />
+                    app:tint="@color/fg" />
             </FrameLayout>
         </LinearLayout>
 
@@ -609,9 +609,9 @@
                         android:layout_width="22dp"
                         android:layout_height="22dp"
                         android:layout_gravity="center"
-                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
                         android:src="@mipmap/ic_launcher"
-                        android:tint="@color/accent" />
+                        app:tint="@color/accent" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -670,9 +670,9 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:layout_gravity="center"
-                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
                         android:src="@drawable/ic_deepseek"
-                        android:tint="@color/ico_fg" />
+                        app:tint="@color/ico_fg" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -742,9 +742,9 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
-                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
                         android:src="@drawable/ic_cloud"
-                        android:tint="@color/dim" />
+                        app:tint="@color/dim" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -814,9 +814,9 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:layout_gravity="center"
-                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
                         android:src="@drawable/ic_ariang"
-                        android:tint="@color/ico_fg" />
+                        app:tint="@color/ico_fg" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -886,9 +886,9 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
-                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
                         android:src="@drawable/ic_coin"
-                        android:tint="@color/ico_fg" />
+                        app:tint="@color/ico_fg" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -957,9 +957,9 @@
                 <ImageView
                     android:layout_width="18dp"
                     android:layout_height="18dp"
-                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/ic_restart"
-                    android:tint="@color/dim" />
+                    app:tint="@color/dim" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -985,9 +985,9 @@
                 <ImageView
                     android:layout_width="18dp"
                     android:layout_height="18dp"
-                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/ic_log"
-                    android:tint="@color/dim" />
+                    app:tint="@color/dim" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1013,9 +1013,9 @@
                 <ImageView
                     android:layout_width="18dp"
                     android:layout_height="18dp"
-                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/ic_menu"
-                    android:tint="@color/dim" />
+                    app:tint="@color/dim" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -1041,9 +1041,9 @@
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
-                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
                         android:src="@drawable/ic_process"
-                        android:tint="@color/dim" />
+                        app:tint="@color/dim" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -1180,9 +1180,9 @@
             <ImageView
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:contentDescription="@null"
+                android:importantForAccessibility="no"
                 android:src="@drawable/ic_uptime"
-                android:tint="@color/dim" />
+                app:tint="@color/dim" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -1208,9 +1208,9 @@
             <ImageView
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:contentDescription="@null"
+                android:importantForAccessibility="no"
                 android:src="@drawable/ic_process"
-                android:tint="@color/dim" />
+                app:tint="@color/dim" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -1236,9 +1236,9 @@
             <ImageView
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:contentDescription="@null"
+                android:importantForAccessibility="no"
                 android:src="@drawable/ic_stop"
-                android:tint="@color/dim" />
+                app:tint="@color/dim" />
 
             <TextView
                 android:layout_width="wrap_content"

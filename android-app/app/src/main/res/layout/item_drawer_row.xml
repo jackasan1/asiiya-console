@@ -14,7 +14,7 @@
         android:id="@+id/rowIcon"
         android:layout_width="18dp"
         android:layout_height="18dp"
-        android:contentDescription="@null" />
+        android:importantForAccessibility="no" />
 
     <TextView
         android:id="@+id/rowLabel"

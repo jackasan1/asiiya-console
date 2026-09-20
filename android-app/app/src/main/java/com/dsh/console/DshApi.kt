@@ -99,12 +99,23 @@ object DshApi {
     /** 与 assets/dsh-cost.sh 的版本对应：改脚本就让旧标记失效，重新落盘一次 */
     private const val COST_VER = "5"
 
-    /** 每次调用前先把最新版 dsh-ctl.sh 落盘（幂等，约 4KB） */
+    /**
+     * 确保 dsh-ctl.sh 已落盘。
+     *
+     * 脚本 22.7KB → base64 后约 30KB。早期实现是「每次调用都重新下发」，
+     * 在 5 秒轮询下等于：每 5 秒往 Intent 塞 30KB + 写盘 22.7KB + 起一个 bash。
+     * 现在改为「版本标记 + 文件存在性」双重判断，只在首次安装或脚本升级时下发一次，
+     * 与 bootstrapCost() 的做法保持一致。
+     */
     private fun bootstrap(ctx: Context): String {
         val b64 = Base64.encodeToString(
             ctx.assets.open("dsh-ctl.sh").readBytes(), Base64.NO_WRAP
         )
-        return "mkdir -p ~/dsh && printf '%s' '$b64' | base64 -d > ~/dsh/dsh-ctl.sh && chmod +x ~/dsh/dsh-ctl.sh && "
+        return "mkdir -p ~/dsh && " +
+               "if [ ! -f ~/dsh/.ctl-ver" + CTL_VERSION + " ] || [ ! -s ~/dsh/dsh-ctl.sh ]; then " +
+               "rm -f ~/dsh/.ctl-ver*; " +
+               "printf '%s' '" + b64 + "' | base64 -d > ~/dsh/dsh-ctl.sh && " +
+               "chmod +x ~/dsh/dsh-ctl.sh && touch ~/dsh/.ctl-ver" + CTL_VERSION + "; fi && "
     }
 
     /**

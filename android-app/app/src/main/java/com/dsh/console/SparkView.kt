@@ -18,6 +18,8 @@ class SparkView @JvmOverloads constructor(
     private var values: FloatArray = FloatArray(0)
     private var hl: Int = -1
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    /** 复用同一 RectF：早期在 onDraw 里每根柱都 new 一个，绘制时产生 GC 压力 */
+    private val bar = RectF()
     private var accent = 0
     private var normal = 0
 
@@ -49,7 +51,8 @@ class SparkView @JvmOverloads constructor(
             val left = i * (bw + gap)
             val top = h - bh
             paint.color = if (i == hl) accent else normal
-            canvas.drawRoundRect(RectF(left, top, left + bw, h), bw * 0.3f, bw * 0.3f, paint)
+            bar.set(left, top, left + bw, h)
+            canvas.drawRoundRect(bar, bw * 0.3f, bw * 0.3f, paint)
         }
     }
 }

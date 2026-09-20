@@ -70,6 +70,10 @@ class MainActivity : AppCompatActivity() {
     private var lastUrl = ""
     private var installPolling = false
     private var lastStatus: Status? = null
+    /** 连续多少次轮询「状态无变化」——用于自适应拉长轮询间隔 */
+    private var idleTicks = 0
+    /** 上次拉取费用的时间戳（费用改为按时间而非按 tick 计数触发） */
+    private var lastCostAt = 0L
     /** 用户主动点过「停止」后，不再自动拉起 */
     private var userStopped = false
     /** 连续几次探测到服务未运行 */
@@ -428,6 +432,20 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() { super.onResume(); auto = true; ui.post(tick) }
     override fun onPause() { super.onPause(); auto = false; ui.removeCallbacks(tick) }
 
+    /**
+     * 自适应轮询间隔。
+     *
+     * 服务状态稳定时没必要每 5 秒起一个 shell：连续无变化则逐步退避到 30 秒；
+     * 任何变化（或用户操作，见 ctl()）立刻回到 5 秒。安装过程中保持 5 秒。
+     */
+    private fun nextPollDelay(): Long = when {
+        busy > 0 || installPolling -> 5_000L
+        idleTicks <= 3  -> 5_000L
+        idleTicks <= 8  -> 10_000L
+        idleTicks <= 16 -> 20_000L
+        else            -> 30_000L
+    }
+
     /** 每 5 秒自动轮询；安装中则轮询安装日志 */
     private val tick = object : Runnable {
         override fun run() {
@@ -444,17 +462,23 @@ class MainActivity : AppCompatActivity() {
                     ctl("", "log", "4000", silent = true)
                 } else {
                     ctl("", "status", silent = true)
-                    // 费用卡：每 30 秒刷一次（余额走官方接口，用量的本地扫描不到 1 秒）
-                    if (costTick++ % 6 == 0) ctlCost(true, "json")
+                    // 费用卡：按「真实时间」每 30 秒刷一次。
+                    // 原来用 tick 计数（%6），一旦间隔退避就跟着漂移。
+                    val nowMs = System.currentTimeMillis()
+                    if (nowMs - lastCostAt > 30_000L) {
+                        lastCostAt = nowMs
+                        ctlCost(true, "json")
+                    }
                 }
             }
-            ui.postDelayed(this, 5000)
+            ui.postDelayed(this, nextPollDelay())
         }
     }
 
     // ---------------- Termux 调用 ----------------
 
     private fun ctl(label: String, vararg args: String, silent: Boolean = false, stdin: String? = null) {
+        idleTicks = 0   // 用户操作：立刻恢复最勤的轮询档位
         if (busy > 0 && !silent) { toast(getString(R.string.msg_busy, busy)); return }
         busy++
         if (!silent && label.isNotEmpty()) log("▶ " + label, K.CMD)
@@ -497,23 +521,12 @@ class MainActivity : AppCompatActivity() {
 
     // ---------------- 费用卡 ----------------
 
-    private fun money(v: Double): String =
-        if (v < 1.0) String.format(Locale.US, "¥%.4f", v)
-        else String.format(Locale.US, "¥%.2f", v)
+    /** 见 [Formatters] —— 抽出去是为了可单测 */
+    private fun money(v: Double): String = Formatters.money(v)
 
-    private fun fmtLeft(min: Int): String {
-        val h = min / 60
-        val m = min % 60
-        return if (h > 0) String.format(Locale.US, "%dh%02dm", h, m)
-        else String.format(Locale.US, "%dm", m)
-    }
+    private fun fmtLeft(min: Int): String = Formatters.fmtLeft(min)
 
-    private fun tokens(n: Long): String = when {
-        n >= 1_000_000_000L -> String.format(Locale.US, "%.2fB", n / 1e9)
-        n >= 1_000_000L -> String.format(Locale.US, "%.2fM", n / 1e6)
-        n >= 1_000L -> String.format(Locale.US, "%.1fK", n / 1e3)
-        else -> n.toString()
-    }
+    private fun tokens(n: Long): String = Formatters.tokens(n)
 
     private fun applyCost(c: Cost) {
         lastCost = c
@@ -719,6 +732,9 @@ class MainActivity : AppCompatActivity() {
         val prev = lastStatus
         lastStatus = s
 
+        // 自适应轮询：状态没变就逐步退避，一旦变化立刻回到最勤的档位
+        if (prev == s) idleTicks++ else idleTicks = 0
+
         stopSkeleton()
         if (prev == null || prev.service != s.service) pulse()
 
@@ -892,7 +908,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun fetchLatestSha(): Pair<String?, String?> {
         try {
-            val c = java.net.URL("https://github.com/jackasan1/deepseek-harness-android/commits/main.atom")
+            val c = java.net.URL("https://github.com/jackasan1/asiiya-console/commits/main.atom")
                 .openConnection() as java.net.HttpURLConnection
             c.connectTimeout = 12000
             c.readTimeout = 12000
@@ -909,7 +925,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { /* 落到 API 重试 */ }
 
         try {
-            val c = java.net.URL("https://api.github.com/repos/jackasan1/deepseek-harness-android/commits/main")
+            val c = java.net.URL("https://api.github.com/repos/jackasan1/asiiya-console/commits/main")
                 .openConnection() as java.net.HttpURLConnection
             c.connectTimeout = 12000
             c.readTimeout = 12000
@@ -1088,7 +1104,7 @@ class MainActivity : AppCompatActivity() {
 
     /** 固定下载地址：GitHub 会把 /releases/latest 解析到最新 release（CI 每次推送重建） */
     private val APK_URL =
-        "https://github.com/jackasan1/deepseek-harness-android/releases/latest/download/app-release.apk"
+        "https://github.com/jackasan1/asiiya-console/releases/latest/download/app-release.apk"
 
     private var updating = false
 

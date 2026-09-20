@@ -2,6 +2,45 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.1] — 2026-09-20
+
+**性能、安全与工程质量优化**
+
+### Performance
+- ⚡ **轮询开销大幅下降**：`dsh-ctl.sh` 实际 22.7 KB（base64 后约 30 KB），
+  而 `bootstrap()` 原本**每次调用都重新下发并写盘**（注释里写的"约 4 KB"早已过时）。
+  改为「版本标记 + 文件存在性」双重判断，与 `dsh-cost.sh` 的做法对齐 —— 只在首次安装 / 脚本升级时下发一次。
+  在 5 秒轮询下：**每 5 秒省掉 30 KB Intent + 22.7 KB 磁盘写入 + 一次无意义写入**。
+- ⏱ **自适应轮询退避**：状态连续无变化时 5s → 10s → 20s → 30s 逐级退避；
+  一旦状态变化或用户操作，立刻回到 5s。
+- 💰 费用拉取由「每 6 个 tick」改为**按真实时间每 30 秒**，避免退避后触发时机漂移。
+- 🎨 `SparkView.onDraw` 不再每根柱 `new RectF()`，消除绘制期对象分配。
+
+### Security
+- 🔒 **WebView 收紧**：禁用 file / content 访问、禁止跨源 file 请求、强制不混入明文；
+  站外链接改由系统浏览器打开，避免在被信任的本地 WebView 里被带走。
+- 🌐 **网络安全配置**：由全局 `android:usesCleartextTraffic="true"` 改为 `network_security_config`，
+  **仅对 `127.0.0.1` / `localhost` / `::1` 放行明文**，其余域名强制 HTTPS。
+
+### Build
+- 📦 **开启 R8 代码压缩 + 资源压缩**：release APK **5.05 MB → 1.73 MB（−65.7%）**。
+  配套 `proguard-rules.pro`：保留自定义 View 构造函数、WidgetProvider、ViewBinding 静态入口。
+- 🔧 修正仓库改名后遗留的 3 处硬编码地址（`deepseek-harness-android` → `asiiya-console`）。
+
+### Accessibility
+- ♿ 17 个纯装饰图标由 `contentDescription="@null"` 改为 `importantForAccessibility="no"`，
+  TalkBack 不再把它们读成无标签控件。
+
+### Quality
+- 🧪 **新增 13 个单元测试**：`FormattersTest`（金额 / token / 时长格式化）、
+  `DshApiTest`（status 与 cost 的 JSON 解析回归，覆盖前置 banner、字段缺失等场景）。
+- 🚦 CI 增加 **`testDebugUnitTest` + `lintDebug` 门禁**（此前只构建、不校验）。
+- 🧹 抽出 `Formatters.kt`，把纯函数从 2100 行的 `MainActivity` 中解耦（也让它们可被单测覆盖）。
+- 🐛 **单测发现的真实缺陷**：余额为 0 时显示 `¥0.0000`，现修正为 `¥0.00`。
+- 🎨 lint：21 处 `android:tint` → `app:tint`（AppCompat 兼容染色），**lint error 归零**。
+
+---
+
 ## [0.6.0] — 2026-09-20
 
 **「柔光层叠 / Lumen Soft」视觉重构** —— 只换设计语法，不动信息架构与业务逻辑。
