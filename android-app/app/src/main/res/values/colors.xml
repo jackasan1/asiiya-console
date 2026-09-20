@@ -1,33 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg">#FFF5F7FB</color>
+    <!-- ===== Asiiya Dark Console · Light ===== -->
+    <color name="bg">#FFE9EDF4</color>
     <color name="surface">#FFFFFFFF</color>
-    <color name="surface2">#FFF0F3F9</color>
-    <color name="stroke">#14000000</color>
-    <color name="fg">#FF171A21</color>
-    <color name="dim">#FF8A9099</color>
-    <color name="accent">#FF2F6BFF</color>
-    <color name="accent2">#FF2ED47A</color>
-    <color name="ok">#FF2ED47A</color>
-    <color name="bad">#FFFF6B6B</color>
-    <color name="ring_track">#1A2F6BFF</color>
-    <color name="ring_tick">#33FFFFFF</color>
-    <color name="chip">#FFF6F8FC</color>
-    <color name="card">#FFFFFFFF</color>
+    <color name="surface2">#FFF2F5FA</color>
+    <color name="stroke">#170F172A</color>
+    <color name="fg">#FF0F1722</color>
+    <color name="fg2">#FF5B6779</color>
+    <color name="dim">#FF8A96A8</color>
+    <color name="accent">#FF3B7DF0</color>
+    <color name="accent2">#FF0FA57A</color>
+    <color name="ok">#FF0FA57A</color>
+    <color name="ok_bg">#1F0FA57A</color>
+    <color name="ok_stroke">#5C0FA57A</color>
+    <color name="bad">#FFE11D48</color>
     <color name="warn">#FFE8912A</color>
-    <color name="log_ts">#FFA0A6AF</color>
-    <color name="tint_blue">#1A2F6BFF</color>
-    <color name="tint_red">#1AFF6B6B</color>
+    <color name="accent_from">#FF4FC3E8</color>
+    <color name="accent_to">#FF3B7DF0</color>
+    <color name="track">#FFE4EAF2</color>
+    <color name="bar">#FFDAE1EB</color>
+    <color name="bar_hi">#FFAEBBCB</color>
+    <color name="bar_last">#FF2563EB</color>
+    <color name="ring_track">#1A3B7DF0</color>
+    <color name="ring_tick">#33FFFFFF</color>
+    <color name="chip">#FFF2F5FA</color>
+    <color name="card">#FFFFFFFF</color>
+    <color name="log_ts">#FFA8B2C0</color>
+    <color name="tint_blue">#1A3B7DF0</color>
+    <color name="tint_red">#1AE11D48</color>
     <color name="tint_amber">#1AE8912A</color>
     <color name="tint_gray">#14000000</color>
     <color name="violet">#FF8B5CF6</color>
     <color name="cyan">#FF06B6D4</color>
     <!-- 桌面小组件专用（RemoteViews 在启动器进程渲染，不跟随 App 内主题，固定深色） -->
-    <color name="widget_bg">#FF161B23</color>
-    <color name="widget_fg">#FFEDF0F5</color>
-    <color name="widget_dim">#FF8A9099</color>
-    <color name="widget_ok">#FF35E08A</color>
-    <color name="widget_bad">#FFFF7B7B</color>
+    <color name="widget_bg">#FF12161D</color>
+    <color name="widget_fg">#FFEEF3FA</color>
+    <color name="widget_dim">#FF6C7789</color>
+    <color name="widget_ok">#FF3ED8A4</color>
+    <color name="widget_bad">#FFFB7185</color>
     <color name="widget_warn">#FFFFB74D</color>
-    <color name="widget_chip">#FF1E242E</color>
+    <color name="widget_chip">#FF1A212B</color>
 </resources>

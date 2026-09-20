@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Asiiya Dark Console · 尺寸 Token（4dp 栅格） ===== -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_s">8dp</dimen>
+    <dimen name="space_m">14dp</dimen>
+    <dimen name="space_l">16dp</dimen>
+    <dimen name="screen_pad">20dp</dimen>
+
+    <dimen name="card_radius">22dp</dimen>
+    <dimen name="block_radius">16dp</dimen>
+    <dimen name="pill_radius">13dp</dimen>
+    <dimen name="stroke_w">1dp</dimen>
+
+    <dimen name="icon_box">52dp</dimen>
+    <dimen name="icon_box_s">46dp</dimen>
+    <dimen name="btn_h">52dp</dimen>
+    <dimen name="grid_h">72dp</dimen>
+    <dimen name="grid_h_s">68dp</dimen>
+    <dimen name="pill_h">26dp</dimen>
+    <dimen name="topbar_h">46dp</dimen>
+</resources>

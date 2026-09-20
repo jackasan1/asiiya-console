@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 所有弹窗统一走这套：圆角卡片 + 主题配色 -->
+    <!-- ================= 弹窗 ================= -->
     <style name="ThemeOverlay.DshConsole.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/fg</item>
-        <item name="colorOnSurfaceVariant">@color/dim</item>
+        <item name="colorOnSurfaceVariant">@color/fg2</item>
         <item name="colorPrimary">@color/accent</item>
         <item name="colorSecondary">@color/accent</item>
         <item name="colorError">@color/bad</item>
         <item name="android:textColorPrimary">@color/fg</item>
-        <item name="android:textColorSecondary">@color/dim</item>
+        <item name="android:textColorSecondary">@color/fg2</item>
         <item name="android:textColorHint">@color/dim</item>
         <item name="textColorAlertDialogListItem">@color/fg</item>
         <item name="materialAlertDialogTitleTextStyle">@style/DshDialogTitle</item>
@@ -19,5 +19,79 @@
         <item name="android:textColor">@color/fg</item>
         <item name="android:textSize">17sp</item>
         <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ================= 字阶 ================= -->
+    <style name="TextAppearance.Dsh.TopbarTitle">
+        <item name="android:textColor">@color/fg</item>
+        <item name="android:textSize">19sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="TextAppearance.Dsh.CardTitle">
+        <item name="android:textColor">@color/fg</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="TextAppearance.Dsh.CardSub">
+        <item name="android:textColor">@color/fg2</item>
+        <item name="android:textSize">11.5sp</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="TextAppearance.Dsh.BigNumber">
+        <item name="android:textColor">@color/fg</item>
+        <item name="android:textSize">34sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="TextAppearance.Dsh.Value">
+        <item name="android:textColor">@color/fg</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Dsh.Label">
+        <item name="android:textColor">@color/dim</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="TextAppearance.Dsh.Caption">
+        <item name="android:textColor">@color/dim</item>
+        <item name="android:textSize">11.5sp</item>
+    </style>
+
+    <style name="TextAppearance.Dsh.Pill">
+        <item name="android:textColor">@color/ok</item>
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ================= 按钮 ================= -->
+    <style name="Widget.Dsh.Btn">
+        <item name="android:layout_height">@dimen/btn_h</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/fg</item>
+    </style>
+
+    <style name="Widget.Dsh.Btn.Primary" parent="Widget.Dsh.Btn">
+        <item name="android:background">@drawable/bg_btn_primary</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+    </style>
+
+    <style name="Widget.Dsh.Btn.Ghost" parent="Widget.Dsh.Btn">
+        <item name="android:background">@drawable/bg_btn_ghost</item>
+    </style>
+
+    <style name="Widget.Dsh.Btn.Danger" parent="Widget.Dsh.Btn">
+        <item name="android:background">@drawable/bg_btn_danger</item>
+        <item name="android:textColor">@color/bad</item>
     </style>
 </resources>
